@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+  <h2 class="mb-4"><i class="fas fa-credit-card me-2"></i>Billing</h2>
+
+  <!-- Current Plan -->
+  <div class="card shadow-sm p-4 mb-4">
+    <h5>Current Plan</h5>
+    <p class="mb-1"><strong>Plan:</strong> Pro (Monthly)</p>
+    <p><strong>Status:</strong> Active</p>
+    <a href="#" class="btn btn-outline-primary btn-sm disabled">Upgrade Plan (Coming Soon)</a>
+  </div>
+
+  <!-- Billing History with responsive table -->
+  <div class="card shadow-sm p-4 mb-4">
+    <h5>Billing History</h5>
+    
+    <div class="table-responsive mt-3">
+      <table class="table table-bordered mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Date</th>
+            <th>Amount</th>
+            <th>Payment Method</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>2025-04-01</td>
+            <td>$49.00</td>
+            <td>Visa •••• 4242</td>
+            <td><span class="badge bg-success">Paid</span></td>
+          </tr>
+          <tr>
+            <td>2025-03-01</td>
+            <td>$49.00</td>
+            <td>Visa •••• 4242</td>
+            <td><span class="badge bg-success">Paid</span></td>
+          </tr>
+          <tr>
+            <td>2025-02-01</td>
+            <td>$49.00</td>
+            <td>Visa •••• 4242</td>
+            <td><span class="badge bg-danger">Failed</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Payment Method -->
+  <div class="card shadow-sm p-4">
+    <h5>Payment Method</h5>
+    <p class="text-muted">Visa ending in 4242 (expires 12/27)</p>
+    <a href="#" class="btn btn-outline-secondary btn-sm disabled">Update Card (Coming Soon)</a>
+  </div>
+</div>
+{% endblock %}
+

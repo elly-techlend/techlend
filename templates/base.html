@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1"> <!-- ✅ Crucial for mobile responsiveness -->
+
+    <title>TechLend System</title>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dark.css') }}">
+
+    <!-- CountUp -->
+    <script src="https://cdn.rawgit.com/inorganik/countUp.js/master/dist/countUp.min.js"></script>
+</head>
+
+ <style>
+body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden; /* Optional: prevent sideways scroll */
+}
+        .search-bar-container {
+            margin-left: 180px;
+            margin-top: 0px;
+            padding: 2px 10px;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #ddd;
+            position: sticky;
+            top: 50px;
+            z-index: 999;
+        }
+        .sidebar {
+            position: fixed;
+            top: 40px;
+            left: 0;
+            width: 180px;
+            height: 100%;
+            background-color: #36454F;
+            padding-top: 20px;
+            overflow-y: auto;
+            border-right: 1px solid #ddd;
+            z-index: 1000;
+            font-size: 12px;
+        }
+.main-content {
+    margin-left: 180px;        /* offset for fixed sidebar */
+    padding: 20px;
+    padding-top: 70px;         /* offset for top navbar */
+}
+        }
+        .profile-info img {
+            height: 30px;
+            width: 30px;
+            border-radius: 50%;
+            margin-left: 5px;
+        }
+        .submenu {
+            display: none;
+            padding-left: 15px;
+        }
+        .coming-soon {
+            font-size: 0.6em;
+            color: #888;
+            margin-left: 3px;
+        }
+        .section {
+            cursor: pointer;
+            padding: 10px;
+        }
+.navbar {
+    background-color: #367588;
+    height: 50px;
+    width: 100vw;
+    color: white;
+    display: flex;
+    align-items: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 0 20px;
+    z-index: 1040;
+}
+
+.navbar-left,
+.navbar-right {
+    display: flex;
+    align-items: center;
+}
+
+.navbar-left {
+    flex: 1;
+}
+
+.navbar-right {
+    flex-shrink: 0;
+}
+
+.navbar-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    background-color: #111;
+    padding: 5px 15px;
+    border-radius: opx;
+    color: white;
+    font-weight: 600;
+}
+
+.navbar img {
+    height: 40px;
+    width: 40px;
+    object-fit: cover;
+}
+.sidebar-branch-info {
+    color: #ffffff;
+    background-color: #2d3748; /* Adjust to match your theme */
+    padding: 10px;
+    border-bottom: 1px solid #444;
+    font-size: 0.9rem;
+}
+    </style>
+
+<body>
+
+<!-- ✅ Fixed Top Navbar -->
+<nav class="navbar">
+    <!-- Left: System Logo -->
+    <div class="navbar-left">
+        <img src="{{ url_for('static', filename='tec.jpeg') }}" alt="TechLend Logo" width="45" height="45" class="rounded-circle">
+    </div>
+
+    <!-- Center: Company Box (absolutely centered) -->
+    <div class="navbar-center top-center-box">
+        {% if current_user.is_authenticated and current_user.company %}
+            {% if current_user.company.logo_url %}
+                <img src="{{ current_user.company.logo_url }}" alt="Company Logo" width="35" height="35" class="rounded-circle me-2">
+            {% else %}
+                <img src="{{ url_for('static', filename='default_logo.png') }}" alt="Default Logo" width="35" height="35" class="rounded-circle me-2">
+            {% endif %}
+            <span class="fw-bold">{{ current_user.company.name }}</span>
+        {% else %}
+            <span class="fw-bold">TechLend</span>
+        {% endif %}
+    </div>
+
+    <!-- Right: Auth Section -->
+    <div class="navbar-right d-flex align-items-center ms-auto">
+        {% if current_user.is_authenticated %}
+            <span class="me-2">Hello, {{ current_user.username }}</span>
+            <a href="{{ url_for('auth.logout') }}" class="btn btn-danger btn-sm">Logout</a>
+        {% else %}
+            <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-sm me-2">Login</a>
+            <a href="{{ url_for('auth.register') }}" class="btn btn-secondary btn-sm">Register</a>
+        {% endif %}
+    </div>
+</nav>
+
+<!-- ✅ Admin Bar -->
+{% if current_user.is_authenticated and (current_user.is_superuser or current_user.has_role('Admin')) %}
+<div class="search-bar-container">
+    <form id="branchForm" action="{{ url_for('admin.set_active_branch') }}" method="post" class="d-flex justify-content-between align-items-center w-100">
+        {{ csrf_form.csrf_token }}
+
+        <!-- Left: Branch Actions -->
+        <div class="input-group" style="min-width: 200px;">
+            <div class="input-group-btn me-2">
+                <button type="button" class="btn btn-outline-primary dropdown-toggle" id="search_options" data-bs-toggle="dropdown" aria-expanded="false">
+                    Branch #1
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{{ url_for('branches.list_branches') }}">View Branches</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('branches.add_branch') }}">Add Branch</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Center: Active Branch Switcher -->
+        <div class="input-group" style="min-width: 200px;">
+            <select class="form-select" name="branch_id" onchange="document.getElementById('branchForm').submit()">
+                {% for branch in current_user.company.branches %}
+                    <option value="{{ branch.id }}" {% if branch.id == session['active_branch_id'] %}selected{% endif %}>
+                        {{ branch.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Right: Admin Options -->
+        <div class="input-group" style="min-width: 200px;">
+            <div class="input-group-btn me-2">
+                <button type="button" class="btn btn-outline-primary dropdown-toggle" id="admin_options" data-bs-toggle="dropdown" aria-expanded="false">
+                    Admin Options
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item admin_option" href="{{ url_for('admin.manage_staff') }}">Manage Staff</a></li>
+                    <li><a class="dropdown-item admin_option" href="{{ url_for('auth.register') }}">Register Staff</a></li>
+                    <li><a class="dropdown-item admin_option" href="{{ url_for('admin.company_notifications') }}">Notifications</a></li>
+                    <li><a class="dropdown_item admin_option" href="{{ url_for('settings.billing') }}">Billing</a></li>
+                </ul>
+            </div>
+        </div>
+    </form>
+</div>
+{% endif %}
+
+<!-- ✅ Sidebar -->
+<div class="sidebar">
+    <!-- Current Branch Display -->
+{% if session.active_branch_name %}
+<div class="sidebar-branch-info">
+    <i class="fas fa-map-marker-alt me-1"></i>
+    <strong>Branch:</strong> {{ session.active_branch_name }}
+</div>
+{% endif %}
+
+<a href="{{ url_for('dashboard.index') }}"><i class="fas fa-home me-2"></i> Home</a>
+<li class="nav-item">
+  <a class="nav-link" href="{{ url_for('cashbook.view_cashbook') }}">
+    <i class="fas fa-book"></i> Cashbook
+  </a>
+</li>
+
+<div class="section d-flex align-items-center" onclick="toggleSubmenu('borrowersMenu')">
+  <i class="fa fa-user me-2"></i> Borrowers
+  <i class="fa fa-angle-left ms-auto"></i>
+</div>
+
+<div id="borrowersMenu" class="submenu">
+    <a href="{{ url_for('borrowers.view_borrowers') }}">View Borrowers</a>
+    <a href="{{ url_for('borrowers.add_borrower') }}">Add Borrower</a>
+    <a href="{{ url_for('borrowers.send_sms') }}">Send SMS</a>
+    <a href="{{ url_for('borrowers.send_email') }}">Send Email</a>
+    <a href="{{ url_for('borrowers.invite_borrowers') }}">Invite Borrowers</a>
+</div>
+
+<div class="section d-flex align-items-center" onclick="toggleSubmenu('loansMenu')">
+  <i class="fa fa-balance-scale me-2"></i> Loans
+  <i class="fa fa-angle-left ms-auto"></i>
+</div>
+
+    <div id="loansMenu" class="submenu">
+        <a href="{{ url_for('loan.view_loans') }}"><i class="fa fa-circle-o"></i> View All Loans</a>
+        <a href="{{ url_for('loan.add_loan') }}"><i class="fa fa-circle-o"></i> Add Loan</a>
+        <a href="{{ url_for('loan.archived_loans') }}"><i class="fa fa-circle-o"></i> Settled Loans</a>
+    </div>
+
+<div class="section d-flex align-items-center" onclick="toggleSubmenu('savingsMenu')">
+  <i class="fa fa-user me-2"></i> Savings
+  <i class="fa fa-angle-left ms-auto"></i>
+</div>
+    <div id="savingsMenu" class="submenu">
+        <a href="{{ url_for('savings.view_savings') }}">View Savings Accounts</a>
+        <a href="{{ url_for('savings.add_saving') }}">Add Savings Account</a>
+        <a href="#">Savings Report <span class="coming-soon">Coming</span></a>
+    </div>
+
+<div class="section d-flex align-items-center" onclick="toggleSubmenu('repaymentsMenu')">
+  <i class="fa fa-dollar me-2"></i> Repayments
+  <i class="fa fa-angle-left ms-auto"></i>
+</div>
+
+<div id="repaymentsMenu" class="submenu">
+    <a href="{{ url_for('repayments.all_repayments') }}">View Repayments</a>
+    <a href="{{ url_for('repayments.repayment_charts') }}">Repayments Charts</a>
+</div>
+
+<div class="section d-flex align-items-center" onclick="toggleSubmenu('expensesMenu')">
+  <i class="fa fa-briefcase me-2"></i> Expenses
+  <i class="fa fa-angle-left ms-auto"></i>
+</div>
+
+<div id="expensesMenu" class="submenu">
+    <a href="{{ url_for('expenses.all_expenses') }}">View Expenses</a>
+    <a href="{{ url_for('expenses.expense_charts') }}">Expenses Charts</a>
+    <a href="{{ url_for('expenses.all_expenses') }}">Add Expense</a>
+</div>
+<a href="{{ url_for('collateral.view_collateral') }}" class="section text-white" style="display: block; text-decoration: none;">
+    <i class="fa fa-file"></i> Collateral Register
+</a>
+
+<div class="section d-flex align-items-center" onclick="toggleSubmenu('otherincomeMenu')">
+  <i class="fa fa-cube me-2"></i> Other Income
+  <i class="fa fa-angle-left ms-auto"></i>
+</div>
+
+<div id="otherincomeMenu" class="submenu" style="display:none;">
+    <a href="{{ url_for('other_income.view_other_income') }}">View Other Income</a>
+    <a href="{{ url_for('other_income.add_income') }}">Add Income</a>
+</div>
+
+<!-- Bank Transfers Section -->
+<div class="section d-flex align-items-center" onclick="toggleSubmenu('bankTransfersMenu')">
+  <i class="fa fa-balance-scale me-2"></i> Bank Transfers
+  <i class="fa fa-angle-left ms-auto"></i>
+</div>
+
+<div id="bankTransfersMenu" class="submenu" style="display: none;">
+    <a href="{{ url_for('bank.bank_withdraw') }}"><i class="fa fa-arrow-up me-1"></i> Bank Withdraw</a>
+    <a href="{{ url_for('bank.bank_deposit') }}"><i class="fa fa-arrow-down me-1"></i> Bank Deposit</a>
+    <a href="{{ url_for('bank.view_transfers') }}"><i class="fa fa-list me-1"></i> View Transfers</a>
+</div>
+
+<a href="{{ url_for('cashflow.view_cash_flow') }}" class="section text-white" style="display: block; text-decoration: none;">
+    <i class="fa fa-bar-chart"></i> Cash Flow
+</a>
+
+<div class="section d-flex align-items-center" onclick="toggleSubmenu('settingsMenu')">
+  <i class="fa fa-cog me-2"></i> Settings
+  <i class="fa fa-angle-left ms-auto"></i>
+</div>
+    <ul id="settingsMenu" class="submenu">
+       <li><a href="{{ url_for('settings.profile') }}"><i class="fas fa-user me-2"></i>User Profile</a></li>
+       <li><a href="{{ url_for('settings.system_preferences') }}"><i class="fas fa-sliders-h me-2"></i>System Preferences</a></li>
+       <li><a href="{{ url_for('settings.data_management') }}"><i class="fas fa-database me-2"></i>Data Management</a></li>
+    </ul>
+{% if current_user.is_authenticated and current_user.is_superuser %}
+    <div class="section" onclick="toggleSubmenu('superadminMenu')">
+        <i class="fas fa-user-shield"></i> Super Admin <i class="fa fa-angle-left pull-right"></i>
+    </div>
+
+    <div id="superadminMenu" class="submenu">
+        <a href="{{ url_for('auth.register_company') }}"><i class="fas fa-building me-2"></i>Register Company</a>
+        <a href="{{ url_for('admin.register_admin') }}"><i class="fas fa-user-plus me-2"></i>Register Admin</a>
+        <a href="{{ url_for('admin.view_companies') }}"><i class="fas fa-eye me-2"></i>View Companies</a>
+        <a href="{{ url_for('settings.security_settings') }}"><i class="fas fa-shield-alt me-2"></i>Security Settings</a>
+        <a href="{{ url_for('admin.system_logs') }}"><i class="fas fa-file-alt me-2"></i>System Logs</a>
+        <a href="{{ url_for('admin.super_settings') }}"><i class="fas fa-sliders-h me-2"></i>Admin Settings</a>
+        <a href="{{ url_for('settings.integrations') }}"><i class="fas fa-plug me-2"></i>Integrations</a>
+        <a href="{{ url_for('settings.labs') }}"><i class="fas fa-flask me-2"></i>Labs</a></li>
+
+    </div>
+{% endif %}
+
+
+</div>
+
+<!-- ✅ Main Content -->
+<div class="main-content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}
+    {% endblock %}
+</div>
+
+<script>
+    document.querySelectorAll('.search_options').forEach(option => {
+        option.addEventListener('click', function (e) {
+            e.preventDefault();
+            const selectedBranch = this.textContent.trim();
+
+            // Update the button text
+            document.getElementById('search_options').textContent = selectedBranch;
+
+            // You can now send this value to a backend or filter content on the page
+            console.log("Selected Branch:", selectedBranch);
+
+            // Example: Redirect to a filtered route
+            // window.location.href = `/branches/filter/${selectedBranch}`;
+        });
+    });
+</script>
+
+<!-- ✅ JavaScript -->
+<script>
+    function toggleSubmenu(id) {
+        const menu = document.getElementById(id);
+        menu.style.display = menu.style.display === "block" ? "none" : "block";
+    }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+{% block scripts %}{% endblock %}
+
+</body>
+</html>

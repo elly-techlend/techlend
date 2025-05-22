@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <div class="card p-4 shadow rounded-3">
+        <h4 class="mb-4">Add Savings Account</h4>
+        <form method="POST">
+            <div class="mb-3">
+                <label for="borrower_id" class="form-label">Borrower</label>
+                <select name="borrower_id" class="form-select" required>
+                    <option value="">Select Borrower</option>
+                    {% for b in borrowers %}
+                        <option value="{{ b.id }}">{{ b.full_name }} (ID: {{ b.id }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="account_number" class="form-label">Account Number</label>
+                <input type="text" name="account_number" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label for="balance" class="form-label">Initial Balance</label>
+                <input type="number" step="0.01" name="balance" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-success">Create Account</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

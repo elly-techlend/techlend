@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow rounded-3 p-4">
+        <h4 class="card-title mb-4 text-center">Loan Details - {{ loan.loan_id }}</h4>
+
+        <!-- Header Box -->
+        <div class="row g-3 mb-4 bg-light p-3 rounded border">
+            <div class="header" style="background-color: #28a745; color: white; padding: 10px;">
+               <h2>{{ loan.company.name }}</h2>
+            </div>
+            <div class="col-md-4">
+                <strong>Borrower:</strong> {{ loan.borrower_name }}
+            </div>
+            <div class="col-md-4">
+                <strong>Date of Loan:</strong> {{ loan.date.strftime('%Y-%m-%d') if loan.date else '' }}
+            </div>
+            <div class="col-md-4">
+                <strong>Interest Rate:</strong> {{ loan.interest_rate }}%
+            </div>
+            <div class="col-md-4">
+                <strong>Total Due:</strong> {{ loan.total_due }}
+            </div>
+            <div class="col-md-4">
+                <strong>Remaining Balance:</strong> {{ loan.remaining_balance }}
+            </div>
+        </div>
+
+        <!-- Repayments Section -->
+        <h5 class="mt-4 mb-3">Repayment History</h5>
+        {% if repayments %}
+            <table class="table table-bordered table-striped">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Amount Paid</th>
+                        <th>Outstanding Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for repayment in repayments %}
+                    <tr>
+                        <td>{{ repayment.date_paid.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        <td>{{ repayment.amount_paid }}</td>
+                        <td>{{ repayment.balance_after }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No repayments made yet.</p>
+        {% endif %}
+
+     <!-- Make Repayment: full row -->
+<form method="POST" action="{{ url_for('loan.repay_loan', loan_id=loan.id) }}" class="mt-4 row g-2">
+
+    <div class="col-9">
+        <input type="number" name="amount_paid" step="0.01" min="0" placeholder="Enter repayment amount" class="form-control" required>
+    </div>
+    <div class="col-3">
+        <button type="submit" class="btn btn-success w-100">Make Repayment</button>
+    </div>
+</form>
+
+<!-- Buttons: full row with 4 equal columns -->
+<div class="mt-4 row g-2">
+    <div class="col-3">
+        <a href="{{ url_for('loan.edit_loan', loan_id=loan.id) }}" class="btn btn-warning w-100">Edit</a>
+    </div>
+    <div class="col-3">
+        <form method="POST" action="{{ url_for('loan.delete_loan', loan_id=loan.id) }}" onsubmit="return confirm('Are you sure?');">
+            <button type="submit" class="btn btn-danger w-100">Delete</button>
+        </form>
+    </div>
+    <div class="col-3">
+        <a href="{{ url_for('loan.export_loan_pdf', loan_id=loan.id) }}" class="btn btn-info w-100">Export PDF</a>
+    </div>
+    <div class="col-3">
+        <a href="{{ url_for('loan.view_loans') }}" class="btn btn-secondary w-100">Back to Loans</a>
+    </div>
+</div>
+
+    </div>
+</div>
+{% endblock %}

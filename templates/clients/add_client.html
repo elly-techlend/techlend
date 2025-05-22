@@ -1,0 +1,32 @@
+<!-- templates/clients/add_client.html -->
+
+{% extends 'base.html' %}
+{% block title %}Add New Client{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Add New Client</h2>
+
+    <form method="POST" action="{{ url_for('client.add_client') }}">
+        <div class="mb-3">
+            <label for="name" class="form-label">Full Name</label>
+            <input type="text" class="form-control" id="name" name="name" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="phone" class="form-label">Phone Number</label>
+            <input type="text" class="form-control" id="phone" name="phone" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="email" class="form-label">Email (optional)</label>
+            <input type="email" class="form-control" id="email" name="email">
+        </div>
+
+        <div class="d-flex justify-content-between">
+            <a href="{{ url_for('client.index') }}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-success">Add Client</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

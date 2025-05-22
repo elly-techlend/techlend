@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-sm rounded-4">
+        <div class="card-header bg-warning text-dark rounded-top-4">
+            <h5 class="mb-0"><i class="fas fa-edit me-2"></i>Edit Loan</h5>
+        </div>
+        <div class="card-body">
+            <form action="{{ url_for('loan.edit_loan', loan_id=loan.id) }}" method="POST">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="text" name="borrower_name" id="borrower_name" value="{{ loan.borrower_name }}" class="form-control" required>
+                            <label for="borrower_name">Borrower Name</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="text" name="phone_number" id="phone_number" value="{{ loan.phone_number }}" class="form-control" required>
+                            <label for="phone_number">Phone Number</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="number" name="amount_borrowed" id="amount_borrowed" value="{{ loan.amount_borrowed }}" class="form-control" required>
+                            <label for="amount_borrowed">Amount Borrowed</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="number" name="processing_fee" id="processing_fee" value="{{ loan.processing_fee }}" class="form-control" required>
+                            <label for="processing_fee">Processing Fee</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="number" name="total_due" id="total_due" value="{{ loan.total_due }}" class="form-control" readonly>
+                            <label for="total_due">Total Due</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="number" name="amount_paid" id="amount_paid" value="{{ loan.amount_paid }}" class="form-control" required>
+                            <label for="amount_paid">Amount Paid</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="number" name="remaining_balance" id="remaining_balance" value="{{ loan.remaining_balance }}" class="form-control" readonly>
+                            <label for="remaining_balance">Remaining Balance</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="date" name="date" id="date" value="{{ loan.date }}" class="form-control" required>
+                            <label for="date">Date</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="text" name="collateral" id="collateral" value="{{ loan.collateral }}" class="form-control">
+                            <label for="collateral">Collateral</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-grid mt-4">
+                    <button type="submit" class="btn btn-primary">Update Loan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

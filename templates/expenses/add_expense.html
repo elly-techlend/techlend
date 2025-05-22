@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Add New Expense</h2>
+<form method="POST">
+    <div class="form-group">
+        <label>Date</label>
+        <input type="date" name="date" class="form-control" value="{{ current_date }}" required>
+    </div>
+    <div class="form-group">
+        <label>Description</label>
+        <input type="text" name="description" class="form-control" required>
+    </div>
+    <div class="form-group">
+        <label>Amount</label>
+        <input type="number" name="amount" class="form-control" step="0.01" required>
+    </div>
+    <div class="form-group">
+        <label>Category</label>
+        <input type="text" name="category" class="form-control">
+    </div>
+    <button type="submit" class="btn btn-success">Submit</button>
+</form>
+{% endblock %}

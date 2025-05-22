@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Register Admin{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="card shadow-lg p-4 rounded-4">
+        <h2 class="text-center mb-4">Register New Admin</h2>
+
+        <form method="POST" action="{{ url_for('admin.register_admin') }}">
+            {{ form.hidden_tag() }}
+
+            <!-- Full Name -->
+            <div class="mb-3">
+                {{ form.full_name.label(class="form-label") }}
+                {{ form.full_name(class="form-control", placeholder="Full Name") }}
+                {% if form.full_name.errors %}
+                    <div class="text-danger small">{{ form.full_name.errors[0] }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Email -->
+            <div class="mb-3">
+                {{ form.email.label(class="form-label") }}
+                {{ form.email(class="form-control", placeholder="Email Address") }}
+                {% if form.email.errors %}
+                    <div class="text-danger small">{{ form.email.errors[0] }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Password -->
+            <div class="mb-3">
+                {{ form.password.label(class="form-label") }}
+                {{ form.password(class="form-control", placeholder="Password") }}
+                {% if form.password.errors %}
+                    <div class="text-danger small">{{ form.password.errors[0] }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Confirm Password -->
+            <div class="mb-3">
+                {{ form.confirm_password.label(class="form-label") }}
+                {{ form.confirm_password(class="form-control", placeholder="Confirm Password") }}
+                {% if form.confirm_password.errors %}
+                    <div class="text-danger small">{{ form.confirm_password.errors[0] }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Company -->
+            <div class="mb-3">
+                {{ form.company.label(class="form-label") }}
+                {{ form.company(class="form-select") }}
+                {% if form.company.errors %}
+                    <div class="text-danger small">{{ form.company.errors[0] }}</div>
+                {% endif %}
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">Register Admin</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

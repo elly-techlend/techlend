@@ -1,0 +1,63 @@
+<!-- templates/clients/clients_dashboard.html -->
+
+{% extends 'base.html' %}
+
+{% block title %}Clients Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Clients Dashboard</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="mb-3">
+        <a href="{{ url_for('client.add_client') }}" class="btn btn-primary">+ Add New Client</a>
+    </div>
+
+    {% if clients %}
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped">
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Business</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for client in clients %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ client.name }}</td>
+                    <td>{{ client.phone }}</td>
+                    <td>{{ client.email or 'N/A' }}</td>
+                    <td>{{ client.business_name or 'N/A' }}</td>
+                    <td>
+                        <a href="{{ url_for('client.view', client_id=client.id) }}" class="btn btn-sm btn-info">View</a>
+                        <a href="{{ url_for('client.edit', client_id=client.id) }}" class="btn btn-sm btn-warning">Edit</a>
+                        <form action="{{ url_for('client.delete', client_id=client.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this client?');">
+                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p class="text-muted">No clients found. Start by adding one.</p>
+    {% endif %}
+</div>
+{% endblock %}

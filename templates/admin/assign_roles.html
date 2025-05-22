@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2 class="mb-4"><strong>ASSIGN ROLES</strong></h2>
+
+  <!-- Role Tabs Navigation -->
+  <ul class="nav nav-pills mb-3" id="roleTabs" role="tablist">
+    {% for role in available_roles if role != 'superuser' %}
+      <li class="nav-item" role="presentation">
+        <button class="nav-link {% if loop.first %}active{% endif %}" 
+                id="tab-{{ role }}" 
+                data-bs-toggle="pill" 
+                data-bs-target="#panel-{{ role }}" 
+                type="button" 
+                role="tab" 
+                aria-controls="panel-{{ role }}" 
+                aria-selected="{{ 'true' if loop.first else 'false' }}">
+          {{ role.replace('_', ' ').title() }}
+        </button>
+      </li>
+    {% endfor %}
+  </ul>
+
+  <form method="POST">
+    <div class="tab-content" id="roleContent">
+      {% for tab in available_roles if tab != 'superuser' %}
+        <div class="tab-pane fade {% if loop.first %}show active{% endif %}" 
+             id="panel-{{ tab }}" 
+             role="tabpanel" 
+             aria-labelledby="tab-{{ tab }}">
+          <div class="row">
+            {% for role in available_roles if role != 'superuser' %}
+              <div class="col-md-6 mb-3">
+                <div class="form-check border p-3 rounded bg-light">
+                  <input class="form-check-input"
+                         type="checkbox"
+                         name="roles"
+                         id="role_{{ role }}"
+                         value="{{ role }}"
+                         {% if role in user_role_names %}checked{% endif %}>
+                  <label class="form-check-label" for="role_{{ role }}">
+                    <strong>{{ role.replace('_', ' ').title() }}</strong><br>
+                    <small class="text-muted">
+                      {% if role == 'admin' %}
+                        Full access to company settings, staff management, and reports.
+                      {% elif role == 'loans_supervisor' %}
+                        Oversees loan operations and supervises loan officers.
+                      {% elif role == 'branch_manager' %}
+                        Manages a specific branch's operations and staff.
+                      {% elif role == 'loans_officer' %}
+                        Handles borrower registration, loan creation, and approvals.
+                      {% elif role == 'cashier' %}
+                        Manages cash disbursements and repayments for loans and savings.
+                      {% elif role == 'accountant' %}
+                        Has read-only access to all financial records and activity logs.
+                      {% else %}
+                        Description for {{ role }} not available.
+                      {% endif %}
+                    </small>
+                  </label>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <button type="submit" class="btn btn-success mt-3">Update Roles</button>
+    <a href="{{ url_for('admin.assign_roles') }}" class="btn btn-secondary mt-3">Cancel</a>
+  </form>
+</div>
+{% endblock %}

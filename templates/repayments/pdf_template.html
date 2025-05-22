@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Helvetica, sans-serif; font-size: 12px; }
+        h3 { text-align: center; margin-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #333; padding: 6px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h3>Repayments Report</h3>
+    <p><strong>Total Collected:</strong> {{ total_collected }}</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Loan ID</th>
+                <th>Borrower</th>
+                <th>Amount Paid</th>
+                <th>Date Paid</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in repayments %}
+            <tr>
+                <td>{{ r.loan_id }}</td>
+                <td>{{ r.loan.borrower.name }}</td>
+                <td>{{ "%.2f"|format(r.amount_paid) }}</td>
+                <td>{{ r.date_paid.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

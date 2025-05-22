@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+      <div class="card shadow rounded-3">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0">Add Collateral for {{ borrower.name }}</h5>
+        </div>
+        <div class="card-body">
+          <form method="POST" novalidate>
+            <div class="mb-3">
+              <label for="item_name" class="form-label">Item Name</label>
+              <input type="text" name="item_name" id="item_name" class="form-control" required>
+            </div>
+
+            <div class="mb-3">
+              <label for="model" class="form-label">Model</label>
+              <input type="text" name="model" id="model" class="form-control">
+            </div>
+
+            <div class="mb-3">
+              <label for="serial_number" class="form-label">Serial Number</label>
+              <input type="text" name="serial_number" id="serial_number" class="form-control">
+            </div>
+
+            <div class="mb-3">
+              <label for="status" class="form-label">Status</label>
+              <select name="status" id="status" class="form-select">
+                <option value="held">Held</option>
+                <option value="returned">Returned</option>
+                <option value="lost">Lost</option>
+              </select>
+            </div>
+
+            <div class="mb-4">
+              <label for="condition" class="form-label">Condition</label>
+              <select name="condition" id="condition" class="form-select">
+                <option value="good">Good</option>
+                <option value="fair">Fair</option>
+                <option value="damaged">Damaged</option>
+              </select>
+            </div>
+
+            <div class="d-grid">
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-save me-1"></i> Save Collateral
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

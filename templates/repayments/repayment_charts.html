@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h4 class="mb-3">Repayment Chart</h4>
+    <div class="card">
+        <div class="card-body">
+            <canvas id="repaymentChart" width="400" height="250"></canvas>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const labels = [
+        {% for r in repayments %}
+            "{{ r.date_paid.strftime('%Y-%m-%d') }}",
+        {% endfor %}
+    ];
+
+    const data = {
+        labels: labels,
+        datasets: [{
+            label: 'Amount Paid',
+            data: [
+                {% for r in repayments %}
+                    {{ r.amount_paid }},
+                {% endfor %}
+            ],
+            borderColor: '#4e73df',
+            backgroundColor: 'rgba(78, 115, 223, 0.1)',
+            fill: true,
+            tension: 0.4
+        }]
+    };
+
+    const config = {
+        type: 'line',
+        data: data,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    };
+
+    new Chart(
+        document.getElementById('repaymentChart'),
+        config
+    );
+</script>
+{% endblock %}

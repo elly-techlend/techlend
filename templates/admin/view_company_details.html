@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="card shadow rounded-4 p-4">
+    <div class="row align-items-center flex-column flex-md-row">
+      <div class="col-md-3 text-center mb-3 mb-md-0">
+        {% if company.logo_url %}
+          <img src="{{ company.logo_url }}" alt="{{ company.name }} Logo" class="img-fluid rounded" style="max-height: 120px;">
+        {% else %}
+          <img src="{{ url_for('static', filename='default_logo.png') }}" alt="Default Logo" class="img-fluid rounded" style="max-height: 120px;">
+        {% endif %}
+      </div>
+
+      <div class="col-md-9">
+        <h3 class="fw-bold">{{ company.name }}</h3>
+        <div class="row">
+          <div class="col-12 col-sm-6 mb-2"><i class="fas fa-envelope me-2"></i><strong>Email:</strong> {{ company.email or 'N/A' }}</div>
+          <div class="col-12 col-sm-6 mb-2"><i class="fas fa-phone me-2"></i><strong>Phone:</strong> {{ company.phone or 'N/A' }}</div>
+          <div class="col-12 col-sm-6 mb-2"><i class="fas fa-map-marker-alt me-2"></i><strong>Address:</strong> {{ company.address or 'N/A' }}</div>
+          <div class="col-12 col-sm-6 mb-2">
+            <i class="fas fa-toggle-on me-2"></i><strong>Status:</strong>
+            {% if company.is_active %}
+              <span class="badge bg-success">Active</span>
+            {% else %}
+              <span class="badge bg-danger">Suspended</span>
+            {% endif %}
+          </div>
+          <div class="col-12 col-sm-6 mb-2"><i class="fas fa-calendar me-2"></i><strong>Created:</strong> {{ company.created_at.strftime('%Y-%m-%d') }}</div>
+          <div class="col-12 col-sm-6 mb-2"><i class="fas fa-code-branch me-2"></i><strong>Total Branches:</strong> {{ total_branches }}</div>
+          <div class="col-12 col-sm-6 mb-2"><i class="fas fa-user-shield me-2"></i><strong>Admin:</strong> {{ admin_user.full_name if admin_user else 'N/A' }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-4 d-flex flex-column flex-md-row justify-content-between align-items-stretch align-items-md-center gap-3">
+      <a href="{{ url_for('admin.superuser_dashboard') }}" class="btn btn-secondary w-100 w-md-auto">
+        <i class="fas fa-arrow-left me-1"></i> Back
+      </a>
+
+      <div class="d-flex flex-column flex-md-row gap-2 w-100 w-md-auto">
+        {% if company.is_active %}
+          <a href="{{ url_for('admin.deactivate_company', company_id=company.id) }}" class="btn btn-warning w-100 w-md-auto">
+            <i class="fas fa-ban me-1"></i> Suspend
+          </a>
+        {% else %}
+          <a href="{{ url_for('admin.activate_company', company_id=company.id) }}" class="btn btn-success w-100 w-md-auto">
+            <i class="fas fa-check-circle me-1"></i> Activate
+          </a>
+        {% endif %}
+        <a href="{{ url_for('admin.delete_company', company_id=company.id) }}" class="btn btn-danger w-100 w-md-auto">
+          <i class="fas fa-trash-alt me-1"></i> Delete
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

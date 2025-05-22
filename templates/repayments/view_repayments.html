@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <!-- Header -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <h3 class="text-primary fw-bold mb-2">
+      <i class="bi bi-cash-stack me-2"></i>Repayments
+    </h3>
+  </div>
+
+  <!-- Filter & PDF Export -->
+  <div class="row g-2 align-items-end mb-4">
+    <div class="col-12 col-md-9">
+      <form method="get" action="{{ url_for('repayments.all_repayments') }}" class="row g-2">
+        <div class="col-12 col-sm-4">
+          <input type="date" name="date" id="date" class="form-control" required>
+        </div>
+        <div class="col-12 col-sm-4">
+          <select name="period" class="form-select" required>
+            <option value="day">Day</option>
+            <option value="month">Month</option>
+            <option value="year">Year</option>
+          </select>
+        </div>
+        <div class="col-12 col-sm-4 d-grid">
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-funnel-fill me-1"></i>Filter
+          </button>
+        </div>
+      </form>
+    </div>
+    <div class="col-12 col-md-3 d-grid">
+      <a href="{{ url_for('repayments.export_pdf') }}" class="btn btn-danger">
+        <i class="bi bi-file-earmark-pdf-fill me-1"></i>Export PDF
+      </a>
+    </div>
+  </div>
+
+  <!-- Total Summary -->
+  <div class="mb-3">
+    <h5 class="text-success">Total Amount Collected: 
+      <strong>{{ "{:,.2f}".format(total_collected) }}</strong>
+    </h5>
+  </div>
+
+  <!-- Repayments Table -->
+  {% if repayments %}
+  <div class="table-responsive shadow-sm">
+    <table class="table table-hover table-bordered align-middle">
+      <thead class="table-dark">
+        <tr>
+          <th>Loan ID</th>
+          <th>Borrower Name</th>
+          <th>Amount Paid</th>
+          <th>Date Paid</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for repayment in repayments %}
+        <tr>
+          <td>{{ repayment.loan_id }}</td>
+          <td>{{ repayment.loan.borrower.name }}</td>
+          <td>{{ "{:,.2f}".format(repayment.amount_paid) }}</td>
+          <td>{{ repayment.date_paid.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="alert alert-info mt-4">
+    <i class="bi bi-info-circle-fill me-1"></i> No repayments found for the selected period.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

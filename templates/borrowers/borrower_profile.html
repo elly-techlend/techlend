@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+
+{% block title %}Borrower Details - {{ borrower.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card p-4 shadow rounded-4">
+        <h2 class="mb-4">Borrower Details</h2>
+
+        <div class="row g-4">
+            <!-- Borrower Info -->
+            <div class="col-12">
+                <div class="row g-3 align-items-start">
+                    <!-- Photo -->
+                    <div class="col-md-3 text-center">
+                        {% if borrower.photo %}
+                            <img src="{{ url_for('static', filename='uploads/' ~ borrower.photo) }}" class="img-fluid rounded" alt="{{ borrower.name }}">
+                        {% else %}
+                            <img src="{{ url_for('static', filename='images/default-avatar.png') }}" class="img-fluid rounded" alt="Default Avatar">
+                        {% endif %}
+                    </div>
+
+                    <!-- Details -->
+                    <div class="col-md-9">
+                        <h4>{{ borrower.name }}</h4>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Borrower ID:</strong> {{ borrower.borrower_id }}</p>
+                                <p><strong>Gender:</strong> {{ borrower.gender }}</p>
+                                <p><strong>DOB:</strong> {{ borrower.date_of_birth.strftime('%Y-%m-%d') if borrower.date_of_birth else 'N/A' }}</p>
+                                <p><strong>Phone:</strong> {{ borrower.phone or 'N/A' }}</p>
+                                <p><strong>Email:</strong> {{ borrower.email or 'N/A' }}</p>
+                                <p><strong>Address:</strong> {{ borrower.address or 'N/A' }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Marital Status:</strong> {{ borrower.marital_status or 'N/A' }}</p>
+                                <p><strong>Spouse:</strong> {{ borrower.spouse_name or 'N/A' }}</p>
+                                <p><strong>Children:</strong> {{ borrower.number_of_children or 0 }}</p>
+                                <p><strong>Education:</strong> {{ borrower.education or 'N/A' }}</p>
+                                <p><strong>Place of Birth:</strong> {{ borrower.place_of_birth or 'N/A' }}</p>
+                                <p><strong>Next of Kin:</strong> {{ borrower.next_of_kin or 'N/A' }}</p>
+                                <p><strong>Registered:</strong> {{ borrower.registration_date.strftime('%Y-%m-%d') if borrower.registration_date else 'N/A' }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loans Section -->
+            <div class="col-12">
+                <h3>Loans</h3>
+                {% if loans %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Loan ID</th>
+                                    <th>Amount</th>
+                                    <th>Amount Paid</th>
+                                    <th>Remaining Balance</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for loan in loans %}
+                                <tr>
+                                    <td>{{ loan.loan_id }}</td>
+                                    <td>{{ "{:,.2f}".format(loan.total_due) }}</td>
+                                    <td>{{ "{:,.2f}".format(loan.amount_paid) }}</td>
+                                    <td>{{ "{:,.2f}".format(loan.remaining_balance) }}</td>
+                                    <td>{{ loan.status }}</td>
+                                    <td>{{ loan.date.strftime('%Y-%m-%d') if loan.date else 'N/A' }}</td>
+                                    <td>
+                                        <a href="{{ url_for('loan.loan_details', loan_id=loan.id) }}" class="btn btn-sm btn-primary">View</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p>No loans found for this borrower.</p>
+                {% endif %}
+            </div>
+
+            <!-- Savings Section -->
+            <div class="col-12">
+                <h3 class="mt-4">Savings Accounts</h3>
+                {% if savings_accounts %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Account Number</th>
+                                    <th>Balance</th>
+                                    <th>Branch</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for saving in savings_accounts %}
+                                <tr>
+                                    <td>{{ saving.account_number }}</td>
+                                    <td>{{ "{:,.2f}".format(saving.balance) }}</td>
+                                    <td>{{ saving.branch.name if saving.branch else 'N/A' }}</td>
+                                    <td>
+                                        <a href="{{ url_for('savings.view_transactions', saving_id=saving.id) }}" class="btn btn-sm btn-info">Transactions</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p>No savings accounts found for this borrower.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

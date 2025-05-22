@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+  <h2 class="mb-4"><i class="fas fa-shield-alt me-2"></i>Security Settings</h2>
+
+  <div class="card shadow-sm p-4 mb-4">
+    <h5>Change Password</h5>
+    <p class="text-muted">Redirect to the password reset/change page.</p>
+    <a href="{{ url_for('settings.change_password') }}" class="btn btn-outline-primary">Change Password</a>
+  </div>
+
+  <div class="card shadow-sm p-4 mb-4">
+    <h5>Two-Factor Authentication (2FA)</h5>
+    <div class="form-check form-switch mt-2">
+      <input class="form-check-input" type="checkbox" id="enable2fa" disabled>
+      <label class="form-check-label" for="enable2fa">Enable 2FA (Coming Soon)</label>
+    </div>
+  </div>
+
+  <div class="card shadow-sm p-4 mb-4">
+    <h5>Login Activity Logs</h5>
+    <p class="text-muted">Review user login activities (view-only).</p>
+    <a href="{{ url_for('admin.view_logs') }}" class="btn btn-outline-secondary">View Logs</a>
+  </div>
+
+  <div class="card shadow-sm p-4">
+    <h5>Security Alerts</h5>
+    <div class="form-check mt-2">
+      <input class="form-check-input" type="checkbox" id="alertEmails" checked disabled>
+      <label class="form-check-label" for="alertEmails">Receive email alerts for unusual activities</label>
+    </div>
+  </div>
+</div>
+{% endblock %}

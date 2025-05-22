@@ -1,0 +1,44 @@
+<!-- templates/branches/add_branch.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="card shadow rounded-4">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Add a New Branch</h4>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                {% if csrf_token %}
+                    {{ csrf_token() }}
+                {% endif %}
+
+                <div class="mb-3">
+                    <label for="name" class="form-label">Branch Name</label>
+                    <input type="text" id="name" name="name" class="form-control" placeholder="e.g., Downtown Branch" required>
+                </div>
+
+                <div class="mb-3">
+                    <label for="location" class="form-label">Location</label>
+                    <input type="text" id="location" name="location" class="form-control" placeholder="City or Region">
+                </div>
+
+                <div class="mb-3">
+                    <label for="address" class="form-label">Address</label>
+                    <input type="text" id="address" name="address" class="form-control" placeholder="Street Address">
+                </div>
+
+                <div class="mb-3">
+                    <label for="phone_number" class="form-label">Phone Number</label>
+                    <input type="text" id="phone_number" name="phone_number" class="form-control" placeholder="e.g., +1234567890">
+                </div>
+
+                <div class="text-end">
+                    <button type="submit" class="btn btn-success">Add Branch</button>
+                    <a href="{{ url_for('branches.list_branches') }}" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

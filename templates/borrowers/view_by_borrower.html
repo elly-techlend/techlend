@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h3>Loans for {{ borrower.name }}</h3>
+
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Loan ID</th>
+                <th>Loan Amount</th>
+                <th>Remaining Balance</th>
+                <th>Loan Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for loan in loans %}
+                <tr>
+                    <td>{{ loan.id }}</td>
+                    <td>{{ loan.amount_borrowed }}</td>
+                    <td>{{ loan.remaining_balance }}</td>
+                    <td>{{ loan.status }}</td>
+                    <td>
+                        <a href="{{ url_for('loans.view_repayments', loan_id=loan.id) }}" class="btn btn-info btn-sm">View Repayments</a>
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="5" class="text-center">No loans found for this borrower.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Manage Staff{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4">Manage Staff</h2>
+
+    <!-- Filter & Search -->
+    <div class="row mb-3 g-2 align-items-center">
+        <div class="col-md-6 col-sm-12">
+            <input type="text" class="form-control" id="searchInput" placeholder="Search by name...">
+        </div>
+        <div class="col-md-4 col-sm-12">
+            <select class="form-select" id="branchFilter">
+                <option value="">All Branches</option>
+                {% for branch in branches %}
+                    <option value="{{ branch.name }}">{{ branch.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <!-- Responsive Table -->
+    <div class="table-responsive">
+        <table class="table table-hover table-bordered align-middle" id="staffTable">
+            <thead class="table-light">
+                <tr>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Branch</th>
+                    <th>Company</th>
+                    <th>Role(s)</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in staff %}
+                <tr>
+                    <td class="username-cell">{{ user.username }}</td>
+                    <td>{{ user.email }}</td>
+                    <td class="branch-cell">{{ user.branch.name if user.branch else 'None' }}</td>
+                    <td>{{ user.company.name if user.company else 'N/A' }}</td>
+                    <td>
+                        {% for role in user.roles %}
+                            {{ role.name }}{% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                    </td>
+                    <td>
+                        <form method="POST" action="{{ url_for('admin.move_staff', user_id=user.id) }}" class="d-inline">
+                            <select name="branch_id" class="form-select form-select-sm d-inline w-auto" required>
+                                <option value="">Select Branch</option>
+                                {% for branch in branches %}
+                                    <option value="{{ branch.id }}" {% if user.branch and user.branch.id == branch.id %}selected{% endif %}>{{ branch.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-sm btn-outline-primary ms-1">Move</button>
+                        </form>
+                        <form action="{{ url_for('admin.delete_staff', user_id=user.id) }}" method="POST" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-outline-danger ms-2" onclick="return confirm('Are you sure you want to permanently delete this staff?');">
+                                <i class="bi bi-trash"></i> Delete
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Optional JS filter -->
+<script>
+    document.getElementById('searchInput').addEventListener('input', function () {
+        const search = this.value.toLowerCase();
+        const rows = document.querySelectorAll('#staffTable tbody tr');
+        rows.forEach(row => {
+            const username = row.querySelector('.username-cell').textContent.toLowerCase();
+            row.style.display = username.includes(search) ? '' : 'none';
+        });
+    });
+
+    document.getElementById('branchFilter').addEventListener('change', function () {
+        const selectedBranch = this.value.toLowerCase();
+        const rows = document.querySelectorAll('#staffTable tbody tr');
+        rows.forEach(row => {
+            const branch = row.querySelector('.branch-cell').textContent.toLowerCase();
+            row.style.display = selectedBranch === '' || branch === selectedBranch ? '' : 'none';
+        });
+    });
+</script>
+{% endblock %}

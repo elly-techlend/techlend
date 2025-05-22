@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow p-4">
+        <h4 class="card-title mb-3 text-center">Repay Loan - {{ loan.loan_id }}</h4>
+
+        <div class="mb-4">
+            <p><strong>Borrower:</strong> {{ loan.borrower.name if loan.borrower else loan.borrower_name }}</p>
+            <p><strong>Total Due:</strong> {{ loan.total_due }}</p>
+            <p><strong>Amount Paid:</strong> {{ loan.amount_paid }}</p>
+            <p><strong>Remaining Balance:</strong> {{ loan.remaining_balance }}</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('loan.repay_loan', loan_id=loan.id) }}">
+            <div class="mb-3">
+                <label for="amount" class="form-label">Amount to Repay</label>
+                <input type="number" step="0.01" name="amount" class="form-control" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="date_paid" class="form-label">Date Paid</label>
+                <input type="date" name="date_paid" class="form-control" required>
+            </div>
+
+            <div class="text-end">
+                <button type="submit" class="btn btn-success">Submit Repayment</button>
+                <a href="{{ url_for('loan.view_loans') }}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

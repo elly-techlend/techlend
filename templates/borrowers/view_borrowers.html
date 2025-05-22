@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow rounded-3 p-4">
+        <h4 class="card-title mb-4 text-center">Borrowers List</h4>
+
+        <!-- 🔍 Search + Filters (One Row, Responsive) -->
+        <form method="GET" action="{{ url_for('borrowers.view_borrowers') }}" class="row g-2 mb-4">
+            <div class="col-md-4 col-sm-12">
+                <input type="text" name="search" class="form-control form-control-sm" placeholder="Search by name or phone"
+                    value="{{ request.args.get('search', '') }}">
+            </div>
+
+            <div class="col-md-2 col-sm-6">
+                <select name="month" class="form-select form-select-sm">
+                    <option value="">Filter by Month</option>
+                    {% for m in range(1, 13) %}
+                        <option value="{{ m }}" {% if request.args.get('month', type=int) == m %}selected{% endif %}>{{ m }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-2 col-sm-6">
+                <select name="year" class="form-select form-select-sm">
+                    <option value="">Filter by Year</option>
+                    {% for y in range(2022, 2035) %}
+                        <option value="{{ y }}" {% if request.args.get('year', type=int) == y %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-2 col-sm-12">
+                <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+                    <i class="bi bi-funnel-fill me-1"></i>Apply
+                </button>
+            </div>
+        </form>
+
+        <!-- 📋 Borrowers Table -->
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle">
+                <thead class="table-light sticky-top">
+                    <tr>
+                        <th>View</th>
+                        <th>Borrower ID</th>
+                        <th>Full Name</th>
+                        <th>Mobile</th>
+                        <th>Total Paid</th>
+                        <th>Open Loan Balance</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for borrower in borrowers %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('loan.view_by_borrower', borrower_id=borrower.id) }}" class="btn btn-outline-info btn-sm mb-1">
+                                <i class="fas fa-credit-card"></i>
+                            </a>
+                            <a href="{{ url_for('savings.view_by_borrower', borrower_id=borrower.id) }}" class="btn btn-outline-success btn-sm mb-1">
+                                <i class="fas fa-piggy-bank"></i>
+                            </a>
+                        </td>
+                        <td>{{ borrower.borrower_id }}</td>
+                        <td>{{ borrower.name }}</td>
+                        <td>{{ borrower.phone }}</td>
+                        <td>{{ borrower.total_paid or 0 }}</td>
+                        <td>{{ borrower.open_balance or 0 }}</td>
+                        <td>
+                            <a href="{{ url_for('borrowers.edit_borrower', borrower_id=borrower.id) }}" class="btn btn-warning btn-sm">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{{ url_for('borrowers.delete_borrower', borrower_id=borrower.id) }}" class="btn btn-danger btn-sm"
+                               onclick="return confirm('Are you sure you want to delete this borrower?');">
+                                <i class="fas fa-trash-alt"></i>
+                            </a>
+                            <a href="{{ url_for('borrowers.borrower_details', borrower_id=borrower.id) }}" class="btn btn-info btn-sm">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="7" class="text-center">No borrowers found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 📄 Pagination -->
+        {% if pagination.pages > 1 %}
+        <nav aria-label="Pagination">
+            <ul class="pagination justify-content-center mt-3">
+                {% if pagination.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('borrowers.view_borrowers', page=pagination.prev_num, search=request.args.get('search', ''), year=request.args.get('year'), month=request.args.get('month')) }}">Previous</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">Previous</span></li>
+                {% endif %}
+
+                {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                    {% if page_num %}
+                        {% if page_num == pagination.page %}
+                            <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+                        {% else %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('borrowers.view_borrowers', page=page_num, search=request.args.get('search', ''), year=request.args.get('year'), month=request.args.get('month')) }}">{{ page_num }}</a>
+                            </li>
+                        {% endif %}
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">…</span></li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if pagination.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('borrowers.view_borrowers', page=pagination.next_num, search=request.args.get('search', ''), year=request.args.get('year'), month=request.args.get('month')) }}">Next</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">Next</span></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h3>Promote {{ user.full_name }}</h3>
+    <form method="POST">
+        <div class="mb-3">
+            <label for="new_role" class="form-label">Select New Role</label>
+            <select name="new_role" id="new_role" class="form-select" required>
+                {% for role in roles %}
+                    {% if role not in user.roles %}
+                        <option value="{{ role }}">{{ role|capitalize }}</option>
+                    {% endif %}
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-success">Promote</button>
+    </form>
+</div>
+{% endblock %}

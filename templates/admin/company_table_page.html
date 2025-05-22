@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-4">
+  <h3 class="mb-4 text-center">All Registered Companies</h3>
+
+  {% if companies %}
+    {% include 'admin/_company_table.html' %}
+    
+    {% if pagination.pages > 1 %}
+      <nav aria-label="Company pagination">
+        <ul class="pagination justify-content-center">
+          <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('admin.view_companies', page=1) }}">&laquo;&laquo;</a>
+          </li>
+          <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('admin.view_companies', page=pagination.prev_num) }}">&laquo;</a>
+          </li>
+          {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if page_num %}
+              <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                <a class="page-link" href="{{ url_for('admin.view_companies', page=page_num) }}">{{ page_num }}</a>
+              </li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">…</span></li>
+            {% endif %}
+          {% endfor %}
+          <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('admin.view_companies', page=pagination.next_num) }}">&raquo;</a>
+          </li>
+          <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('admin.view_companies', page=pagination.pages) }}">&raquo;&raquo;</a>
+          </li>
+        </ul>
+      </nav>
+    {% endif %}
+  
+  {% else %}
+    <div class="alert alert-info text-center">No companies have been registered yet.</div>
+  {% endif %}
+</div>
+{% endblock %}

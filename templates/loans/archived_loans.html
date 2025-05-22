@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block title %}Archived Loans{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4 text-center">Archived Loans</h2>
+
+    {% if archived_loans %}
+        <!-- Wrap table in a responsive div -->
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Loan ID</th>
+                        <th>Borrower Name</th>
+                        <th>Phone</th>
+                        <th>Amount Borrowed</th>
+                        <th>Remaining Balance</th>
+                        <th>Date Archived</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for loan in archived_loans %}
+                        <tr>
+                            <td>{{ loan.loan_id }}</td>
+                            <td>{{ loan.borrower_name }}</td>
+                            <td>{{ loan.phone_number }}</td>
+                            <td>{{ loan.amount_borrowed }}</td>
+                            <td>{{ loan.remaining_balance }}</td>
+                            <td>{{ loan.date.strftime('%b %d, %Y') }}</td>
+                            <td>
+                                <form action="{{ url_for('loan.restore_loan', loan_id=loan.id) }}" method="POST" style="display:inline;">
+                                    <button type="submit" class="btn btn-success btn-sm" title="Restore Loan">
+                                        <i class="fas fa-undo"></i> Restore
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-info">No archived loans found.</div>
+    {% endif %}
+</div>
+{% endblock %}

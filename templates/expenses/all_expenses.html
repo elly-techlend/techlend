@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>All Expenses</h2>
+<a href="{{ url_for('expenses.add_expense') }}" class="btn btn-primary mb-3">Add Expense</a>
+
+<div class="table-responsive">
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Description</th>
+                <th>Amount</th>
+                <th>Category</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for expense in expenses %}
+            <tr>
+                <td>{{ expense.date.strftime('%Y-%m-%d') }}</td>
+                <td>{{ expense.description }}</td>
+                <td>{{ expense.amount }}</td>
+                <td>{{ expense.category }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

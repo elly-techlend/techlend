@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .table th, .table td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+        .table th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h2>Borrower Profile: {{ borrower.name }}</h2>
+    <p><strong>Name:</strong> {{ borrower.name }}</p>
+    <p><strong>Phone:</strong> {{ borrower.phone }}</p>
+    <p><strong>Role:</strong> {{ borrower.role }}</p>
+
+    <h3>Loans:</h3>
+    {% if loans %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Loan ID</th>
+                    <th>Amount Borrowed</th>
+                    <th>Amount Paid</th>
+                    <th>Total Due</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for loan in loans %}
+                    <tr>
+                        <td>{{ loan.loan_id }}</td>
+                        <td>{{ loan.amount_borrowed }}</td>
+                        <td>{{ loan.amount_paid }}</td>
+                        <td>{{ loan.total_due }}</td>
+                        <td>{{ loan.status }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>This borrower has no loans yet.</p>
+    {% endif %}
+</body>
+</html>

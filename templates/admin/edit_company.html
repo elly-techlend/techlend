@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+  <h3>Edit Company: {{ company.name }}</h3>
+  
+  <form method="POST" action="{{ url_for('admin.edit_company', company_id=company.id) }}">
+    {{ form.hidden_tag() }}  <!-- CSRF token -->
+
+    <div class="form-group">
+      <label for="name">Company Name</label>
+      {{ form.name(class="form-control") }}
+    </div>
+
+    <div class="form-group">
+      <label for="email">Email</label>
+      {{ form.email(class="form-control") }}
+    </div>
+
+    <div class="form-group">
+      <label for="is_active">Active</label>
+      {{ form.is_active(class="form-check-input") }}
+    </div>
+
+    <div class="form-group">
+      {{ form.submit(class="btn btn-primary") }}
+    </div>
+  </form>
+</div>
+{% endblock %}

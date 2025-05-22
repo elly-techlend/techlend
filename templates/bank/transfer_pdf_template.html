@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bank Transfers PDF</title>
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 12px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { padding: 8px; border: 1px solid #ccc; text-align: left; }
+    th { background-color: #f0f0f0; }
+    h2 { text-align: center; }
+  </style>
+</head>
+<body>
+  <h2>Bank Transfers Report</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Type</th>
+        <th>Amount</th>
+        <th>Reference</th>
+        <th>Branch</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for transfer in transfers %}
+      <tr>
+        <td>{{ transfer.transfer_date.strftime('%Y-%m-%d') }}</td>
+        <td>{{ transfer.transfer_type.title() }}</td>
+        <td>${{ "{:,.2f}".format(transfer.amount) }}</td>
+        <td>{{ transfer.reference or '—' }}</td>
+        <td>{{ transfer.branch.name if transfer.branch else '—' }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="5">No transfers found for selected filters.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>

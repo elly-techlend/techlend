@@ -1,0 +1,42 @@
+<!-- templates/clients/edit_client.html -->
+
+{% extends 'base.html' %}
+{% block title %}Edit Client{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Edit Client</h2>
+
+    <form method="POST" action="{{ url_for('client.edit', client_id=client.id) }}">
+        <div class="mb-3">
+            <label for="name" class="form-label">Full Name</label>
+            <input type="text" class="form-control" id="name" name="name" value="{{ client.name }}" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="phone" class="form-label">Phone Number</label>
+            <input type="text" class="form-control" id="phone" name="phone" value="{{ client.phone }}" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="email" class="form-label">Email (optional)</label>
+            <input type="email" class="form-control" id="email" name="email" value="{{ client.email or '' }}">
+        </div>
+
+        <div class="mb-3">
+            <label for="business_name" class="form-label">Business Name (optional)</label>
+            <input type="text" class="form-control" id="business_name" name="business_name" value="{{ client.business_name or '' }}">
+        </div>
+
+        <div class="mb-3">
+            <label for="address" class="form-label">Address (optional)</label>
+            <textarea class="form-control" id="address" name="address" rows="2">{{ client.address or '' }}</textarea>
+        </div>
+
+        <div class="d-flex justify-content-between">
+            <a href="{{ url_for('client.index') }}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">Update Client</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

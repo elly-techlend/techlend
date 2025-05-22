@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <div class="card p-4 shadow rounded-3">
+        <h4 class="mb-4">Savings Accounts</h4>
+        {% if accounts %}
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Account #</th>
+                            <th>Borrower</th>
+                            <th>Balance</th>
+                            <th>Date Opened</th>
+                            <th>Actions</th>  {# ✅ Action column #}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for acc in accounts %}
+                        <tr>
+                            <td>{{ acc.account_number }}</td>
+                            <td>{{ acc.borrower.name }}</td>
+                            <td>{{ "{:,.2f}".format(acc.balance) }}</td>
+                            <td>{{ acc.date_opened.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                <a href="{{ url_for('savings.view_transactions', saving_id=acc.id) }}" class="btn btn-sm btn-primary">View Transactions</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p>No savings accounts available.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

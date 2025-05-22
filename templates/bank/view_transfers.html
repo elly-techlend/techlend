@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <div class="card shadow rounded p-4">
+    <h3 class="mb-4"><i class="fa fa-exchange-alt me-2 text-primary"></i> All Bank Transfers</h3>
+
+    <!-- Filters -->
+    <form method="get" class="row g-3 mb-4">
+      <div class="col-md-3">
+        <label class="form-label">Start Date</label>
+        <input type="date" class="form-control" name="start_date" value="{{ request.args.get('start_date', '') }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">End Date</label>
+        <input type="date" class="form-control" name="end_date" value="{{ request.args.get('end_date', '') }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Transfer Type</label>
+        <select name="type" class="form-select">
+          <option value="">All</option>
+          <option value="deposit" {% if request.args.get('type') == 'deposit' %}selected{% endif %}>Deposit</option>
+          <option value="withdraw" {% if request.args.get('type') == 'withdraw' %}selected{% endif %}>Withdraw</option>
+        </select>
+      </div>
+      <div class="col-md-3 d-flex align-items-end justify-content-end gap-2">
+        <button type="submit" class="btn btn-primary">Filter</button>
+        <a href="{{ url_for('bank.export_transfers_pdf') }}" class="btn btn-outline-secondary" target="_blank">
+          <i class="fa fa-file-pdf"></i> Export PDF
+        </a>
+      </div>
+    </form>
+
+    <!-- Transfer Table -->
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover">
+        <thead class="table-light">
+          <tr>
+            <th>Date</th>
+            <th>Type</th>
+            <th>Amount</th>
+            <th>Reference</th>
+            <th>Branch</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for transfer in transfers %}
+          <tr>
+            <td>{{ transfer.transfer_date.strftime('%Y-%m-%d') }}</td>
+            <td>
+              <span class="badge {% if transfer.transfer_type == 'deposit' %}bg-success{% else %}bg-danger{% endif %} text-capitalize">
+                {{ transfer.transfer_type }}
+              </span>
+            </td>
+            <td>${{ "{:,.2f}".format(transfer.amount) }}</td>
+            <td>{{ transfer.reference or '—' }}</td>
+            <td>{{ transfer.branch.name if transfer.branch else '—' }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" class="text-center text-muted">No bank transfers found.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

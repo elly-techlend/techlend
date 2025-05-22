@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2 class="mb-4">Edit Borrower</h2>
+
+<form action="{{ url_for('borrowers.edit_borrower', borrower_id=borrower.id) }}" method="POST" enctype="multipart/form-data" class="p-4 bg-white shadow rounded">
+  {{ form.hidden_tag() }}
+
+  <!-- Personal Information -->
+  <h5>Personal Information</h5>
+  <div class="row mb-3">
+    <div class="col-md-2">
+      {{ form.title.label(class="form-label") }}
+      {{ form.title(class="form-control") }}
+    </div>
+    <div class="col-md-6">
+      {{ form.name.label(class="form-label") }}
+      {{ form.name(class="form-control") }}
+    </div>
+    <div class="col-md-4">
+      {{ form.gender.label(class="form-label") }}
+      {{ form.gender(class="form-control") }}
+    </div>
+    <div class="col-md-4 mt-3">
+      {{ form.date_of_birth.label(class="form-label") }}
+      {{ form.date_of_birth(class="form-control") }}
+    </div>
+    <div class="col-md-4 mt-3">
+      {{ form.registration_date.label(class="form-label") }}
+      {{ form.registration_date(class="form-control") }}
+    </div>
+    <div class="col-md-4 mt-3">
+      {{ form.place_of_birth.label(class="form-label") }}
+      {{ form.place_of_birth(class="form-control") }}
+    </div>
+    <div class="col-md-6 mt-3">
+      {{ form.photo.label(class="form-label") }}
+      {{ form.photo(class="form-control") }}
+      {% if borrower.photo %}
+        <small class="text-muted">Current: {{ borrower.photo }}</small>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Contact -->
+  <h5 class="mt-4">Contact</h5>
+  <div class="row mb-3">
+    <div class="col-md-6">
+      {{ form.email.label(class="form-label") }}
+      {{ form.email(class="form-control") }}
+    </div>
+    <div class="col-md-6">
+      {{ form.phone.label(class="form-label") }}
+      {{ form.phone(class="form-control") }}
+    </div>
+  </div>
+
+  <!-- Address and Occupation -->
+  <h5 class="mt-4">Address and Occupation</h5>
+  <div class="row mb-3">
+    <div class="col-md-6">
+      {{ form.address.label(class="form-label") }}
+      {{ form.address(class="form-control") }}
+    </div>
+    <div class="col-md-6">
+      {{ form.occupation.label(class="form-label") }}
+      {{ form.occupation(class="form-control") }}
+    </div>
+  </div>
+
+  <!-- Family -->
+  <h5 class="mt-4">Family & Background</h5>
+  <div class="row mb-3">
+    <div class="col-md-4">
+      {{ form.marital_status.label(class="form-label") }}
+      {{ form.marital_status(class="form-control") }}
+    </div>
+    <div class="col-md-4">
+      {{ form.spouse_name.label(class="form-label") }}
+      {{ form.spouse_name(class="form-control") }}
+    </div>
+    <div class="col-md-4">
+      {{ form.number_of_children.label(class="form-label") }}
+      {{ form.number_of_children(class="form-control") }}
+    </div>
+  </div>
+
+  <!-- Education, Branch, Kin -->
+  <h5 class="mt-4">Education & Kin</h5>
+  <div class="row mb-3">
+    <div class="col-md-4">
+      {{ form.education_level.label(class="form-label") }}
+      {{ form.education_level(class="form-control") }}
+    </div>
+    <div class="col-md-4">
+      {{ form.branch_id.label(class="form-label") }}
+      {{ form.branch_id(class="form-control") }}
+    </div>
+    <div class="col-md-4">
+      {{ form.next_of_kin.label(class="form-label") }}
+      {{ form.next_of_kin(class="form-control") }}
+    </div>
+  </div>
+
+  <div class="mt-4">
+    <button type="submit" class="btn btn-success">Update Borrower</button>
+    <a href="{{ url_for('borrowers.view_borrowers') }}" class="btn btn-secondary">Cancel</a>
+  </div>
+</form>
+{% endblock %}
+

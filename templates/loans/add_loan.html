@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow rounded-3 p-4">
+        <h4 class="card-title mb-4 text-center">Add New Loan</h4>
+        <form method="POST" action="{{ url_for('loan.add_loan') }}">
+             {{ csrf_form.csrf_token }}
+
+            <!-- LOAN DETAILS -->
+            <h5 class="mb-3">Loan Details</h5>
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <label for="borrower_id" class="form-label">Select Borrower</label>
+                    <select name="borrower_id" id="borrower_id" class="form-control" required>
+                        <option value="" disabled selected>Select Borrower</option>
+                        {% for borrower in borrowers %}
+                            <option value="{{ borrower.id }}" data-phone="{{ borrower.phone }}">{{ borrower.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label for="phone_number" class="form-label">Phone Number</label>
+                    <input type="text" id="phone_number" name="phone_number" class="form-control" readonly>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label for="amount_borrowed" class="form-label">Amount Borrowed</label>
+                    <input type="number" step="0.01" name="amount_borrowed" id="amount_borrowed" class="form-control" required>
+                </div>
+                <div class="col-md-4">
+                    <label for="interest" class="form-label">Interest (%)</label>
+                    <input type="number" step="0.01" name="interest" id="interest" class="form-control" value="20" required>
+                </div>
+                <div class="col-md-4">
+                    <label for="total_due" class="form-label">Total Due</label>
+                    <input type="number" step="0.01" name="total_due" id="total_due" class="form-control" readonly>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="processing_fee" class="form-label">Processing Fee</label>
+                    <input type="number" step="0.01" name="processing_fee" id="processing_fee" class="form-control" value="0">
+                </div>
+                <div class="col-md-6">
+                    <label for="amount_paid" class="form-label">Amount Paid</label>
+                    <input type="number" step="0.01" name="amount_paid" id="amount_paid" class="form-control" value="0">
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="loan_duration" class="form-label">Loan Duration (months)</label>
+                    <input type="number" name="loan_duration" id="loan_duration" class="form-control" min="1" required>
+                </div>
+                <div class="col-md-6">
+                    <label for="date" class="form-label">Loan Date</label>
+                    <input type="date" name="date" id="date" class="form-control" value="{{ current_date }}" required>
+                </div>
+            </div>
+
+            <!-- COLLATERAL SECTION -->
+            <hr class="my-4">
+            <h5 class="mb-3">Collateral Details</h5>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="collateral_item_name" class="form-label">Item Name</label>
+                    <input type="text" name="collateral_item_name" id="collateral_item_name" class="form-control">
+                </div>
+                <div class="col-md-6">
+                    <label for="collateral_model" class="form-label">Model</label>
+                    <input type="text" name="collateral_model" id="collateral_model" class="form-control">
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="collateral_serial_number" class="form-label">Serial Number</label>
+                    <input type="text" name="collateral_serial_number" id="collateral_serial_number" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label for="collateral_status" class="form-label">Status</label>
+                    <select name="collateral_status" id="collateral_status" class="form-control">
+                        <option value="held">Held</option>
+                        <option value="returned">Returned</option>
+                        <option value="lost">Lost</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="collateral_condition" class="form-label">Condition</label>
+                    <select name="collateral_condition" id="collateral_condition" class="form-control">
+                        <option value="good">Good</option>
+                        <option value="fair">Fair</option>
+                        <option value="damaged">Damaged</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- SUBMIT BUTTON -->
+            <div class="text-end">
+                <button type="submit" class="btn btn-primary">Add Loan</button>
+            </div>
+
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+<!-- jQuery and Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const borrowerSelect = document.getElementById('borrower_id');
+    const phoneInput = document.getElementById('phone_number');
+    const amountInput = document.getElementById('amount_borrowed');
+    const interestInput = document.getElementById('interest');
+    const totalDueInput = document.getElementById('total_due');
+
+    function updateTotalDue() {
+        const amount = parseFloat(amountInput.value) || 0;
+        const interest = parseFloat(interestInput.value) || 0;
+        const total = amount + (amount * interest / 100);
+        totalDueInput.value = total.toFixed(2);
+    }
+
+    function updatePhone() {
+        const selected = borrowerSelect.options[borrowerSelect.selectedIndex];
+        phoneInput.value = selected?.getAttribute('data-phone') || '';
+    }
+
+    amountInput.addEventListener('input', updateTotalDue);
+    interestInput.addEventListener('input', updateTotalDue);
+    borrowerSelect.addEventListener('change', updatePhone);
+
+    updateTotalDue();
+    updatePhone();
+});
+</script>
+{% endblock %}

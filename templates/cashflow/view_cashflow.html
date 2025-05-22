@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <div class="card shadow rounded p-4">
+    <h3 class="mb-4 text-primary"><i class="fa fa-bar-chart me-2"></i> Cash Flow Overview</h3>
+
+    <!-- Filters -->
+    <form method="get" class="row g-3 mb-4">
+      <div class="col-md-5">
+        <label class="form-label">Start Date</label>
+        <input type="date" class="form-control" name="start_date" value="{{ request.args.get('start_date', '') }}">
+      </div>
+      <div class="col-md-5">
+        <label class="form-label">End Date</label>
+        <input type="date" class="form-control" name="end_date" value="{{ request.args.get('end_date', '') }}">
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
+        <button type="submit" class="btn btn-primary w-100">Filter</button>
+      </div>
+    </form>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+      <div class="col-md-4">
+        <div class="card bg-light shadow-sm rounded">
+          <div class="card-body text-success">
+            <h5>Total Cash In</h5>
+            <h3>UGX{{ "{:,.2f}".format(total_in or 0) }}</h3>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card bg-light shadow-sm rounded">
+          <div class="card-body text-danger">
+            <h5>Total Cash Out</h5>
+            <h3>UGX{{ "{:,.2f}".format(total_out or 0) }}</h3>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card bg-light shadow-sm rounded">
+          <div class="card-body text-dark">
+            <h5>Net Cash Flow</h5>
+            <h3 class="{{ 'text-success' if net_flow >= 0 else 'text-danger' }}">
+              UGX{{ "{:,.2f}".format(net_flow or 0) }}
+            </h3>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Breakdown Table -->
+    <div class="table-responsive">
+      <table class="table table-striped table-bordered">
+        <thead class="table-light">
+          <tr>
+            <th>Date</th>
+            <th>Source</th>
+            <th>Description</th>
+            <th>Type</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for entry in cashbook %}
+          <tr>
+            <td>{{ entry.date.strftime('%Y-%m-%d') }}</td>
+            <td>Cashbook</td>
+            <td>{{ entry.particulars or '—' }}</td>
+            <td>{{ 'Inflow' if entry.credit > 0 else 'Outflow' }}</td>
+            <td class="{{ 'text-success' if entry.credit > 0 else 'text-danger' }}">
+              UGX{{ "{:,.2f}".format(entry.credit if entry.credit > 0 else entry.debit) }}
+            </td>
+          </tr>
+          {% endfor %}
+          {% for item in income %}
+          <tr>
+            <td>{{ item.income_date.strftime('%Y-%m-%d') }}</td>
+            <td>Other Income</td>
+            <td>{{ item.description or '—' }}</td>
+            <td>Inflow</td>
+            <td class="text-success">${{ "{:,.2f}".format(item.amount) }}</td>
+          </tr>
+          {% endfor %}
+          {% if not cashbook and not income %}
+          <tr>
+            <td colspan="5" class="text-center text-muted">No cash flow activity found for the selected period.</td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

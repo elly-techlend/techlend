@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Repayment History PDF</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+      margin: 20px;
+      color: #333;
+    }
+
+    .top-box {
+      border: 1px solid #ccc;
+      padding: 12px 15px;
+      margin-bottom: 20px;
+      background-color: #fdfdfd;
+    }
+
+    .top-box h2 {
+      margin: 0 0 10px;
+      font-size: 18px;
+      text-align: center;
+      color: #2e8b57;
+    }
+
+    .top-details {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .top-details p {
+      margin: 2px 0;
+      width: 48%;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th, td {
+      border: 1px solid #999;
+      padding: 6px 8px;
+      text-align: center;
+    }
+
+    th {
+      background-color: #f1f1f1;
+    }
+
+    .summary {
+      font-weight: bold;
+      background-color: #f0f4f8;
+    }
+
+    .summary td {
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-box">
+    <h2>{{ loan.company.name }}</h2>
+    <div class="top-details">
+      <p><strong>Borrower:</strong> {{ loan.borrower_name }}</p>
+      <p><strong>Loan ID:</strong> {{ loan.loan_id }}</p>
+      <p><strong>Loan Amount:</strong> UGX {{ "{:,.0f}".format(loan.amount or 0) }}</p>
+      <p><strong>Total Due:</strong> UGX {{ "{:,.0f}".format(loan.total_due or 0) }}</p>
+      <p><strong>Interest Rate:</strong> {{ loan.interest_rate or 0 }}%</p>
+      <p><strong>Issued On:</strong> {{ loan.date.strftime('%b %d, %Y') }}</p>
+      <p><strong>Repayment Period:</strong> {{ loan.loan_duration or 'N/A' }}</p>
+      <p><strong>Installments:</strong> {{ loan.installments or 'N/A' }}</p>
+    </div>
+  </div>
+
+  {% if repayments %}
+    <table>
+      <thead>
+        <tr>
+          <th>Payment ID</th>
+          <th>Amount Paid (UGX)</th>
+          <th>Repayment Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% set ns = namespace(total_paid=0) %}
+        {% for repayment in repayments %}
+          {% set ns.total_paid = ns.total_paid + (repayment.amount_paid or 0) %}
+          <tr>
+            <td>{{ repayment.id }}</td>
+            <td>UGX {{ "{:,.0f}".format(repayment.amount_paid or 0) }}</td>
+            <td>{{ repayment.date_paid.strftime('%b %d, %Y') }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr class="summary">
+          <td colspan="2">Total Repaid:</td>
+          <td>UGX {{ "{:,.0f}".format(ns.total_paid or 0) }}</td>
+        </tr>
+        <tr class="summary">
+          <td colspan="2">Remaining Balance:</td>
+          <td>UGX {{ "{:,.0f}".format(loan.remaining_balance or 0) }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  {% else %}
+    <p>No repayment history available for this loan.</p>
+  {% endif %}
+
+</body>
+</html>

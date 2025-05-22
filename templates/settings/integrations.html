@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+  <h2 class="mb-4"><i class="fas fa-plug me-2"></i>Integrations</h2>
+
+  <div class="card shadow-sm p-4 mb-4">
+    <h5>Email Service</h5>
+    <p class="text-muted">Currently using: <strong>SendGrid</strong></p>
+    <a href="#" class="btn btn-outline-secondary btn-sm disabled">Manage Email Settings (Coming Soon)</a>
+  </div>
+
+  <div class="card shadow-sm p-4 mb-4">
+    <h5>SMS Gateway</h5>
+    <p class="text-muted">Currently using: <strong>Twilio</strong></p>
+    <a href="#" class="btn btn-outline-secondary btn-sm disabled">Manage SMS Settings (Coming Soon)</a>
+  </div>
+
+  <div class="card shadow-sm p-4 mb-4">
+    <h5>Payment Gateway</h5>
+    <p class="text-muted">Currently using: <strong>Paystack</strong></p>
+    <a href="#" class="btn btn-outline-secondary btn-sm disabled">Configure Payments (Coming Soon)</a>
+  </div>
+
+  <div class="card shadow-sm p-4">
+    <h5>API Access</h5>
+    <p class="text-muted">Allow external systems to integrate with your platform.</p>
+    <div class="input-group">
+      <input type="text" class="form-control" value="sk_test_1234567890abcdef" readonly>
+      <button class="btn btn-outline-primary disabled" type="button">Regenerate Key</button>
+    </div>
+    <small class="text-muted">This API key is for read-only demo. Full access features coming soon.</small>
+  </div>
+</div>
+{% endblock %}

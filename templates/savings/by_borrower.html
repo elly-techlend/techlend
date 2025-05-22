@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h4 class="mb-3">Savings Accounts for {{ borrower.name }}</h4>
+
+    {% if savings_accounts %}
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Account ID</th>
+                    <th>Balance</th>
+                    <th>Status</th>
+                    <th>Created At</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for account in savings_accounts %}
+                <tr>
+                    <td>{{ account.id }}</td>
+                    <td>{{ "{:,.2f}".format(account.balance) }}</td>
+                    <td>{{ account.status }}</td>
+                    <td>{{ account.date_opened.strftime('%Y-%m-%d') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p>No savings accounts found for this borrower.</p>
+    {% endif %}
+</div>
+{% endblock %}

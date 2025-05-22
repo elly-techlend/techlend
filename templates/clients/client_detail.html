@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Client Details</h2>
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">{{ client.name }}</h5>
+            <p class="card-text"><strong>Email:</strong> {{ client.email }}</p>
+            <p class="card-text"><strong>Phone:</strong> {{ client.phone }}</p>
+            <p class="card-text"><strong>Business Name:</strong> {{ client.business_name }}</p>
+            <p class="card-text"><strong>Address:</strong> {{ client.address }}</p>
+            <p class="card-text"><strong>Created At:</strong> {{ client.created_at }}</p>
+        </div>
+    </div>
+
+    <!-- Buttons -->
+    <div class="d-flex flex-column mt-3">
+        <div class="d-flex">
+            <a href="{{ url_for('client.edit', client_id=client.id) }}" class="btn btn-primary me-2">Edit</a>
+            <a href="{{ url_for('client.index') }}" class="btn btn-secondary">Back to Clients</a>
+        </div>
+        
+        <!-- Delete Button with Confirmation -->
+        <form method="POST" action="{{ url_for('client.delete_client', client_id=client.id) }}" onsubmit="return confirm('Are you sure you want to delete this client? This action cannot be undone.');">
+            <button type="submit" class="btn btn-danger mt-2">Delete Client</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

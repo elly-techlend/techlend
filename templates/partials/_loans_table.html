@@ -1,0 +1,141 @@
+<!-- Combined Search + Filter + Export -->
+<form method="GET" action="{{ url_for('loan.view_loans') }}" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+
+    <!-- Left: Search -->
+    <div style="display: flex; gap: 6px; align-items: center;">
+        <input type="text" name="search" value="{{ request.args.get('search', '') }}" placeholder="Search by Name or ID" style="width: 160px;">
+        <button type="submit" class="btn btn-outline-primary btn-sm">Search</button>
+    </div>
+
+    <!-- Center: Filter -->
+    <div style="display: flex; gap: 6px; align-items: center;">
+        <select name="month" class="form-select" style="width: 120px; font-size: 13px;">
+            <option value="">Select Month</option>
+            {% for m in range(1, 13) %}
+                <option value="{{ '%02d' % m }}" {% if request.args.get('month') == '%02d' % m %}selected{% endif %}>{{ '%02d' % m }}</option>
+            {% endfor %}
+        </select>
+
+        <select name="year" class="form-select" style="width: 120px; font-size: 13px;">
+            <option value="">Select Year</option>
+            {% for y in range(2024, 2035) %}
+                <option value="{{ y }}" {% if request.args.get('year') == y|string %}selected{% endif %}>{{ y }}</option>
+            {% endfor %}
+        </select>
+
+        <button type="submit" class="btn btn-outline-success btn-sm">Filter</button>
+    </div>
+
+    <!-- Right: Export (preserving search & filter in links) -->
+    <div style="display: flex; gap: 6px;">
+        <a href="{{ url_for('loan.export_loans', file_type='excel', search=request.args.get('search', ''), month=request.args.get('month', ''), year=request.args.get('year', '')) }}" class="btn btn-outline-secondary btn-sm" title="Export Excel">
+            <i class="fas fa-file-excel"></i> Excel
+        </a>
+        <a href="{{ url_for('loan.export_loans', file_type='pdf', search=request.args.get('search', ''), month=request.args.get('month', ''), year=request.args.get('year', '')) }}" class="btn btn-outline-secondary btn-sm" title="Export PDF">
+            <i class="fas fa-file-pdf"></i> PDF
+        </a>
+    </div>
+
+</form>
+
+<div class="loan-table-wrapper table-responsive mt-3">
+    <table class="table table-bordered table-hover align-middle">
+        <thead class="table-primary text-center">
+            <tr>
+                <th>View</th>
+                <th>Date</th>
+                <th>Loan ID</th>
+                <th>Borrower Name</th>
+                <th>Principal</th>
+                <th>Processing Fee</th>
+                <th>Total Due</th>
+                <th>Paid</th>
+                <th>Balance</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for loan in loans %}
+            <tr {% if loan.status == 'Overdue' %}class="table-danger"{% endif %}>
+                <td class="text-center">
+                    <!-- View Details icon -->
+                    <a href="{{ url_for('loan.loan_details', loan_id=loan.id) }}" title="View Details">
+                        <i class="fas fa-eye text-primary"></i>
+                    </a>&nbsp;
+
+                    <!-- Archive icon -->
+                    <a href="{{ url_for('loan.archive_loan', loan_id=loan.id) }}" title="Archive Loan">
+                        <i class="fas fa-archive text-danger"></i>
+                    </a>
+                </td>
+                <td>{{ loan.date.strftime('%Y-%m-%d') if loan.date else '' }}</td>
+                <td>{{ loan.loan_id }}</td>
+                <td>{{ loan.borrower_name }}</td>
+                <td>{{ loan.amount_borrowed|currency }}</td>
+                <td>{{ loan.processing_fee|currency }}</td>
+                <td>{{ loan.total_due|currency }}</td>
+                <td>{{ loan.amount_paid|currency }}</td>
+                <td>{{ loan.remaining_balance|currency }}</td>
+                <td>
+                    {% if loan.status == 'Paid' %}
+                        <span class="badge bg-success">Paid</span>
+                    {% elif loan.status == 'Partially Paid' %}
+                        <span class="badge bg-warning text-dark">Partially Paid</span>
+                    {% elif loan.status == 'Pending' %}
+                        <span class="badge bg-secondary">Pending</span>
+                    {% else %}
+                        <span class="badge bg-light text-dark">{{ loan.status }}</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+
+        {% if totals %}
+        <tfoot class="table-light text-center">
+            <tr>
+                <td colspan="4"><strong>Totals</strong></td>
+                <td>{{ totals.amount_borrowed|currency }}</td>
+                <td>{{ totals.processing_fee|currency }}</td>
+                <td>{{ totals.total_due|currency }}</td>
+                <td>{{ totals.amount_paid|currency }}</td>
+                <td>{{ totals.remaining_balance|currency }}</td>
+                <td></td>
+            </tr>
+        </tfoot>
+        {% endif %}
+    </table>
+</div>
+
+<!-- Pagination controls -->
+<nav aria-label="Loans pagination" class="mt-3">
+    <ul class="pagination justify-content-center">
+        {% if pagination.has_prev %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('loan.view_loans', page=pagination.prev_num, search=request.args.get('search', ''), month=request.args.get('month', ''), year=request.args.get('year', '')) }}">Previous</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">Previous</span></li>
+        {% endif %}
+
+        {% for page_num in pagination.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
+            {% if page_num %}
+                {% if page_num == pagination.page %}
+                <li class="page-item active" aria-current="page"><span class="page-link">{{ page_num }}</span></li>
+                {% else %}
+                <li class="page-item"><a class="page-link" href="{{ url_for('loan.view_loans', page=page_num, search=request.args.get('search', ''), month=request.args.get('month', ''), year=request.args.get('year', '')) }}">{{ page_num }}</a></li>
+                {% endif %}
+            {% else %}
+                <li class="page-item disabled"><span class="page-link">…</span></li>
+            {% endif %}
+        {% endfor %}
+
+        {% if pagination.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('loan.view_loans', page=pagination.next_num, search=request.args.get('search', ''), month=request.args.get('month', ''), year=request.args.get('year', '')) }}">Next</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">Next</span></li>
+        {% endif %}
+    </ul>
+</nav>

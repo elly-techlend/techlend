@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5">
+    <div class="card shadow rounded-4">
+        <div class="card-header">
+            <h4>System Preferences</h4>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                {% if csrf_token %}
+                    {{ csrf_token() }}
+                {% endif %}
+
+                <div class="mb-3">
+                    <label for="theme" class="form-label">Theme</label>
+                    <select id="theme" name="theme" class="form-select" onchange="updateTheme(this.value)">
+                        <option value="light" {% if theme == 'light' %}selected{% endif %}>Light</option>
+                        <option value="dark" {% if theme == 'dark' %}selected{% endif %}>Dark</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="timezone" class="form-label">Timezone</label>
+                    <input type="text" id="timezone" name="timezone" class="form-control" value="{{ timezone }}" placeholder="e.g. UTC">
+                </div>
+
+                <div class="mb-3">
+                    <label for="language" class="form-label">Language</label>
+                    <input type="text" id="language" name="language" class="form-control" value="{{ language }}" placeholder="e.g. English">
+                </div>
+
+                <div class="text-end">
+                    <button type="submit" class="btn btn-primary">Save Preferences</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function updateTheme(theme) {
+        if (theme === 'dark') {
+            document.body.classList.add('dark-mode');
+            localStorage.setItem('theme', 'dark');
+        } else {
+            document.body.classList.remove('dark-mode');
+            localStorage.setItem('theme', 'light');
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const serverTheme = "{{ theme }}";
+        // Use server theme preference, override localStorage
+        if (serverTheme) {
+            if (serverTheme === 'dark') {
+                document.body.classList.add('dark-mode');
+                document.getElementById('theme').value = 'dark';
+            } else {
+                document.body.classList.remove('dark-mode');
+                document.getElementById('theme').value = 'light';
+            }
+            localStorage.setItem('theme', serverTheme);
+        } else {
+            // fallback to localStorage if serverTheme is not set
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-mode');
+                document.getElementById('theme').value = 'dark';
+            } else {
+                document.body.classList.remove('dark-mode');
+                document.getElementById('theme').value = 'light';
+            }
+        }
+    });
+</script>
+{% endblock %}

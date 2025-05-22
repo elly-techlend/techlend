@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Other Income - View{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2>Other Income</h2>
+  <a href="{{ url_for('other_income.add_income') }}" class="btn btn-primary mb-3">Add New Income</a>
+
+  {% if incomes %}
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Description</th>
+          <th>Amount</th>
+          <th>Date</th>
+          <th>Added By</th>
+          <th>Created At</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for income in incomes %}
+        <tr>
+          <td>{{ income.description }}</td>
+          <td>{{ "%.2f"|format(income.amount) }}</td>
+          <td>{{ income.income_date.strftime('%Y-%m-%d') }}</td>
+          <td>{{ income.created_by.full_name }}</td>
+          <td>{{ income.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No other income records found.</p>
+  {% endif %}
+</div>
+{% endblock %}
