@@ -17,6 +17,18 @@ auth_bp = Blueprint('auth', __name__)
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in current_app.config['ALLOWED_EXTENSIONS']
 
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
+
+def verify_reset_token(token):
+    serializer = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+    try:
+        email = serializer.loads(token, salt='password-reset-salt', max_age=3600)
+    except SignatureExpired:
+        return None
+    except BadSignature:
+        return None
+    return email
+
 @auth_bp.route('/register-company', methods=['GET', 'POST'])
 @login_required
 def register_company():
@@ -251,18 +263,6 @@ def reset_password_token(token):
         return redirect(url_for('auth.login'))
 
     return render_template('auth/reset_password.html', token=token)
-
-from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
-
-def verify_reset_token(token):
-    serializer = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
-    try:
-        email = serializer.loads(token, salt='password-reset-salt', max_age=3600)
-    except SignatureExpired:
-        return None
-    except BadSignature:
-        return None
-    return email
 
 @auth_bp.route('/logout')
 @login_required
