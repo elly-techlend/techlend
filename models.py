@@ -56,7 +56,7 @@ class User(UserMixin, db.Model):
     language = db.Column(db.String(50), default='')
 
     full_name = db.Column(db.String(150), nullable=False)
-    company_id = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True)
 
     company = db.relationship('Company', back_populates='users')  # <== No backref here
     branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)

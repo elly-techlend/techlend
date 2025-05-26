@@ -146,7 +146,6 @@ def create_superuser():
 
     username = "superuser"
     email = "super@techlend.com"
-    # Strong password example: 16 chars, mix of upper, lower, digits, special
     password = "S3cur3P@ssw0rd!2025"
 
     if User.query.filter_by(email=email).first():
@@ -160,7 +159,6 @@ def create_superuser():
         password_hash=generate_password_hash(password),
         is_superuser=True,
         is_active=True,
-        company_id=1  # Change if necessary
     )
     db.session.add(user)
     db.session.commit()

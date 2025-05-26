@@ -46,7 +46,6 @@ def add_income():
             flash('Invalid amount format.', 'error')
             return redirect(url_for('other_income.add_income'))
 
-        from datetime import datetime
         if income_date:
             try:
                 income_date = datetime.strptime(income_date, '%Y-%m-%d').date()
@@ -61,13 +60,13 @@ def add_income():
             amount=amount,
             income_date=income_date,
             company_id=current_user.company_id,
+            branch_id=session.get("active_branch_id"),  # ✅ FIXED LINE
             created_by_id=current_user.id,
         )
+
         db.session.add(new_income)
         db.session.commit()
         flash('Other income added successfully.', 'success')
         return redirect(url_for('other_income.view_other_income'))
 
     return render_template('other_income/add_income.html', datetime=datetime)
-
-
