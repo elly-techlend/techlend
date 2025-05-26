@@ -315,11 +315,6 @@ def delete_loan(loan_id):
         flash("You are not allowed to delete loans from another branch.", "danger")
         return redirect(url_for('loan.view_loans'))
 
-    # ❌ Remove repayment restriction
-    # if loan.repayments:
-    #     flash(f'Cannot delete loan with {len(loan.repayments)} repayments. Please remove repayments first.', 'danger')
-    #     return redirect(url_for('loan.loan_details', loan_id=loan.id))
-
     db.session.delete(loan)
     db.session.commit()
 
@@ -419,6 +414,8 @@ def repay_loan(loan_id):
     if loan.remaining_balance <= 0:
         loan.remaining_balance = 0
         loan.status = 'Paid'
+    else:
+        loan.status = 'Partially Paid'
 
     repayment = LoanRepayment(
         loan_id=loan.id,
