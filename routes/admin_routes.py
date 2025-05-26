@@ -184,6 +184,7 @@ def view_company_details(company_id):
                            total_branches=total_branches,
                            admin_user=admin_user)
 
+@csrf.exempt
 @admin_bp.route('/system-logs')
 @login_required
 @superuser_required
@@ -191,6 +192,7 @@ def system_logs():
     logs = SystemLog.query.order_by(SystemLog.created_at.desc()).limit(100).all()
     return render_template('superuser/system_logs.html', logs=logs)
 
+@csrf.exempt
 @admin_bp.route('/system-logs/clear', methods=['POST'])
 @login_required
 @superuser_required

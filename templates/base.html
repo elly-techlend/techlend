@@ -24,7 +24,7 @@
     body {
       margin: 0;
       overflow-x: hidden;
-      padding-top: 54px; /* 56px navbar + 56px admin bar */
+      padding-top: 0px; /* 56px navbar + 56px admin bar */
     }
 
     .navbar {
@@ -102,7 +102,7 @@
     .main-content {
       margin-left: 180px;
       padding: 20px;
-      padding-top: 70px;
+      padding-top: 50px;
     }
 
     @media (max-width: 768px) {
@@ -117,15 +117,6 @@
       .main-content {
         margin-left: 0;
       }
-    .admin-bar {
-        position: sticky;
-        top: 56px; /* Push down below fixed-top navbar */
-        z-index: 931; /* One above the navbar (usually 1030) */
-        background-color: #f8f9fa;
-        padding: 0.5rem 1rem;
-        border-bottom: 1px solid #dee2e6;
-        margin-left: 70px; /* Match your sidebar width */
-    }
     }
   </style>
 </head>
@@ -162,51 +153,6 @@
     </div>
   </nav>
 
-{% block admin_bar %}
-{% if current_user.is_authenticated and (current_user.is_superuser or current_user.has_role('Admin')) %}
-<div class="admin-bar position-sticky top-0 z-3 bg-light py-2 shadow-sm border-bottom">
-    <div class="container-fluid">
-        <form id="branchForm" action="{{ url_for('admin.set_active_branch') }}" method="post" class="d-flex justify-content-between align-items-center flex-wr>
-            {{ csrf_form.csrf_token }}
-
-            <!-- Branch dropdown -->
-            <div class="btn-group">
-                <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                    Branch #1
-                </button>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="{{ url_for('branches.list_branches') }}">View Branches</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('branches.add_branch') }}">Add Branch</a></li>
-                </ul>
-            </div>
-
-            <!-- Branch Switch -->
-            <select class="form-select w-auto" name="branch_id" onchange="document.getElementById('branchForm').submit()">
-                {% for branch in current_user.company.branches %}
-                    <option value="{{ branch.id }}" {% if branch.id == session['active_branch_id'] %}selected{% endif %}>
-                        {{ branch.name }}
-                    </option>
-                {% endfor %}
-            </select>
-
-            <!-- Admin Options -->
-            <div class="btn-group">
-                <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                    Admin Options
-                </button>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="{{ url_for('admin.manage_staff') }}">Manage Staff</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('auth.register') }}">Register Staff</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('admin.company_notifications') }}">Notifications</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('settings.billing') }}">Billing</a></li>
-                </ul>
-            </div>
-        </form>
-    </div>
-</div>
-{% endif %}
-{% endblock %}
-
   <!-- ✅ Sidebar -->
   <div class="sidebar" id="sidebar">
     {% if session.active_branch_name %}
@@ -214,7 +160,6 @@
       <i class="fas fa-map-marker-alt me-1"></i> <strong>Branch:</strong> {{ session.active_branch_name }}
     </div>
     {% endif %}
-
     <a href="{{ url_for('dashboard.index') }}"><i class="fas fa-home me-2"></i> Home</a>
     <a href="{{ url_for('cashbook.view_cashbook') }}"><i class="fas fa-book me-2"></i> Cashbook</a>
 
@@ -311,6 +256,37 @@
        <li><a href="{{ url_for('settings.system_preferences') }}"><i class="fas fa-sliders-h me-2"></i>System Preferences</a></li>
        <li><a href="{{ url_for('settings.data_management') }}"><i class="fas fa-database me-2"></i>Data Management</a></li>
     </ul>
+
+{% if current_user.is_authenticated and (current_user.is_superuser or current_user.has_role('Admin')) %}
+  <div class="section d-flex align-items-center" onclick="toggleSubmenu('adminMenu')">
+    <i class="fas fa-tools me-2"></i> Admin Panel
+    <i class="fa fa-angle-left ms-auto"></i>
+  </div>
+  <ul id="adminMenu" class="submenu">
+
+    <!-- Branch Switcher -->
+    <li>
+      <form id="branchForm" action="{{ url_for('admin.set_active_branch') }}" method="post">
+        <label for="branch_id" class="form-label"><i class="fas fa-exchange-alt me-2"></i>Switch Branch</label>
+        <select class="form-select w-100" name="branch_id" onchange="document.getElementById('branchForm').submit()">
+          {% for branch in current_user.company.branches %}
+            <option value="{{ branch.id }}" {% if branch.id == session['active_branch_id'] %}selected{% endif %}>
+              {{ branch.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </form>
+    </li>
+
+    <li><a href="{{ url_for('branches.list_branches') }}"><i class="fas fa-code-branch me-2"></i>View Branches</a></li>
+    <li><a href="{{ url_for('branches.add_branch') }}"><i class="fas fa-plus-circle me-2"></i>Add Branch</a></li>
+    <li><a href="{{ url_for('admin.manage_staff') }}"><i class="fas fa-users-cog me-2"></i>Manage Staff</a></li>
+    <li><a href="{{ url_for('auth.register') }}"><i class="fas fa-user-plus me-2"></i>Register Staff</a></li>
+    <li><a href="{{ url_for('admin.company_notifications') }}"><i class="fas fa-bell me-2"></i>Notifications</a></li>
+    <li><a href="{{ url_for('settings.billing') }}"><i class="fas fa-credit-card me-2"></i>Billing</a></li>
+  </ul>
+{% endif %}
+
 {% if current_user.is_authenticated and current_user.is_superuser %}
     <div class="section" onclick="toggleSubmenu('superadminMenu')">
         <i class="fas fa-user-shield"></i> Super Admin <i class="fa fa-angle-left pull-right"></i>
