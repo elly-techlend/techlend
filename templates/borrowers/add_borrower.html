@@ -1,14 +1,18 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h2 class="mb-4">Add New Borrower</h2>
+<h2 class="mb-4 fw-bold text-primary">
+  <i class="bi bi-person-plus-fill me-2"></i> Add New Borrower
+</h2>
 
-<form action="{{ url_for('borrowers.add_borrower') }}" method="POST" enctype="multipart/form-data" class="p-4 bg-white shadow rounded">
+<form action="{{ url_for('borrowers.add_borrower') }}" method="POST" enctype="multipart/form-data" class="p-4 bg-white shadow rounded border border-light">
   {{ form.hidden_tag() }}
 
   <!-- Personal Information -->
-  <h5 class="mt-3">Personal Information</h5>
-  <div class="row mb-3">
+  <h5 class="text-secondary border-bottom pb-2">
+    <i class="bi bi-person-badge me-2"></i> Personal Information
+  </h5>
+  <div class="row mb-3 mt-2">
     <div class="col-md-2">
       {{ form.title.label(class="form-label") }}
       {{ form.title(class="form-control") }}
@@ -38,14 +42,18 @@
     </div>
   </div>
 
-  <div class="mb-3">
+  <div class="mb-4">
     {{ form.photo.label(class="form-label") }}
     {{ form.photo(class="form-control") }}
   </div>
 
+  <hr>
+
   <!-- Contact Info -->
-  <h5 class="mt-4">Contact Information</h5>
-  <div class="row mb-3">
+  <h5 class="text-secondary border-bottom pb-2">
+    <i class="bi bi-telephone me-2"></i> Contact Information
+  </h5>
+  <div class="row mb-3 mt-2">
     <div class="col-md-6">
       {{ form.email.label(class="form-label") }}
       {{ form.email(class="form-control") }}
@@ -56,21 +64,30 @@
     </div>
   </div>
 
-<h5 class="mt-4">Address and Occupation</h5>
-<div class="row mb-3">
-  <div class="col-md-6">
-    {{ form.address.label(class="form-label") }}
-    {{ form.address(class="form-control") }}
+  <hr>
+
+  <!-- Address and Occupation -->
+  <h5 class="text-secondary border-bottom pb-2">
+    <i class="bi bi-geo-alt me-2"></i> Address & Occupation
+  </h5>
+  <div class="row mb-3 mt-2">
+    <div class="col-md-6">
+      {{ form.address.label(class="form-label") }}
+      {{ form.address(class="form-control") }}
+    </div>
+    <div class="col-md-6">
+      {{ form.occupation.label(class="form-label") }}
+      {{ form.occupation(class="form-control") }}
+    </div>
   </div>
-  <div class="col-md-6">
-    {{ form.occupation.label(class="form-label") }}
-    {{ form.occupation(class="form-control") }}
-  </div>
-</div>
+
+  <hr>
 
   <!-- Family Background -->
-  <h5 class="mt-4">Family & Background</h5>
-  <div class="row mb-3">
+  <h5 class="text-secondary border-bottom pb-2">
+    <i class="bi bi-people-fill me-2"></i> Family & Background
+  </h5>
+  <div class="row mb-3 mt-2">
     <div class="col-md-4">
       {{ form.marital_status.label(class="form-label") }}
       {{ form.marital_status(class="form-control") }}
@@ -85,17 +102,20 @@
     </div>
   </div>
 
-  <!-- Education, Branch, Kin -->
-  <h5 class="mt-4">Other Information</h5>
-  <div class="row mb-3">
+  <hr>
+
+  <!-- Other Information -->
+  <h5 class="text-secondary border-bottom pb-2">
+    <i class="bi bi-info-circle me-2"></i> Other Information
+  </h5>
+  <div class="row mb-3 mt-2">
     <div class="col-md-4">
       {{ form.education_level.label(class="form-label") }}
       {{ form.education_level(class="form-control") }}
     </div>
-    <!-- Hidden branch_id field -->
+
     {{ form.branch_id(type="hidden") }}
 
-    <!-- Show branch name as read-only info -->
     <div class="col-md-4">
       <label class="form-label">Branch</label>
       <input type="text" class="form-control" value="{{ active_branch_name }}" readonly>
@@ -114,14 +134,15 @@
   </div>
 
   <!-- Submit -->
-  {{ form.submit(class="btn btn-primary") }}
+  <div class="d-grid">
+    {{ form.submit(class="btn btn-primary btn-lg") }}
+  </div>
 </form>
 
-<!-- Error Debugging -->
 {% if form.errors %}
-<div class="alert alert-danger mt-3">
-  <h6>Form Errors:</h6>
-  <ul>
+<div class="alert alert-danger mt-4">
+  <h6><i class="bi bi-exclamation-triangle me-1"></i> Form Errors:</h6>
+  <ul class="mb-0">
     {% for field, errors in form.errors.items() %}
       <li><strong>{{ field }}:</strong> {{ errors[0] }}</li>
     {% endfor %}
