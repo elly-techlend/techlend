@@ -15,7 +15,6 @@ def set_active_branch_context():
     if current_user.is_authenticated and not current_user.is_superuser:
         session.setdefault('active_branch_id', current_user.branch_id)
 
-@csrf.exempt
 @dashboard_bp.route('/switch-branch/<int:branch_id>', methods=['POST'])
 @login_required
 def switch_branch(branch_id):

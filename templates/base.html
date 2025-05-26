@@ -267,8 +267,9 @@
     <!-- Branch Switcher -->
     <li>
       <form id="branchForm" action="{{ url_for('admin.set_active_branch') }}" method="post">
+        {{ csrf_form.csrf_token }}
         <label for="branch_id" class="form-label"><i class="fas fa-exchange-alt me-2"></i>Switch Branch</label>
-        <select class="form-select w-100" name="branch_id" onchange="document.getElementById('branchForm').submit()">
+        <select class="form-select w-80" name="branch_id" onchange="document.getElementById('branchForm').submit()">
           {% for branch in current_user.company.branches %}
             <option value="{{ branch.id }}" {% if branch.id == session['active_branch_id'] %}selected{% endif %}>
               {{ branch.name }}
