@@ -229,41 +229,6 @@ def forgot_password():
 
     return render_template('auth/forgot_password.html')
 
-from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
-
-def verify_reset_token(token):
-    serializer = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
-    try:
-        email = serializer.loads(token, salt='password-reset-salt', max_age=3600)
-    except SignatureExpired:
-        return None
-    except BadSignature:
-        return None
-    return email
-
-@csrf.exempt
-@auth_bp.route('/reset-password/<token>', methods=['GET', 'POST'])
-def reset_password_token(token):
-    email = verify_reset_token(token)
-    if not email:
-        flash('The password reset link is invalid or has expired.', 'danger')
-        return redirect(url_for('auth.forgot_password'))
-
-    user = User.query.filter_by(email=email).first_or_404()
-
-    if request.method == 'POST':
-        new_password = request.form.get('new_password')
-        if not new_password:
-            flash('Password is required.', 'warning')
-            return redirect(request.url)
-
-        user.set_password(new_password)  # Make sure your User model has this method
-        db.session.commit()
-        flash('Password reset successfully. You can now log in.', 'success')
-        return redirect(url_for('auth.login'))
-
-    return render_template('auth/reset_password.html', token=token)
-
 @csrf.exempt
 @auth_bp.route('/reset-password/<token>', methods=['GET', 'POST'])
 def reset_password_token(token):
@@ -298,7 +263,6 @@ def verify_reset_token(token):
     except BadSignature:
         return None
     return email
-
 
 @auth_bp.route('/logout')
 @login_required
