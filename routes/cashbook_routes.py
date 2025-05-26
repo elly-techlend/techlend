@@ -55,43 +55,35 @@ def view_cashbook():
     from sqlalchemy import extract
     from datetime import datetime
 
-    year = request.args.get('year', type=int)
-    month = request.args.get('month', type=int)
-    day = request.args.get('day', type=int)
     page = request.args.get('page', 1, type=int)
+    month = page  # Page = month
+    year = request.args.get('year', type=int) or datetime.now().year
     branch_id = session.get('active_branch_id')
 
     query = CashbookEntry.query.filter_by(company_id=current_user.company_id)
 
-    # Enforce branch filtering for everyone except superuser
     if not current_user.is_superuser and branch_id:
         query = query.filter_by(branch_id=branch_id)
 
-    # Date filters
-    if year:
-        query = query.filter(extract('year', CashbookEntry.date) == year)
-    if month:
-        query = query.filter(extract('month', CashbookEntry.date) == month)
-    if day:
-        query = query.filter(extract('day', CashbookEntry.date) == day)
+    query = query.filter(
+        extract('year', CashbookEntry.date) == year,
+        extract('month', CashbookEntry.date) == month
+    )
 
-    pagination = query.order_by(CashbookEntry.date, CashbookEntry.id).paginate(page=page, per_page=20)
-    entries = pagination.items
+    entries = query.order_by(CashbookEntry.date.desc(), CashbookEntry.id.desc()).all()
 
-    # Compute running balance
+    # Compute running balance (in reverse so balance accumulates from bottom to top)
     running_balance = 0.0
-    for entry in entries:
-        entry.balance = running_balance = running_balance + (entry.credit or 0) - (entry.debit or 0)
+    for entry in reversed(entries):
+        running_balance = running_balance + (entry.credit or 0) - (entry.debit or 0)
+        entry.balance = running_balance
 
-    # Totals
     total_debit = sum(e.debit or 0 for e in entries)
     total_credit = sum(e.credit or 0 for e in entries)
     final_balance = running_balance
 
-    # Year list for dropdown
     years = db.session.query(extract('year', CashbookEntry.date)).distinct().all()
     months = [(i, datetime(1900, i, 1).strftime('%B')) for i in range(1, 13)]
-    days = list(range(1, 32))
 
     return render_template(
         'cashbook/view_cashbook.html',
@@ -99,13 +91,12 @@ def view_cashbook():
         total_debit=total_debit,
         total_credit=total_credit,
         final_balance=final_balance,
-        pagination=pagination,
         selected_year=year,
         selected_month=month,
-        selected_day=day,
         years=[y[0] for y in years],
         months=months,
-        days=days
+        current_page=page,
+        total_pages=12  # Fixed 12 pages (months)
     )
 
 def add_cashbook_entry(date, particulars, debit, credit, company_id, branch_id=None, created_by=None):
