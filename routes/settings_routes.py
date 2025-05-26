@@ -35,9 +35,9 @@ def profile():
 @login_required
 def system_preferences():
     if request.method == 'POST':
-        theme = request.form.get('theme')
-        timezone = request.form.get('timezone')
-        language = request.form.get('language')
+        theme = request.form.get('theme') or 'light'
+        timezone = request.form.get('timezone') or ''
+        language = request.form.get('language') or ''
 
         # Save preferences to the user model
         current_user.theme = theme
@@ -47,7 +47,6 @@ def system_preferences():
 
         flash("Preferences saved successfully.", "success")
 
-    # Pass current preferences to template
     return render_template(
         'settings/system_preferences.html',
         theme=current_user.theme or 'light',

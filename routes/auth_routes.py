@@ -252,6 +252,18 @@ def reset_password_token(token):
 
     return render_template('auth/reset_password.html', token=token)
 
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
+
+def verify_reset_token(token):
+    serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+    try:
+        email = serializer.loads(token, salt='password-reset-salt', max_age=3600)
+    except SignatureExpired:
+        return None
+    except BadSignature:
+        return None
+    return email
+
 @auth_bp.route('/logout')
 @login_required
 def logout():

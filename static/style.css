@@ -1,95 +1,31 @@
-/* General */
-body {
+/* Reset & Base */
+* {
     margin: 0;
     padding: 0;
+    box-sizing: border-box;
+}
+body {
     font-family: Arial, sans-serif;
     overflow-x: hidden;
+    background-color: #f4f4f4;
+    color: #333;
 }
-
-body:not(.dark-mode) {
-    background: #f4f4f4;
-}
-
 a {
     text-decoration: none;
+    color: inherit;
+    transition: color 0.3s;
 }
 
-/* Dark mode base */
+/* Dark Mode Base */
 body.dark-mode {
     background-color: #121212;
     color: #e0e0e0;
 }
-
-/* Links */
 body.dark-mode a {
     color: #bb86fc;
 }
-
 body.dark-mode a:hover {
     color: #d0aaff;
-}
-
-/* Navigation bar */
-body.dark-mode .top-nav {
-    background-color: #1f1f1f;
-    color: #e0e0e0;
-}
-
-/* Containers and cards */
-body.dark-mode .container,
-body.dark-mode .card {
-    background-color: #1e1e1e;
-    color: #e0e0e0;
-    border: 1px solid #333;
-}
-
-/* Buttons */
-body.dark-mode .btn-primary {
-    background-color: #bb86fc;
-    border-color: #bb86fc;
-    color: #121212;
-}
-
-body.dark-mode .btn-primary:hover {
-    background-color: #9a6efb;
-    border-color: #9a6efb;
-}
-
-/* Tables */
-body.dark-mode table {
-    color: #e0e0e0;
-    background-color: #1e1e1e;
-    border-collapse: collapse;
-}
-
-body.dark-mode thead {
-    background-color: #333;
-    color: #e0e0e0;
-}
-
-body.dark-mode tbody tr {
-    border-bottom: 1px solid #444;
-}
-
-/* Inputs and selects */
-body.dark-mode input,
-body.dark-mode select,
-body.dark-mode textarea {
-    background-color: #2a2a2a;
-    color: #e0e0e0;
-    border: 1px solid #444;
-}
-
-body.dark-mode input::placeholder,
-body.dark-mode textarea::placeholder {
-    color: #aaa;
-}
-
-/* Layout Wrapper */
-.wrapper {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
 }
 
 /* Top Navigation */
@@ -97,14 +33,24 @@ body.dark-mode textarea::placeholder {
     height: 60px;
     width: 100%;
     padding: 0 20px;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     z-index: 1001;
+    position: fixed;
+    top: 0;
+}
+body.dark-mode .top-nav {
+    background-color: #1f1f1f;
+    color: #e0e0e0;
 }
 
+/* Logo */
 .logo-header {
     display: flex;
     align-items: center;
 }
-
 .logo-header h5 {
     margin-left: 10px;
     font-weight: bold;
@@ -115,7 +61,6 @@ body.dark-mode textarea::placeholder {
     display: flex;
     align-items: center;
 }
-
 .profile-info img {
     width: 36px;
     height: 36px;
@@ -126,49 +71,32 @@ body.dark-mode textarea::placeholder {
 /* Sidebar */
 .sidebar {
     position: fixed;
-    top: 0;
+    top: 60px;
     left: 0;
     width: 250px;
-    height: 100vh;
+    height: calc(100vh - 60px);
     background-color: #f8f9fa;
-    padding-top: 70px; /* height of navbar */
     overflow-y: auto;
+    transition: all 0.3s ease;
     z-index: 1000;
-    font-size: 13px; /* or try 12px for even smaller */
 }
 .sidebar a,
 .sidebar .section {
     display: block;
-    color: #ecf0f1;
     padding: 12px 20px;
-    font-size: 15px;
-    transition: background 0.3s;
+    font-size: 14px;
+    color: #333;
 }
-
 .sidebar a:hover,
 .sidebar .section:hover {
     background-color: #1abc9c;
     color: white;
 }
-
 .sidebar .section {
     font-weight: bold;
-    border-top: 1px solid #444;
+    border-top: 1px solid #ccc;
     cursor: pointer;
-    font-size: 13px; /* or try 12px for even smaller */
 }
-
-/* Submenus */
-.submenu {
-    display: none;
-    padding-left: 20px;
-}
-
-.submenu a {
-    font-size: 14px;
-}
-
-/* Coming Soon Badge */
 .coming-soon {
     float: right;
     background-color: #f39c12;
@@ -178,27 +106,47 @@ body.dark-mode textarea::placeholder {
     border-radius: 3px;
 }
 
+/* Sidebar Dark Mode */
+body.dark-mode .sidebar {
+    background-color: #222;
+}
+body.dark-mode .sidebar a,
+body.dark-mode .sidebar .section {
+    color: #ccc;
+}
+body.dark-mode .sidebar a:hover,
+body.dark-mode .sidebar .section:hover {
+    background-color: #1abc9c;
+    color: white;
+}
+
 /* Main Content */
 .main-content {
-    margin-left: 250px; /* Adjust based on sidebar width */
-    padding: 20px;
-    padding-top: 70px; /* Space for fixed navbar */
+    margin-left: 250px;
+    padding: 80px 20px 20px 20px;
     min-height: 100vh;
-    box-sizing: border-box;
+    background-color: #fff;
+    transition: all 0.3s ease;
+}
+body.dark-mode .main-content {
+    background-color: #181818;
+    color: #eee;
 }
 
-/* Table Container */
-.loan-table-wrapper {
-    overflow-x: auto;
-    background: white;
-    padding: 10px;
-    border-radius: 0px;
-    box-shadow: 0 0 5px rgba(0,0,0,0.1);
+/* Cards */
+.container,
+.card {
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 15px;
+    margin-bottom: 20px;
 }
-
-.main-content {
-    margin-left: 250px; /* same width as sidebar */
-    padding: 20px;
+body.dark-mode .container,
+body.dark-mode .card {
+    background-color: #1e1e1e;
+    border-color: #333;
+    color: #e0e0e0;
 }
 
 /* Tables */
@@ -206,19 +154,75 @@ table {
     width: 100%;
     border-collapse: collapse;
     font-size: 14px;
-    word-wrap: break-word;
 }
-
 th, td {
-    border: 1px solid #ddd;
-    padding:4px 6px !important;
+    padding: 8px;
     text-align: center;
-    white-space: nowrap;
+    border: 1px solid #ddd;
 }
-
 th {
     background-color: #f2f2f2;
-    font-weight: bold;
+}
+body.dark-mode th {
+    background-color: #333;
+    color: #eee;
+}
+body.dark-mode td, 
+body.dark-mode th {
+    border-color: #444;
+}
+.loan-table-wrapper {
+    overflow-x: auto;
+    background: #fff;
+    padding: 10px;
+    border-radius: 4px;
+    box-shadow: 0 0 5px rgba(0,0,0,0.1);
+}
+body.dark-mode .loan-table-wrapper {
+    background-color: #1e1e1e;
+    box-shadow: none;
+}
+
+/* Forms */
+input,
+select,
+textarea {
+    width: 100%;
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    margin-bottom: 10px;
+}
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea {
+    background-color: #2a2a2a;
+    color: #e0e0e0;
+    border: 1px solid #444;
+}
+body.dark-mode input::placeholder,
+body.dark-mode textarea::placeholder {
+    color: #aaa;
+}
+
+/* Buttons */
+.btn-primary {
+    background-color: #007bff;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+}
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+body.dark-mode .btn-primary {
+    background-color: #bb86fc;
+    color: #121212;
+}
+body.dark-mode .btn-primary:hover {
+    background-color: #9a6efb;
 }
 
 /* Action Buttons */
@@ -228,93 +232,56 @@ th {
     color: white;
     border-radius: 4px;
     font-size: 12px;
-    transition: background 0.3s;
+    display: inline-block;
 }
-
 .link-style:hover {
     background: #0056b3;
 }
-
-.action-btn {
-    padding: 3px 6px;
-    font-size: 12px;
-    margin: 2px;
-    background: #28a745;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background 0.3s;
-}
-
-.action-btn:hover {
-    background: #218838;
-}
-
-/* Sidebar background in dark mode */
-body.dark-mode .sidebar {
-    background-color: #222; /* dark sidebar */
-    color: #ddd;
-}
-
-/* Sidebar links in dark mode */
-body.dark-mode .sidebar a,
-body.dark-mode .sidebar .section {
-    color: #ccc;
-}
-
-body.dark-mode .sidebar a:hover,
-body.dark-mode .sidebar .section:hover {
-    background-color: #1abc9c;
-    color: white;
-}
-
-/* Main content background */
-body.dark-mode .main-content {
-    background-color: #181818;
-    color: #eee;
-}
-
-/* Table container */
-body.dark-mode .loan-table-wrapper {
-    background-color: #1e1e1e;
-    box-shadow: none; /* optional */
-}
-
-/* Table headers */
-body.dark-mode th {
-    background-color: #333 !important;
-    color: #eee !important;
-}
-
-/* Table rows */
-body.dark-mode td, 
-body.dark-mode th {
-    border-color: #444 !important;
-}
-
-/* Override white backgrounds */
-body.dark-mode .card {
-    background-color: #1e1e1e;
-    color: #eee;
-}
-
-/* Override action buttons if needed */
 body.dark-mode .link-style {
     background: #bb86fc;
     color: #121212;
 }
-
 body.dark-mode .link-style:hover {
     background: #9a6efb;
 }
-
-/* Buttons */
+.action-btn {
+    padding: 4px 8px;
+    background: #28a745;
+    color: white;
+    border: none;
+    font-size: 12px;
+    border-radius: 4px;
+    margin: 2px;
+    cursor: pointer;
+}
+.action-btn:hover {
+    background: #218838;
+}
 body.dark-mode .action-btn {
     background: #bb86fc;
     color: #121212;
 }
-
 body.dark-mode .action-btn:hover {
     background: #9a6efb;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+    }
+    .main-content {
+        margin-left: 0;
+        padding-top: 100px;
+    }
+    .top-nav {
+        flex-direction: column;
+        height: auto;
+        padding: 10px;
+    }
+    .logo-header h5 {
+        font-size: 16px;
+    }
 }

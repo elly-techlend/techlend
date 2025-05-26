@@ -1,184 +1,177 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1"> <!-- ✅ Crucial for mobile responsiveness -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TechLend System</title>
 
-    <title>TechLend System</title>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  
+  <!-- Animate.css -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
 
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 
-    <!-- Animate.css -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/dark.css') }}">
 
-    <!-- Bootstrap -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      overflow-x: hidden;
+      padding-top: 54px; /* 56px navbar + 56px admin bar */
+    }
 
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/dark.css') }}">
+    .navbar {
+      background-color: #367588;
+      height: 50px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1040;
+      display: flex;
+      align-items: center;
+      padding: 0 15px;
+      color: #fff;
+    }
 
-    <!-- CountUp -->
-    <script src="https://cdn.rawgit.com/inorganik/countUp.js/master/dist/countUp.min.js"></script>
+    .navbar-center {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #111;
+      padding: 5px 15px;
+      border-radius: 4px;
+      font-weight: 600;
+      color: white;
+      display: flex;
+      align-items: center;
+    }
+
+    .navbar-right {
+      margin-left: auto;
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 50px;
+      left: 0;
+      width: 180px;
+      height: 100%;
+      background-color: #36454F;
+      color: white;
+      padding-top: 10px;
+      overflow-y: auto;
+      z-index: 1000;
+      transition: transform 0.3s ease;
+    }
+
+    .sidebar a,
+    .sidebar .section {
+      display: block;
+      color: white;
+      text-decoration: none;
+      padding: 10px;
+      font-size: 13px;
+    }
+
+    .submenu {
+      display: none;
+      padding-left: 20px;
+    }
+
+    .sidebar-branch-info {
+      background-color: #2d3748;
+      padding: 10px;
+      font-size: 0.9rem;
+      border-bottom: 1px solid #444;
+    }
+
+    .menu-toggle {
+      cursor: pointer;
+      font-size: 1.5rem;
+      margin-right: 15px;
+    }
+
+    .main-content {
+      margin-left: 180px;
+      padding: 20px;
+      padding-top: 70px;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+
+      .sidebar.show {
+        transform: translateX(0);
+      }
+
+      .main-content {
+        margin-left: 0;
+      }
+    .admin-bar {
+        position: sticky;
+        top: 56px; /* Push down below fixed-top navbar */
+        z-index: 931; /* One above the navbar (usually 1030) */
+        background-color: #f8f9fa;
+        padding: 0.5rem 1rem;
+        border-bottom: 1px solid #dee2e6;
+        margin-left: 70px; /* Match your sidebar width */
+    }
+    }
+  </style>
 </head>
 
- <style>
-body {
-    margin: 0;
-    padding: 0;
-    overflow-x: hidden; /* Optional: prevent sideways scroll */
-}
-        .search-bar-container {
-            margin-left: 180px;
-            margin-top: 0px;
-            padding: 2px 10px;
-            background-color: #f8f9fa;
-            border-bottom: 1px solid #ddd;
-            position: sticky;
-            top: 50px;
-            z-index: 999;
-        }
-        .sidebar {
-            position: fixed;
-            top: 40px;
-            left: 0;
-            width: 180px;
-            height: 100%;
-            background-color: #36454F;
-            padding-top: 20px;
-            overflow-y: auto;
-            border-right: 1px solid #ddd;
-            z-index: 1000;
-            font-size: 12px;
-        }
-.main-content {
-    margin-left: 180px;        /* offset for fixed sidebar */
-    padding: 20px;
-    padding-top: 70px;         /* offset for top navbar */
-}
-        }
-        .profile-info img {
-            height: 30px;
-            width: 30px;
-            border-radius: 50%;
-            margin-left: 5px;
-        }
-        .submenu {
-            display: none;
-            padding-left: 15px;
-        }
-        .coming-soon {
-            font-size: 0.6em;
-            color: #888;
-            margin-left: 3px;
-        }
-        .section {
-            cursor: pointer;
-            padding: 10px;
-        }
-.navbar {
-    background-color: #367588;
-    height: 50px;
-    width: 100vw;
-    color: white;
-    display: flex;
-    align-items: center;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    padding: 0 20px;
-    z-index: 1040;
-}
-
-.navbar-left,
-.navbar-right {
-    display: flex;
-    align-items: center;
-}
-
-.navbar-left {
-    flex: 1;
-}
-
-.navbar-right {
-    flex-shrink: 0;
-}
-
-.navbar-center {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    align-items: center;
-    background-color: #111;
-    padding: 5px 15px;
-    border-radius: opx;
-    color: white;
-    font-weight: 600;
-}
-
-.navbar img {
-    height: 40px;
-    width: 40px;
-    object-fit: cover;
-}
-.sidebar-branch-info {
-    color: #ffffff;
-    background-color: #2d3748; /* Adjust to match your theme */
-    padding: 10px;
-    border-bottom: 1px solid #444;
-    font-size: 0.9rem;
-}
-    </style>
-
-<body>
-
-<!-- ✅ Fixed Top Navbar -->
-<nav class="navbar">
-    <!-- Left: System Logo -->
+<body class="{% if theme == 'dark' %}dark-mode{% endif %}">
+ <!-- ✅ Top Navbar -->
+  <nav class="navbar">
+    <span class="menu-toggle" onclick="toggleSidebar()">☰</span>
     <div class="navbar-left">
-        <img src="{{ url_for('static', filename='tec.jpeg') }}" alt="TechLend Logo" width="45" height="45" class="rounded-circle">
+      <img src="{{ url_for('static', filename='tec.jpeg') }}" width="40" height="40" class="rounded-circle" alt="TechLend Logo">
     </div>
 
-    <!-- Center: Company Box (absolutely centered) -->
-    <div class="navbar-center top-center-box">
-        {% if current_user.is_authenticated and current_user.company %}
-            {% if current_user.company.logo_url %}
-                <img src="{{ current_user.company.logo_url }}" alt="Company Logo" width="35" height="35" class="rounded-circle me-2">
-            {% else %}
-                <img src="{{ url_for('static', filename='default_logo.png') }}" alt="Default Logo" width="35" height="35" class="rounded-circle me-2">
-            {% endif %}
-            <span class="fw-bold">{{ current_user.company.name }}</span>
+    <div class="navbar-center">
+      {% if current_user.is_authenticated and current_user.company %}
+        {% if current_user.company.logo_url %}
+          <img src="{{ current_user.company.logo_url }}" width="30" height="30" class="rounded-circle me-2" alt="Company Logo">
         {% else %}
-            <span class="fw-bold">TechLend</span>
+          <img src="{{ url_for('static', filename='default_logo.png') }}" width="30" height="30" class="rounded-circle me-2" alt="Default Logo">
         {% endif %}
+        <span>{{ current_user.company.name }}</span>
+      {% else %}
+        <span>TechLend</span>
+      {% endif %}
     </div>
 
-    <!-- Right: Auth Section -->
-    <div class="navbar-right d-flex align-items-center ms-auto">
-        {% if current_user.is_authenticated %}
-            <span class="me-2">Hello, {{ current_user.username }}</span>
-            <a href="{{ url_for('auth.logout') }}" class="btn btn-danger btn-sm">Logout</a>
-        {% else %}
-            <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-sm me-2">Login</a>
-            <a href="{{ url_for('auth.register') }}" class="btn btn-secondary btn-sm">Register</a>
-        {% endif %}
+    <div class="navbar-right">
+      {% if current_user.is_authenticated %}
+        <span class="me-2">Hi, {{ current_user.username }}</span>
+        <a href="{{ url_for('auth.logout') }}" class="btn btn-danger btn-sm">Logout</a>
+      {% else %}
+        <a href="{{ url_for('auth.login') }}" class="btn btn-light btn-sm me-2">Login</a>
+        <a href="{{ url_for('auth.register') }}" class="btn btn-secondary btn-sm">Register</a>
+      {% endif %}
     </div>
-</nav>
+  </nav>
 
-<!-- ✅ Admin Bar -->
+{% block admin_bar %}
 {% if current_user.is_authenticated and (current_user.is_superuser or current_user.has_role('Admin')) %}
-<div class="search-bar-container">
-    <form id="branchForm" action="{{ url_for('admin.set_active_branch') }}" method="post" class="d-flex justify-content-between align-items-center w-100">
-        {{ csrf_form.csrf_token }}
+<div class="admin-bar position-sticky top-0 z-3 bg-light py-2 shadow-sm border-bottom">
+    <div class="container-fluid">
+        <form id="branchForm" action="{{ url_for('admin.set_active_branch') }}" method="post" class="d-flex justify-content-between align-items-center flex-wr>
+            {{ csrf_form.csrf_token }}
 
-        <!-- Left: Branch Actions -->
-        <div class="input-group" style="min-width: 200px;">
-            <div class="input-group-btn me-2">
-                <button type="button" class="btn btn-outline-primary dropdown-toggle" id="search_options" data-bs-toggle="dropdown" aria-expanded="false">
+            <!-- Branch dropdown -->
+            <div class="btn-group">
+                <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
                     Branch #1
                 </button>
                 <ul class="dropdown-menu">
@@ -186,67 +179,58 @@ body {
                     <li><a class="dropdown-item" href="{{ url_for('branches.add_branch') }}">Add Branch</a></li>
                 </ul>
             </div>
-        </div>
 
-        <!-- Center: Active Branch Switcher -->
-        <div class="input-group" style="min-width: 200px;">
-            <select class="form-select" name="branch_id" onchange="document.getElementById('branchForm').submit()">
+            <!-- Branch Switch -->
+            <select class="form-select w-auto" name="branch_id" onchange="document.getElementById('branchForm').submit()">
                 {% for branch in current_user.company.branches %}
                     <option value="{{ branch.id }}" {% if branch.id == session['active_branch_id'] %}selected{% endif %}>
                         {{ branch.name }}
                     </option>
                 {% endfor %}
             </select>
-        </div>
 
-        <!-- Right: Admin Options -->
-        <div class="input-group" style="min-width: 200px;">
-            <div class="input-group-btn me-2">
-                <button type="button" class="btn btn-outline-primary dropdown-toggle" id="admin_options" data-bs-toggle="dropdown" aria-expanded="false">
+            <!-- Admin Options -->
+            <div class="btn-group">
+                <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
                     Admin Options
                 </button>
                 <ul class="dropdown-menu">
-                    <li><a class="dropdown-item admin_option" href="{{ url_for('admin.manage_staff') }}">Manage Staff</a></li>
-                    <li><a class="dropdown-item admin_option" href="{{ url_for('auth.register') }}">Register Staff</a></li>
-                    <li><a class="dropdown-item admin_option" href="{{ url_for('admin.company_notifications') }}">Notifications</a></li>
-                    <li><a class="dropdown_item admin_option" href="{{ url_for('settings.billing') }}">Billing</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('admin.manage_staff') }}">Manage Staff</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('auth.register') }}">Register Staff</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('admin.company_notifications') }}">Notifications</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('settings.billing') }}">Billing</a></li>
                 </ul>
             </div>
-        </div>
-    </form>
+        </form>
+    </div>
 </div>
 {% endif %}
+{% endblock %}
 
-<!-- ✅ Sidebar -->
-<div class="sidebar">
-    <!-- Current Branch Display -->
-{% if session.active_branch_name %}
-<div class="sidebar-branch-info">
-    <i class="fas fa-map-marker-alt me-1"></i>
-    <strong>Branch:</strong> {{ session.active_branch_name }}
-</div>
-{% endif %}
+  <!-- ✅ Sidebar -->
+  <div class="sidebar" id="sidebar">
+    {% if session.active_branch_name %}
+    <div class="sidebar-branch-info">
+      <i class="fas fa-map-marker-alt me-1"></i> <strong>Branch:</strong> {{ session.active_branch_name }}
+    </div>
+    {% endif %}
 
-<a href="{{ url_for('dashboard.index') }}"><i class="fas fa-home me-2"></i> Home</a>
-<li class="nav-item">
-  <a class="nav-link" href="{{ url_for('cashbook.view_cashbook') }}">
-    <i class="fas fa-book"></i> Cashbook
-  </a>
-</li>
+    <a href="{{ url_for('dashboard.index') }}"><i class="fas fa-home me-2"></i> Home</a>
+    <a href="{{ url_for('cashbook.view_cashbook') }}"><i class="fas fa-book me-2"></i> Cashbook</a>
 
-<div class="section d-flex align-items-center" onclick="toggleSubmenu('borrowersMenu')">
-  <i class="fa fa-user me-2"></i> Borrowers
-  <i class="fa fa-angle-left ms-auto"></i>
-</div>
+    <div class="section" onclick="toggleSubmenu('borrowersMenu')">
+      <i class="fa fa-user me-2"></i> Borrowers <i class="fa fa-angle-left float-end"></i>
+    </div>
+    <div class="submenu" id="borrowersMenu">
+      <a href="{{ url_for('borrowers.view_borrowers') }}">View Borrowers</a>
+      <a href="{{ url_for('borrowers.add_borrower') }}">Add Borrower</a>
+      <a href="{{ url_for('borrowers.send_sms') }}">Send SMS</a>
+      <a href="{{ url_for('borrowers.send_email') }}">Send Email</a>
+      <a href="{{ url_for('borrowers.invite_borrowers') }}">Invite Borrowers</a>
+    </div>
 
-<div id="borrowersMenu" class="submenu">
-    <a href="{{ url_for('borrowers.view_borrowers') }}">View Borrowers</a>
-    <a href="{{ url_for('borrowers.add_borrower') }}">Add Borrower</a>
-    <a href="{{ url_for('borrowers.send_sms') }}">Send SMS</a>
-    <a href="{{ url_for('borrowers.send_email') }}">Send Email</a>
-    <a href="{{ url_for('borrowers.invite_borrowers') }}">Invite Borrowers</a>
-</div>
-
+    <!-- Add other menus as you already have: loans, savings, etc. -->
+    
 <div class="section d-flex align-items-center" onclick="toggleSubmenu('loansMenu')">
   <i class="fa fa-balance-scale me-2"></i> Loans
   <i class="fa fa-angle-left ms-auto"></i>
@@ -345,23 +329,15 @@ body {
     </div>
 {% endif %}
 
+  </div>
 
-</div>
+  <!-- ✅ Main Content -->
+  <div class="main-content">
+    {% block content %}{% endblock %}
+  </div>
 
-<!-- ✅ Main Content -->
-<div class="main-content">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="alert alert-{{ category }}">{{ message }}</div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
-
-    {% block content %}
-    {% endblock %}
-</div>
-
+  <!-- ✅ Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     document.querySelectorAll('.search_options').forEach(option => {
         option.addEventListener('click', function (e) {
@@ -375,18 +351,21 @@ body {
             console.log("Selected Branch:", selectedBranch);
 
             // Example: Redirect to a filtered route
-            // window.location.href = `/branches/filter/${selectedBranch}`;
+            // window.location.href = /branches/filter/${selectedBranch};
         });
     });
 </script>
 
-<!-- ✅ JavaScript -->
-<script>
-    function toggleSubmenu(id) {
-        const menu = document.getElementById(id);
-        menu.style.display = menu.style.display === "block" ? "none" : "block";
+  <script>
+    function toggleSidebar() {
+      document.getElementById("sidebar").classList.toggle("show");
     }
-</script>
+
+    function toggleSubmenu(id) {
+      const menu = document.getElementById(id);
+      menu.style.display = menu.style.display === "block" ? "none" : "block";
+    }
+  </script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 {% block scripts %}{% endblock %}

@@ -45,6 +45,21 @@ def create_app():
     def load_user(user_id):
         return User.query.get(int(user_id))
 
+    @app.context_processor
+    def inject_user_preferences():
+        if current_user.is_authenticated:
+            return {
+                'theme': current_user.theme or 'light',
+                'timezone': current_user.timezone or '',
+                'language': current_user.language or ''
+            }
+        else:
+            return {
+                'theme': 'light',
+                'timezone': '',
+                'language': ''
+            }
+
     # ✅ Inject csrf_form into all templates
     from forms import CSRFOnlyForm
     @app.context_processor
