@@ -10,9 +10,11 @@ from weasyprint import HTML
 from io import BytesIO
 from sqlalchemy import and_
 from utils.decorators import roles_required
+from extensions import csrf
 
 bank_bp = Blueprint('bank', __name__, template_folder='../templates/bank')
 
+@csrf.exempt
 @bank_bp.route('/deposit', methods=['GET', 'POST'])
 @login_required
 @roles_required('Admin', 'Accountant', 'Branch_Manager', 'Loans_Officer', 'Loans Supervisor')
@@ -67,6 +69,7 @@ def bank_deposit():
 
     return render_template('bank/deposit.html', datetime=datetime)
 
+@csrf.exempt
 @bank_bp.route('/withdraw', methods=['GET', 'POST'])
 @login_required
 @roles_required('Admin', 'Accountant', 'Branch_Manager', 'Loans Supervisor')
