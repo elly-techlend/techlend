@@ -23,6 +23,7 @@ def bank_deposit():
     if request.method == 'POST':
         amount = request.form.get('amount')
         reference = request.form.get('reference')
+        transfer_date_str = request.form.get('transfer_date')
 
         if not amount:
             flash("Amount is required.", "error")
@@ -34,8 +35,12 @@ def bank_deposit():
             flash("Invalid amount format.", "error")
             return redirect(url_for('bank.bank_deposit'))
 
-        # Define transfer_date here
-        transfer_date = datetime.utcnow()
+        # Parse the date from the form
+        try:
+            transfer_date = datetime.strptime(transfer_date_str, '%Y-%m-%d')
+        except (ValueError, TypeError):
+            flash("Invalid or missing transfer date.", "error")
+            return redirect(url_for('bank.bank_deposit'))
 
         branch_id = session.get("active_branch_id")
 
@@ -50,7 +55,7 @@ def bank_deposit():
         )
         db.session.add(transfer)
 
-        # Also add cashbook entry for deposit
+        # Add to cashbook
         cash_entry = CashbookEntry(
             date=transfer_date,
             particulars=f"Bank deposit - Ref: {reference or 'N/A'}",
@@ -77,6 +82,7 @@ def bank_withdraw():
     if request.method == 'POST':
         amount = request.form.get('amount')
         reference = request.form.get('reference')
+        transfer_date_str = request.form.get('transfer_date')
 
         if not amount:
             flash("Amount is required.", "error")
@@ -88,8 +94,11 @@ def bank_withdraw():
             flash("Invalid amount format.", "error")
             return redirect(url_for('bank.bank_withdraw'))
 
-        # ✅ Set the transfer date to now
-        transfer_date = datetime.utcnow()
+        try:
+            transfer_date = datetime.strptime(transfer_date_str, '%Y-%m-%d')
+        except (ValueError, TypeError):
+            flash("Invalid or missing date.", "error")
+            return redirect(url_for('bank.bank_withdraw'))
 
         branch_id = session.get("active_branch_id")
 
@@ -104,7 +113,6 @@ def bank_withdraw():
         )
         db.session.add(transfer)
 
-        # ✅ Also record in cashbook
         cash_entry = CashbookEntry(
             date=transfer_date,
             particulars=f"Bank withdrawal - Ref: {reference or 'N/A'}",

@@ -8,6 +8,8 @@ from datetime import date
 from models import CashbookEntry
 from datetime import datetime
 import pandas as pd
+from sqlalchemy import extract
+from extensions import csrf
 
 cashbook_bp = Blueprint('cashbook', __name__)
 
@@ -48,55 +50,68 @@ def new_cashbook_entry():
 
     return render_template('cashbook/new_entry.html', form=form)
 
+
 @cashbook_bp.route('/cashbook')
 @login_required
 @roles_required('Superuser', 'Admin', 'Accountant', 'Branch_Manager', 'Loans_Supervisor', 'Cashier')
 def view_cashbook():
-    from sqlalchemy import extract
-    from datetime import datetime
-
     page = request.args.get('page', 1, type=int)
-    month = page  # Page = month
-    year = request.args.get('year', type=int) or datetime.now().year
+    per_page = 50
     branch_id = session.get('active_branch_id')
 
     query = CashbookEntry.query.filter_by(company_id=current_user.company_id)
-
     if not current_user.is_superuser and branch_id:
         query = query.filter_by(branch_id=branch_id)
 
-    query = query.filter(
-        extract('year', CashbookEntry.date) == year,
-        extract('month', CashbookEntry.date) == month
-    )
+    # Filters
+    selected_day = request.args.get('day', type=int)
+    selected_month = request.args.get('month', type=int)
+    selected_year = request.args.get('year', type=int)
 
-    entries = query.order_by(CashbookEntry.date.desc(), CashbookEntry.id.desc()).all()
+    if selected_day:
+        query = query.filter(extract('day', CashbookEntry.date) == selected_day)
+    if selected_month:
+        query = query.filter(extract('month', CashbookEntry.date) == selected_month)
+    if selected_year:
+        query = query.filter(extract('year', CashbookEntry.date) == selected_year)
 
-    # Compute running balance (in reverse so balance accumulates from bottom to top)
+    total_entries = query.count()
+    paginated_entries = query.order_by(CashbookEntry.date.desc(), CashbookEntry.id.desc())\
+                              .paginate(page=page, per_page=per_page, error_out=False)
+
+    # Compute running balance
+    all_entries = query.order_by(CashbookEntry.date.asc(), CashbookEntry.id.asc()).all()
     running_balance = 0.0
-    for entry in reversed(entries):
-        running_balance = running_balance + (entry.credit or 0) - (entry.debit or 0)
-        entry.balance = running_balance
+    balance_map = {}
+    for entry in all_entries:
+        running_balance += (entry.credit or 0) - (entry.debit or 0)
+        balance_map[entry.id] = running_balance
 
-    total_debit = sum(e.debit or 0 for e in entries)
-    total_credit = sum(e.credit or 0 for e in entries)
+    for entry in paginated_entries.items:
+        entry.balance = balance_map.get(entry.id, 0.0)
+
+    total_debit = sum(e.debit or 0 for e in all_entries)
+    total_credit = sum(e.credit or 0 for e in all_entries)
     final_balance = running_balance
 
-    years = db.session.query(extract('year', CashbookEntry.date)).distinct().all()
-    months = [(i, datetime(1900, i, 1).strftime('%B')) for i in range(1, 13)]
+    # Month and year dropdown data
+    months = [(i, datetime(2000, i, 1).strftime('%B')) for i in range(1, 13)]
+    current_year = datetime.now().year
+    years = list(range(current_year - 10, current_year + 1))
 
     return render_template(
         'cashbook/view_cashbook.html',
-        entries=entries,
+        entries=paginated_entries.items,
         total_debit=total_debit,
         total_credit=total_credit,
         final_balance=final_balance,
-        selected_year=year,
-        selected_month=month,
-        years=[y[0] for y in years],
-        months=months,
         current_page=page,
-        total_pages=12  # Fixed 12 pages (months)
+        total_pages=paginated_entries.pages,
+        selected_day=selected_day,
+        selected_month=selected_month,
+        selected_year=selected_year,
+        months=months,
+        years=years
     )
 
 def add_cashbook_entry(date, particulars, debit, credit, company_id, branch_id=None, created_by=None):
@@ -129,6 +144,45 @@ def add_cashbook_entry(date, particulars, debit, credit, company_id, branch_id=N
         raise ValueError("created_by must be provided to add_cashbook_entry()")
 
     db.session.add(entry)
+    db.session.commit()
+
+@csrf.exempt
+@cashbook_bp.route('/cashbook/edit/<int:entry_id>', methods=['GET', 'POST'])
+@login_required
+def edit_cashbook_entry(entry_id):
+    entry = CashbookEntry.query.get_or_404(entry_id)
+    form = CashbookEntryForm(obj=entry)
+
+    if form.validate_on_submit():
+        entry.date = form.date.data
+        entry.particulars = form.particulars.data
+        entry.debit = float(form.debit.data or 0)
+        entry.credit = float(form.credit.data or 0)
+
+        db.session.commit()
+        recalculate_balances(entry.company_id)
+        flash('Cashbook entry updated.', 'success')
+        return redirect(url_for('cashbook.view_cashbook'))
+
+    return render_template('cashbook/edit_entry.html', form=form, entry=entry)
+
+@csrf.exempt
+@cashbook_bp.route('/cashbook/delete/<int:entry_id>', methods=['POST'])
+@login_required
+def delete_cashbook_entry(entry_id):
+    entry = CashbookEntry.query.get_or_404(entry_id)
+    db.session.delete(entry)
+    db.session.commit()
+    recalculate_balances(entry.company_id)
+    flash('Cashbook entry deleted.', 'warning')
+    return redirect(url_for('cashbook.view_cashbook'))
+
+def recalculate_balances(company_id):
+    entries = CashbookEntry.query.filter_by(company_id=company_id).order_by(CashbookEntry.date, CashbookEntry.id).all()
+    running_balance = 0.0
+    for entry in entries:
+        running_balance = running_balance + (entry.credit or 0) - (entry.debit or 0)
+        entry.balance = running_balance
     db.session.commit()
 
 from flask import send_file
