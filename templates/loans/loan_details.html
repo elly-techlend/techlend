@@ -41,7 +41,7 @@
                 <tbody>
                     {% for repayment in repayments %}
                     <tr>
-                        <td>{{ repayment.date_paid.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        <td>{{ repayment.date_paid.strftime('%b %d, %Y') }}</td>  {# e.g., May 28, 2025 #}
                         <td>{{ repayment.amount_paid }}</td>
                         <td>{{ repayment.balance_after }}</td>
                     </tr>

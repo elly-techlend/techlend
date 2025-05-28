@@ -217,6 +217,8 @@ class Loan(db.Model):
     date = db.Column(db.DateTime, default=db.func.current_timestamp())
     due_date = db.Column(db.DateTime, nullable=True)
     status = db.Column(db.String(50), default='Pending')
+    repayments = db.relationship('LoanRepayment', backref='loan', cascade='all, delete-orphan', passive_deletes=True)
+
 
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     company_id = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=False)
@@ -239,12 +241,10 @@ class LoanRepayment(db.Model):
     __tablename__ = 'loan_repayments'
     id = db.Column(db.Integer, primary_key=True)
     branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
-    loan_id = db.Column(db.Integer, db.ForeignKey('loans.id'), nullable=False)
+    loan_id = db.Column(db.Integer, db.ForeignKey('loans.id', ondelete='CASCADE'), nullable=False)
     amount_paid = db.Column(db.Float, nullable=False)
-    date_paid = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    date_paid = db.Column(db.Date, nullable=False, default=datetime.utcnow)
     balance_after = db.Column(db.Float, nullable=True)  # New field
-
-    loan = db.relationship('Loan', backref='repayments')
 
     def __repr__(self):
         return f"<Repayment of {self.amount_paid} for Loan ID {self.loan_id}>"

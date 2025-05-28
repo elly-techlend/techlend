@@ -63,7 +63,7 @@
           <td>{{ repayment.loan_id }}</td>
           <td>{{ repayment.loan.borrower.name }}</td>
           <td>{{ "{:,.2f}".format(repayment.amount_paid) }}</td>
-          <td>{{ repayment.date_paid.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+          <td>{{ repayment.date_paid.strftime('%b %d, %Y') }}</td>
         </tr>
         {% endfor %}
       </tbody>
