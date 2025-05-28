@@ -54,11 +54,13 @@
 
      <!-- Make Repayment: full row -->
 <form method="POST" action="{{ url_for('loan.repay_loan', loan_id=loan.id) }}" class="mt-4 row g-2">
-
-    <div class="col-9">
+    <div class="col-md-5">
         <input type="number" name="amount_paid" step="0.01" min="0" placeholder="Enter repayment amount" class="form-control" required>
     </div>
-    <div class="col-3">
+    <div class="col-md-4">
+        <input type="date" name="repayment_date" class="form-control" required>
+    </div>
+    <div class="col-md-3">
         <button type="submit" class="btn btn-success w-100">Make Repayment</button>
     </div>
 </form>

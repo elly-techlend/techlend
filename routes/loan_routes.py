@@ -383,12 +383,13 @@ def archived_loans():
     return render_template('loans/archived_loans.html', archived_loans=loans)
 
 # Make payment
+from datetime import datetime
+
 @csrf.exempt
 @loan_bp.route('/loan/<int:loan_id>/repay', methods=['POST'])
 @login_required
 @roles_required('Admin', 'Branch_Manager', 'Loans_Officer', 'Loans Supervisor', 'Cashier')
 def repay_loan(loan_id):
-    from forms import LoginForm, CSRFOnlyForm
     branch_id = session.get('active_branch_id')
 
     loan_query = get_company_filter(Loan)
@@ -407,20 +408,25 @@ def repay_loan(loan_id):
         flash('Repayment amount must be greater than zero.', 'warning')
         return redirect(url_for('loan.loan_details', loan_id=loan.id))
 
+    # Handle custom repayment date
+    repayment_date_str = request.form.get('repayment_date')
+    try:
+        repayment_date = datetime.strptime(repayment_date_str, '%Y-%m-%d')
+    except (TypeError, ValueError):
+        flash('Invalid repayment date.', 'danger')
+        return redirect(url_for('loan.loan_details', loan_id=loan.id))
+
     # Update loan balances
     loan.amount_paid += amount
     loan.remaining_balance = loan.total_due - loan.amount_paid
 
-    if loan.remaining_balance <= 0:
-        loan.remaining_balance = 0
-        loan.status = 'Paid'
-    else:
-        loan.status = 'Partially Paid'
+    loan.status = 'Paid' if loan.remaining_balance <= 0 else 'Partially Paid'
+    loan.remaining_balance = max(loan.remaining_balance, 0)
 
     repayment = LoanRepayment(
         loan_id=loan.id,
         amount_paid=amount,
-        date_paid=datetime.utcnow(),
+        date_paid=repayment_date,
         balance_after=loan.remaining_balance
     )
 
@@ -428,7 +434,7 @@ def repay_loan(loan_id):
     db.session.commit()
 
     add_cashbook_entry(
-        date=datetime.utcnow().date(),
+        date=repayment_date.date(),
         particulars=f"Loan repayment by {loan.borrower_name}",
         debit=0,
         credit=amount,
@@ -436,7 +442,8 @@ def repay_loan(loan_id):
         branch_id=branch_id,
         created_by=current_user.id
     )
-    log_action(f"{current_user.full_name} made a repayment of {amount} for loan {loan.loan_id} (borrower: {loan.borrower_name})")
+
+    log_action(f"{current_user.full_name} made a repayment of {amount} for loan {loan.loan_id} on {repayment_date.date()}")
 
     flash('Repayment recorded successfully.', 'success')
     return redirect(url_for('loan.loan_details', loan_id=loan.id))
