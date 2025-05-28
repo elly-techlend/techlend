@@ -6,6 +6,7 @@ from flask_login import login_required, current_user
 from datetime import datetime
 from models import CashbookEntry
 from routes.cashbook_routes import add_cashbook_entry
+from extensions import csrf
 
 expenses_bp = Blueprint('expenses', __name__, url_prefix='/expenses')
 
@@ -21,6 +22,7 @@ def all_expenses():
     expenses = query.order_by(Expense.date.desc()).all()
     return render_template('expenses/all_expenses.html', expenses=expenses)
 
+@csrf.exempt
 @expenses_bp.route('/add', methods=['GET', 'POST'])
 @login_required
 def add_expense():
