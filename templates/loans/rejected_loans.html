@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Rejected Loans</h2>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Loan ID</th>
+            <th>Borrower</th>
+            <th>Amount Borrowed</th>
+            <th>Date</th>
+            <th>Due Date</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for loan in loans %}
+        <tr>
+            <td>{{ loan.loan_id }}</td>
+            <td>{{ loan.borrower_name }}</td>
+            <td>{{ loan.amount_borrowed }}</td>
+            <td>{{ loan.date.strftime('%Y-%m-%d') }}</td>
+            <td>{{ loan.due_date.strftime('%Y-%m-%d') if loan.due_date else 'N/A' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-center">No rejected loans found.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

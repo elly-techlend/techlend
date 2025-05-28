@@ -180,8 +180,11 @@
 </div>
 
     <div id="loansMenu" class="submenu">
-        <a href="{{ url_for('loan.view_loans') }}"><i class="fa fa-circle-o"></i> View All Loans</a>
+        <a href="{{ url_for('loan.pending_loans') }}"><i class="fa fa-circle-o"></i> Pending Loans</a>
         <a href="{{ url_for('loan.add_loan') }}"><i class="fa fa-circle-o"></i> Add Loan</a>
+        <a href="{{ url_for('loan.view_loans') }}"><i class="fa fa-circle-o"></i> Approved Loans</a>
+        <a href="{{ url_for('loan.loans_in_arrears') }}"><i class="fa fa-circle-o"></i> Loans In Arrears</a>
+        <a href="{{ url_for('loan.rejected_loans') }}"><i class="fa fa-circle-o"></i> Rejected Loans</a>
         <a href="{{ url_for('loan.archived_loans') }}"><i class="fa fa-circle-o"></i> Settled Loans</a>
     </div>
 

@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Loans In Arrears</h2>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Loan ID</th>
+            <th>Borrower</th>
+            <th>Amount Borrowed</th>
+            <th>Remaining Balance</th>
+            <th>Due Date</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for loan in loans %}
+        <tr>
+            <td>{{ loan.loan_id }}</td>
+            <td>{{ loan.borrower_name }}</td>
+            <td>{{ loan.amount_borrowed }}</td>
+            <td>{{ loan.remaining_balance }}</td>
+            <td>{{ loan.due_date.strftime('%Y-%m-%d') if loan.due_date else 'N/A' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-center">No loans in arrears found.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

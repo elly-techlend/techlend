@@ -217,6 +217,7 @@ class Loan(db.Model):
     date = db.Column(db.DateTime, default=db.func.current_timestamp())
     due_date = db.Column(db.DateTime, nullable=True)
     status = db.Column(db.String(50), default='Pending')
+    approval_status = db.Column(db.String(20), default='pending')  # 'approved', 'rejected', 'pending'
     repayments = db.relationship('LoanRepayment', backref='loan', cascade='all, delete-orphan', passive_deletes=True)
 
 

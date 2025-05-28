@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h4>Pending Loans</h4>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Loan ID</th>
+                <th>Borrower</th>
+                <th>Amount</th>
+                <th>Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for loan in loans %}
+            <tr>
+                <td>{{ loan.loan_id }}</td>
+                <td>{{ loan.borrower_name }}</td>
+                <td>{{ loan.amount_borrowed }}</td>
+                <td>{{ loan.date.strftime('%Y-%m-%d') }}</td>
+                <td>
+                    <form method="POST" action="{{ url_for('loan.approve_loan', loan_id=loan.id) }}" style="display:inline-block;">
+                        <button class="btn btn-success btn-sm" onclick="return confirm('Approve this loan?')">Approve</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('loan.reject_loan', loan_id=loan.id) }}" style="display:inline-block;">
+                        <button class="btn btn-danger btn-sm" onclick="return confirm('Reject this loan?')">Reject</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

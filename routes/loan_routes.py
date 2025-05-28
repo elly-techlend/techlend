@@ -27,7 +27,7 @@ from utils.time_helpers import today
 
 loan_bp = Blueprint('loan', __name__)
 
-# View all loans
+# View all approved loans
 from sqlalchemy import extract
 
 @loan_bp.route('/loans')
@@ -36,8 +36,7 @@ from sqlalchemy import extract
 def view_loans():
     branch_id = session.get('active_branch_id')  # Get active branch from session
 
-    query = Loan.query.filter_by(company_id=current_user.company_id, is_archived=False)
-    print("DEBUG - TOTAL LOANS IN DB (before branch filter):", query.count())
+    query = Loan.query.filter_by(company_id=current_user.company_id, is_archived=False, approval_status='approved')
 
     # ✅ Apply branch filter only for non-superuser and only if a branch is set
     if not current_user.is_superuser and branch_id:
@@ -142,10 +141,6 @@ def view_by_borrower(borrower_id):
 def add_loan():
     branch_id = session.get('active_branch_id')
 
-    loan_query = Loan.query.filter_by(company_id=current_user.company_id)
-    if branch_id:
-        loan_query = loan_query.filter_by(branch_id=branch_id)
-
     if request.method == 'POST':
         borrower_id = request.form.get('borrower_id')
         borrower = Borrower.query.filter_by(id=borrower_id, company_id=current_user.company_id).first()
@@ -163,7 +158,7 @@ def add_loan():
             processing_fee = float(request.form.get('processing_fee', 0))
             interest_rate = float(request.form.get('interest', 20.0))
             amount_paid = float(request.form.get('amount_paid', 0))
-            collateral_note = request.form.get('collateral')  # Optional note
+            collateral_note = request.form.get('collateral')  # Optional
             loan_duration = int(request.form['loan_duration'])
             loan_date = datetime.strptime(request.form['date'], '%Y-%m-%d')
         except (ValueError, KeyError) as e:
@@ -174,6 +169,7 @@ def add_loan():
         remaining_balance = total_due - amount_paid
         due_date = loan_date + relativedelta(months=loan_duration)
 
+        # Generate unique loan_id
         last_loan = Loan.query.filter_by(company_id=current_user.company_id).order_by(Loan.id.desc()).first()
         last_number = 0
         if last_loan and last_loan.loan_id:
@@ -184,6 +180,7 @@ def add_loan():
 
         loan_id = f"C{current_user.company_id}-T{last_number + 1:05d}"
 
+        # Create Loan object
         loan = Loan(
             loan_id=loan_id,
             borrower_id=borrower.id,
@@ -200,6 +197,7 @@ def add_loan():
             date=loan_date,
             due_date=due_date,
             status='Paid' if remaining_balance == 0 else 'Pending',
+            approval_status='pending',
             company_id=current_user.company_id,
             created_by=current_user.id,
             branch_id=branch_id
@@ -207,7 +205,7 @@ def add_loan():
 
         db.session.add(loan)
 
-        # Handle collateral only if item_name is provided
+        # Handle collateral
         item_name = request.form.get('collateral_item_name')
         if item_name:
             collateral_entry = Collateral(
@@ -220,6 +218,7 @@ def add_loan():
             )
             db.session.add(collateral_entry)
 
+        # Cashbook entries
         if processing_fee > 0:
             fee_entry = CashbookEntry(
                 date=loan_date,
@@ -233,33 +232,125 @@ def add_loan():
             )
             db.session.add(fee_entry)
 
-        loan_entry = CashbookEntry(
-            date=loan_date,
-            particulars=f"Loan disbursed to {borrower.name}",
-            debit=amount_borrowed,
-            credit=0.0,
-            balance=0.0,
-            company_id=current_user.company_id,
-            branch_id=branch_id,
-            created_by=current_user.id
-        )
-        db.session.add(loan_entry)
+        if loan.approval_status == 'approved':
+            loan_entry = CashbookEntry(
+                date=loan_date,
+                particulars=f"Loan disbursed to {borrower.name}",
+                debit=amount_borrowed,
+                credit=0.0,
+                balance=0.0,
+                company_id=current_user.company_id,
+                branch_id=branch_id,
+                created_by=current_user.id
+            )
+            db.session.add(loan_entry)
 
-        db.session.commit()
+            db.session.commit()
 
         log_action(f"{current_user.full_name} created loan {loan.loan_id} for {borrower.name} (Amount: {amount_borrowed})")
         print(f"Loan created: {loan.loan_id}, Branch: {loan.branch_id}, Company: {loan.company_id}")
 
         flash(f'Loan {loan_id} added successfully.', 'success')
-        return redirect(url_for('loan.view_loans'))
+        return redirect(url_for('loan.pending_loans'))
 
-    # GET: render form
+    # GET method: show form
     borrower_query = Borrower.query.filter_by(company_id=current_user.company_id)
     if branch_id:
         borrower_query = borrower_query.filter_by(branch_id=branch_id)
     borrowers = borrower_query.all()
 
     return render_template('loans/add_loan.html', borrowers=borrowers, current_date=datetime.today().strftime('%Y-%m-%d'))
+
+# Pending loans
+@loan_bp.route('/pending-loans')
+@login_required
+def pending_loans():
+    branch_id = session.get('active_branch_id')
+    query = Loan.query.filter_by(company_id=current_user.company_id, approval_status='pending')
+
+    if branch_id:
+        query = query.filter_by(branch_id=branch_id)
+
+    loans = query.order_by(Loan.date.desc()).all()
+    return render_template('loans/pending_loans.html', loans=loans)
+
+# Rejected loans
+@loan_bp.route('/rejected-loans')
+@login_required
+def rejected_loans():
+    branch_id = session.get('active_branch_id')
+    query = Loan.query.filter_by(company_id=current_user.company_id, approval_status='rejected')
+
+    if branch_id:
+        query = query.filter_by(branch_id=branch_id)
+
+    loans = query.order_by(Loan.date.desc()).all()
+    return render_template('loans/rejected_loans.html', loans=loans)
+
+# Loans in arrears (approved loans past due and remaining balance > 0)
+@loan_bp.route('/loans-in-arrears')
+@login_required
+def loans_in_arrears():
+    branch_id = session.get('active_branch_id')
+    today = datetime.today()
+    query = Loan.query.filter(
+        Loan.company_id == current_user.company_id,
+        Loan.approval_status == 'approved',
+        Loan.due_date < today,
+        Loan.remaining_balance > 0
+    )
+    if branch_id:
+        query = query.filter_by(branch_id=branch_id)
+
+    loans = query.order_by(Loan.due_date.asc()).all()
+    return render_template('loans/loans_in_arrears.html', loans=loans)
+
+@csrf.exempt
+@loan_bp.route('/loan/<int:loan_id>/approve', methods=['POST'])
+@login_required
+@roles_required('Admin', 'Loans_Supervisor')
+def approve_loan(loan_id):
+    loan = Loan.query.filter_by(id=loan_id, company_id=current_user.company_id).first_or_404()
+    
+    if loan.approval_status != 'pending':
+        flash("Loan is already processed.", "warning")
+        return redirect(url_for('loan.pending_loans'))
+
+    loan.approval_status = 'approved'
+
+    # Add cashbook entry on approval
+    cashbook_entry = CashbookEntry(
+        date=loan.date,
+        particulars=f"Loan disbursed to {loan.borrower.name}",
+        debit=loan.amount_borrowed,
+        credit=0.0,
+        balance=0.0,
+        company_id=loan.company_id,
+        branch_id=loan.branch_id,
+        created_by=current_user.id
+    )
+    db.session.add(cashbook_entry)
+
+    db.session.commit()
+    log_action(f"{current_user.full_name} approved loan {loan.loan_id}")
+    flash(f"Loan {loan.loan_id} approved and disbursed.", "success")
+    return redirect(url_for('loan.pending_loans'))
+
+@csrf.exempt
+@loan_bp.route('/loan/<int:loan_id>/reject', methods=['POST'])
+@login_required
+@roles_required('Admin', 'Loans_Supervisor')
+def reject_loan(loan_id):
+    loan = Loan.query.filter_by(id=loan_id, company_id=current_user.company_id).first_or_404()
+    if loan.approval_status != 'pending':
+        flash("Loan is already processed.", "warning")
+        return redirect(url_for('loan.pending_loans'))
+
+    loan.approval_status = 'rejected'
+    db.session.commit()
+    log_action(f"{current_user.full_name} rejected loan {loan.loan_id}")
+    flash(f"Loan {loan.loan_id} rejected.", "danger")
+    return redirect(url_for('loan.pending_loans'))
 
 # Edit a loan
 @csrf.exempt
