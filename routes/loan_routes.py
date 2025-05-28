@@ -408,7 +408,15 @@ def repay_loan(loan_id):
         flash('Repayment amount must be greater than zero.', 'warning')
         return redirect(url_for('loan.loan_details', loan_id=loan.id))
 
-    # Update loan balances
+    # 📅 Get date from form input
+    repayment_date_str = request.form.get('repayment_date')
+    try:
+        repayment_date = datetime.strptime(repayment_date_str, '%Y-%m-%d').date()
+    except (ValueError, TypeError):
+        flash('Invalid repayment date.', 'danger')
+        return redirect(url_for('loan.loan_details', loan_id=loan.id))
+
+    # 💰 Update loan balances
     loan.amount_paid += amount
     loan.remaining_balance = loan.total_due - loan.amount_paid
 
@@ -418,8 +426,7 @@ def repay_loan(loan_id):
     else:
         loan.status = 'Partially Paid'
 
-    repayment_date = today()  # Only date, using correct timezone
-
+    # 💾 Save repayment
     repayment = LoanRepayment(
         loan_id=loan.id,
         amount_paid=amount,
@@ -430,6 +437,7 @@ def repay_loan(loan_id):
     db.session.add(repayment)
     db.session.commit()
 
+    # 🧾 Record in cashbook
     add_cashbook_entry(
         date=repayment_date,
         particulars=f"Loan repayment by {loan.borrower_name}",
@@ -440,6 +448,7 @@ def repay_loan(loan_id):
         created_by=current_user.id
     )
 
+    # 🧠 Log action
     log_action(f"{current_user.full_name} made a repayment of {amount} for loan {loan.loan_id} (borrower: {loan.borrower_name})")
 
     flash('Repayment recorded successfully.', 'success')
