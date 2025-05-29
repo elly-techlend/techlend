@@ -3,62 +3,64 @@
 {% block content %}
 <h2>Loans In Arrears</h2>
 
-<table class="table table-striped table-bordered table-hover">
-    <thead class="thead-dark">
-        <tr>
-            <th>Loan ID</th>
-            <th>Borrower</th>
-            <th>Phone</th>
-            <th>Amount Borrowed</th>
-            <th>Disbursement Date</th>
-            <th>Principal Arrears</th>
-            <th>Interest Arrears</th>
-            <th>Penalty Arrears</th>
-            <th>Total Arrears</th>
-            <th>Days Overdue</th>
-            <th>Last Repayment</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for loan in loans %}
-        <tr>
-            <td>{{ loan.loan_id }}</td>
-            <td>{{ loan.name }}</td>
-            <td>{{ loan.phone }}</td>
-            <td>{{ "{:,.2f}".format(loan.amount) }}</td>
-            <td>{{ loan.date.strftime('%Y-%m-%d') if loan.date else 'N/A' }}</td>
-            <td>{{ "{:,.2f}".format(loan.principal_arrears) }}</td>
-            <td>{{ "{:,.2f}".format(loan.interest_arrears) }}</td>
-            <td>{{ "{:,.2f}".format(loan.penalty_arrears) }}</td>
-            <td><strong>{{ "{:,.2f}".format(loan.total_arrears) }}</strong></td>
-            <td>{{ loan.days }}</td>
-            <td>
-                {% if loan.last_repayment != 'N/A' %}
-                    {{ loan.last_repayment.strftime('%Y-%m-%d') }}
-                {% else %}
-                    N/A
-                {% endif %}
-            </td>
-        </tr>
-        {% else %}
-        <tr>
-            <td colspan="11" class="text-center">No loans in arrears found.</td>
-        </tr>
-        {% endfor %}
-        {% if loans %}
-        <tr class="table-secondary font-weight-bold">
-            <td colspan="3" class="text-right">Totals:</td>
-            <td>{{ "{:,.2f}".format(totals.amount) }}</td>
-            <td></td>
-            <td>{{ "{:,.2f}".format(totals.principal_arrears) }}</td>
-            <td>{{ "{:,.2f}".format(totals.interest_arrears) }}</td>
-            <td>{{ "{:,.2f}".format(totals.penalty_arrears) }}</td>
-            <td>{{ "{:,.2f}".format(totals.total_arrears) }}</td>
-            <td>{{ totals.days }}</td>
-            <td></td>
-        </tr>
-        {% endif %}
+<div class="table-responsive">
+    <table class="table table-striped table-bordered table-hover">
+        <thead class="thead-dark">
+            <tr>
+                <th>Loan ID</th>
+                <th>Borrower</th>
+                <th>Phone</th>
+                <th>Amount Borrowed</th>
+                <th>Disbursement Date</th>
+                <th>Principal Arrears</th>
+                <th>Interest Arrears</th>
+                <th>Penalty Arrears</th>
+                <th>Total Arrears</th>
+                <th>Days Overdue</th>
+                <th>Last Repayment</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for loan in loans %}
+            <tr>
+                <td>{{ loan.loan_id }}</td>
+                <td>{{ loan.name }}</td>
+                <td>{{ loan.phone }}</td>
+                <td>{{ "{:,.2f}".format(loan.amount) }}</td>
+                <td>{{ loan.date.strftime('%Y-%m-%d') if loan.date else 'N/A' }}</td>
+                <td>{{ "{:,.2f}".format(loan.principal_arrears) }}</td>
+                <td>{{ "{:,.2f}".format(loan.interest_arrears) }}</td>
+                <td>{{ "{:,.2f}".format(loan.penalty_arrears) }}</td>
+                <td><strong>{{ "{:,.2f}".format(loan.total_arrears) }}</strong></td>
+                <td>{{ loan.days }}</td>
+                <td>
+                    {% if loan.last_repayment != 'N/A' %}
+                        {{ loan.last_repayment.strftime('%Y-%m-%d') }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="11" class="text-center">No loans in arrears found.</td>
+            </tr>
+            {% endfor %}
 
-    </tbody>
-</table>
+            {% if loans %}
+            <tr class="table-secondary font-weight-bold">
+                <td colspan="3" class="text-right">Totals:</td>
+                <td>{{ "{:,.2f}".format(totals.amount) }}</td>
+                <td></td>
+                <td>{{ "{:,.2f}".format(totals.principal_arrears) }}</td>
+                <td>{{ "{:,.2f}".format(totals.interest_arrears) }}</td>
+                <td>{{ "{:,.2f}".format(totals.penalty_arrears) }}</td>
+                <td>{{ "{:,.2f}".format(totals.total_arrears) }}</td>
+                <td>{{ totals.days }}</td>
+                <td></td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
 {% endblock %}
