@@ -317,40 +317,39 @@ def loans_in_arrears():
     total_interest_arrears = 0
     total_penalty_arrears = 0
     total_total_arrears = 0
-    total_days_overdue = 0  # optional, you can sum days if needed or skip
+    total_days_overdue = 0
 
     for loan in raw_loans:
+        # Interest due
         interest_due = loan.amount_borrowed * loan.interest_rate / 100
 
-        repayments = (
-            LoanRepayment.query
-            .filter_by(loan_id=loan.id)
-            .order_by(LoanRepayment.date_paid.asc())
-            .all()
-        )
+        # Total paid = original due - remaining balance
+        total_paid = loan.amount_borrowed + interest_due - loan.remaining_balance
 
-        total_paid = sum(r.amount_paid for r in repayments)
+        # Split payment into interest and principal
         interest_paid = min(total_paid, interest_due)
-        principal_paid = max(0, total_paid - interest_due)
+        principal_paid = max(0, total_paid - interest_paid)
 
+        # Arrears
         interest_arrears = max(0, interest_due - interest_paid)
-        principal_arrears = max(0, loan.amount_borrowed - principal_paid)
+        principal_arrears = loan.remaining_balance  # direct from loan
 
-        # Penalty starts immediately after due date
+        # Penalty
         penalty_arrears = 0
         if loan.due_date and today > loan.due_date.date():
             months_overdue = (today.year - loan.due_date.year) * 12 + (today.month - loan.due_date.month)
-            months_overdue = max(1, months_overdue)  # ensure at least 1 month if overdue
-
+            months_overdue = max(1, months_overdue)  # at least 1 month if overdue
             penalty_arrears = principal_arrears * loan.interest_rate / 100 * months_overdue
 
         total_arrears = principal_arrears + interest_arrears + penalty_arrears
 
+        # Last repayment
         last_repayment = (
             LoanRepayment.query.filter_by(loan_id=loan.id)
             .order_by(LoanRepayment.date_paid.desc())
             .first()
         )
+
         due_date = loan.due_date.date() if isinstance(loan.due_date, datetime) else loan.due_date
         days_overdue = (today - due_date).days if due_date else 0
 
@@ -368,13 +367,12 @@ def loans_in_arrears():
             'last_repayment': last_repayment.date_paid if last_repayment else 'N/A',
         })
 
-        # Add to totals
+        # Totals
         total_amount += loan.amount_borrowed
         total_principal_arrears += principal_arrears
         total_interest_arrears += interest_arrears
         total_penalty_arrears += penalty_arrears
         total_total_arrears += total_arrears
-        total_days_overdue += days_overdue
 
     totals = {
         'amount': total_amount,
@@ -382,7 +380,6 @@ def loans_in_arrears():
         'interest_arrears': total_interest_arrears,
         'penalty_arrears': total_penalty_arrears,
         'total_arrears': total_total_arrears,
-        'days': total_days_overdue,
     }
 
     return render_template('loans/loans_in_arrears.html', loans=enriched_loans, totals=totals)
