@@ -47,8 +47,20 @@
                     </div>
                     <div class="col-md-4">
                         <div class="form-floating">
-                            <input type="number" name="remaining_balance" id="remaining_balance" value="{{ loan.remaining_balance }}" class="form-control" readonly>
+                            <input type="number" name="remaining_balance" id="remaining_balance" value="{{ loan.remaining_balance }}" class="form-control">
                             <label for="remaining_balance">Remaining Balance</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="loan_duration_value" class="form-label">Loan Duration</label>
+                        <div class="input-group">
+                            <input type="number" name="loan_duration_value" id="loan_duration_value" class="form-control" min="1" value="{{ loan.duration_value }}" required>
+                            <select name="loan_duration_unit" id="loan_duration_unit" class="form-select" required>
+                                <option value="days" {% if loan.duration_unit == 'days' %}selected{% endif %}>Days</option>
+                                <option value="weeks" {% if loan.duration_unit == 'weeks' %}selected{% endif %}>Weeks</option>
+                                <option value="months" {% if loan.duration_unit == 'months' %}selected{% endif %}>Months</option>
+                                <option value="years" {% if loan.duration_unit == 'years' %}selected{% endif %}>Years</option>
+                            </select>
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -63,6 +75,13 @@
                             <label for="collateral">Collateral</label>
                         </div>
                     </div>
+                    <div class="col-md-4">
+    <div class="form-floating">
+        <input type="number" name="interest_rate" id="interest_rate" value="{{ loan.interest_rate }}" class="form-control" required step="0.01">
+        <label for="interest_rate">Interest Rate (%)</label>
+    </div>
+</div>
+
                 </div>
 
                 <div class="d-grid mt-4">

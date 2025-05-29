@@ -51,16 +51,24 @@
                 </div>
             </div>
 
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label for="loan_duration" class="form-label">Loan Duration (months)</label>
-                    <input type="number" name="loan_duration" id="loan_duration" class="form-control" min="1" required>
-                </div>
-                <div class="col-md-6">
-                    <label for="date" class="form-label">Loan Date</label>
-                    <input type="date" name="date" id="date" class="form-control" value="{{ current_date }}" required>
-                </div>
-            </div>
+<div class="row mb-3">
+    <div class="col-md-6">
+        <label for="loan_duration_value" class="form-label">Loan Duration</label>
+        <div class="input-group">
+            <input type="number" name="loan_duration_value" id="loan_duration_value" class="form-control" min="1" required>
+            <select name="loan_duration_unit" id="loan_duration_unit" class="form-select" required>
+                <option value="days">Days</option>
+                <option value="weeks">Weeks</option>
+                <option value="months" selected>Months</option>
+                <option value="years">Years</option>
+            </select>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <label for="date" class="form-label">Loan Date</label>
+        <input type="date" name="date" id="date" class="form-control" value="{{ current_date }}" required>
+    </div>
+</div>
 
             <!-- COLLATERAL SECTION -->
             <hr class="my-4">

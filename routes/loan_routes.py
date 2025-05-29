@@ -7,7 +7,7 @@ from extensions import db
 from utils.logging import log_company_action, log_system_action, log_action
 from models import Loan, Borrower, LoanRepayment, Collateral
 from flask import session
-from datetime import datetime
+from datetime import datetime, timedelta
 from utils import get_company_filter
 from routes.cashbook_routes import add_cashbook_entry
 from models import CashbookEntry
@@ -158,16 +158,26 @@ def add_loan():
             processing_fee = float(request.form.get('processing_fee', 0))
             interest_rate = float(request.form.get('interest', 20.0))
             amount_paid = float(request.form.get('amount_paid', 0))
-            collateral_note = request.form.get('collateral')  # Optional
-            loan_duration = int(request.form['loan_duration'])
+            collateral_note = request.form.get('collateral')
+            loan_duration = int(request.form['loan_duration_value'])  # ✅ correct name
+            loan_duration_unit = request.form.get('loan_duration_unit') or 'months'
             loan_date = datetime.strptime(request.form['date'], '%Y-%m-%d')
         except (ValueError, KeyError) as e:
             flash(f"Invalid input: {str(e)}", "danger")
             return redirect(url_for('loan.add_loan'))
 
+        # Calculate due date based on unit
+        if loan_duration_unit == 'days':
+            due_date = loan_date + timedelta(days=loan_duration)
+        elif loan_duration_unit == 'weeks':
+            due_date = loan_date + timedelta(weeks=loan_duration)
+        elif loan_duration_unit == 'years':
+            due_date = loan_date + relativedelta(years=loan_duration)
+        else:
+            due_date = loan_date + relativedelta(months=loan_duration)
+
         total_due = amount_borrowed + (amount_borrowed * (interest_rate / 100))
         remaining_balance = total_due - amount_paid
-        due_date = loan_date + relativedelta(months=loan_duration)
 
         # Generate unique loan_id
         last_loan = Loan.query.filter_by(company_id=current_user.company_id).order_by(Loan.id.desc()).first()
@@ -180,7 +190,6 @@ def add_loan():
 
         loan_id = f"C{current_user.company_id}-T{last_number + 1:05d}"
 
-        # Create Loan object
         loan = Loan(
             loan_id=loan_id,
             borrower_id=borrower.id,
@@ -192,7 +201,8 @@ def add_loan():
             total_due=total_due,
             amount_paid=amount_paid,
             remaining_balance=remaining_balance,
-            loan_duration=loan_duration,
+            loan_duration_value=loan_duration,
+            loan_duration_unit=loan_duration_unit,
             collateral=collateral_note,
             date=loan_date,
             due_date=due_date,
@@ -220,7 +230,7 @@ def add_loan():
 
         # Cashbook entries
         if processing_fee > 0:
-            fee_entry = CashbookEntry(
+            db.session.add(CashbookEntry(
                 date=loan_date,
                 particulars=f"Processing fee received from {borrower.name}",
                 debit=0.0,
@@ -229,11 +239,10 @@ def add_loan():
                 company_id=current_user.company_id,
                 branch_id=branch_id,
                 created_by=current_user.id
-            )
-            db.session.add(fee_entry)
+            ))
 
         if loan.approval_status == 'approved':
-            loan_entry = CashbookEntry(
+            db.session.add(CashbookEntry(
                 date=loan_date,
                 particulars=f"Loan disbursed to {borrower.name}",
                 debit=amount_borrowed,
@@ -242,22 +251,18 @@ def add_loan():
                 company_id=current_user.company_id,
                 branch_id=branch_id,
                 created_by=current_user.id
-            )
-            db.session.add(loan_entry)
+            ))
 
-            db.session.commit()
+        db.session.commit()
 
         log_action(f"{current_user.full_name} created loan {loan.loan_id} for {borrower.name} (Amount: {amount_borrowed})")
-        print(f"Loan created: {loan.loan_id}, Branch: {loan.branch_id}, Company: {loan.company_id}")
-
         flash(f'Loan {loan_id} added successfully.', 'success')
         return redirect(url_for('loan.pending_loans'))
 
-    # GET method: show form
-    borrower_query = Borrower.query.filter_by(company_id=current_user.company_id)
+    borrowers = Borrower.query.filter_by(company_id=current_user.company_id)
     if branch_id:
-        borrower_query = borrower_query.filter_by(branch_id=branch_id)
-    borrowers = borrower_query.all()
+        borrowers = borrowers.filter_by(branch_id=branch_id)
+    borrowers = borrowers.all()
 
     return render_template('loans/add_loan.html', borrowers=borrowers, current_date=datetime.today().strftime('%Y-%m-%d'))
 
@@ -287,12 +292,12 @@ def rejected_loans():
     loans = query.order_by(Loan.date.desc()).all()
     return render_template('loans/rejected_loans.html', loans=loans)
 
-# Loans in arrears (approved loans past due and remaining balance > 0)
 @loan_bp.route('/loans-in-arrears')
 @login_required
 def loans_in_arrears():
     branch_id = session.get('active_branch_id')
-    today = datetime.today()
+    today = datetime.today().date()
+
     query = Loan.query.filter(
         Loan.company_id == current_user.company_id,
         Loan.approval_status == 'approved',
@@ -302,8 +307,85 @@ def loans_in_arrears():
     if branch_id:
         query = query.filter_by(branch_id=branch_id)
 
-    loans = query.order_by(Loan.due_date.asc()).all()
-    return render_template('loans/loans_in_arrears.html', loans=loans)
+    raw_loans = query.order_by(Loan.due_date.asc()).all()
+
+    enriched_loans = []
+
+    # Initialize totals
+    total_amount = 0
+    total_principal_arrears = 0
+    total_interest_arrears = 0
+    total_penalty_arrears = 0
+    total_total_arrears = 0
+    total_days_overdue = 0  # optional, you can sum days if needed or skip
+
+    for loan in raw_loans:
+        interest_due = loan.amount_borrowed * loan.interest_rate / 100
+
+        repayments = (
+            LoanRepayment.query
+            .filter_by(loan_id=loan.id)
+            .order_by(LoanRepayment.date_paid.asc())
+            .all()
+        )
+
+        total_paid = sum(r.amount_paid for r in repayments)
+        interest_paid = min(total_paid, interest_due)
+        principal_paid = max(0, total_paid - interest_due)
+
+        interest_arrears = max(0, interest_due - interest_paid)
+        principal_arrears = max(0, loan.amount_borrowed - principal_paid)
+
+        # Penalty starts immediately after due date
+        penalty_arrears = 0
+        if loan.due_date and today > loan.due_date.date():
+            months_overdue = (today.year - loan.due_date.year) * 12 + (today.month - loan.due_date.month)
+            months_overdue = max(1, months_overdue)  # ensure at least 1 month if overdue
+
+            penalty_arrears = principal_arrears * loan.interest_rate / 100 * months_overdue
+
+        total_arrears = principal_arrears + interest_arrears + penalty_arrears
+
+        last_repayment = (
+            LoanRepayment.query.filter_by(loan_id=loan.id)
+            .order_by(LoanRepayment.date_paid.desc())
+            .first()
+        )
+        due_date = loan.due_date.date() if isinstance(loan.due_date, datetime) else loan.due_date
+        days_overdue = (today - due_date).days if due_date else 0
+
+        enriched_loans.append({
+            'loan_id': loan.id,
+            'name': loan.borrower_name,
+            'phone': loan.borrower.phone if loan.borrower else '',
+            'amount': loan.amount_borrowed,
+            'date': loan.date,
+            'principal_arrears': principal_arrears,
+            'interest_arrears': interest_arrears,
+            'penalty_arrears': penalty_arrears,
+            'total_arrears': total_arrears,
+            'days': days_overdue,
+            'last_repayment': last_repayment.date_paid if last_repayment else 'N/A',
+        })
+
+        # Add to totals
+        total_amount += loan.amount_borrowed
+        total_principal_arrears += principal_arrears
+        total_interest_arrears += interest_arrears
+        total_penalty_arrears += penalty_arrears
+        total_total_arrears += total_arrears
+        total_days_overdue += days_overdue
+
+    totals = {
+        'amount': total_amount,
+        'principal_arrears': total_principal_arrears,
+        'interest_arrears': total_interest_arrears,
+        'penalty_arrears': total_penalty_arrears,
+        'total_arrears': total_total_arrears,
+        'days': total_days_overdue,
+    }
+
+    return render_template('loans/loans_in_arrears.html', loans=enriched_loans, totals=totals)
 
 @csrf.exempt
 @loan_bp.route('/loan/<int:loan_id>/approve', methods=['POST'])
@@ -358,38 +440,44 @@ def reject_loan(loan_id):
 @login_required
 @roles_required('Admin', 'Branch_Manager', 'Loans Supervisor')
 def edit_loan(loan_id):
-    branch_id = session.get('active_branch_id')  # 👈 Get active branch from session
-
-    # Filter loans by company (and branch if applicable)
-    loan_query = Loan.query.filter_by(company_id=current_user.company_id)
-    if branch_id:
-        loan_query = loan_query.filter_by(branch_id=branch_id)
+    branch_id = session.get('active_branch_id')  # Get active branch from session
 
     loan = get_company_filter(Loan).filter_by(id=loan_id).first_or_404()
 
-    # 🔐 Prevent access if loan doesn't belong to active branch
     if branch_id and loan.branch_id != branch_id:
         flash("You are not allowed to edit loans from another branch.", "danger")
         return redirect(url_for('loan.view_loans'))
 
-
     if request.method == 'POST':
-        loan.borrower_name = request.form['borrower_name']
-        loan.phone_number = request.form['phone_number']
-        loan.amount_borrowed = float(request.form['amount_borrowed'])
-        loan.processing_fee = float(request.form['processing_fee'])
-        loan.total_due = loan.amount_borrowed * 1.2
-        loan.amount_paid = float(request.form['amount_paid'])
-        loan.remaining_balance = loan.total_due - loan.amount_paid
-        loan.date = datetime.strptime(request.form['date'], '%Y-%m-%d')
-        loan.collateral = request.form['collateral']
-        loan.status = 'Paid' if loan.remaining_balance <= 0 else 'Pending'
+        try:
+            loan.borrower_name = request.form['borrower_name']
+            loan.phone_number = request.form['phone_number']
+            loan.amount_borrowed = float(request.form['amount_borrowed'])
+            loan.processing_fee = float(request.form['processing_fee'])
+            loan.interest_rate = float(request.form['interest_rate'])  # 👈 Allow editing interest rate
 
-        db.session.commit()
-        log_action(f"{current_user.full_name} edited loan {loan.loan_id} for {loan.borrower_name}")
+            # Total due recalculated
+            loan.total_due = loan.amount_borrowed + (loan.amount_borrowed * (loan.interest_rate / 100))
 
-        flash('Loan updated successfully.', 'success')
-        return redirect(url_for('loan.view_loans'))
+            loan.amount_paid = float(request.form['amount_paid'])
+            loan.remaining_balance = loan.total_due - loan.amount_paid
+            loan.date = datetime.strptime(request.form['date'], '%Y-%m-%d')
+            loan.collateral = request.form['collateral']
+
+            # ⬇️ New: Handle loan duration
+            loan.duration_value = int(request.form['loan_duration_value'])
+            loan.duration_unit = request.form['loan_duration_unit']
+
+            # Update loan status
+            loan.status = 'Paid' if loan.remaining_balance <= 0 else 'Pending'
+
+            db.session.commit()
+            log_action(f"{current_user.full_name} edited loan {loan.loan_id} for {loan.borrower_name}")
+            flash('Loan updated successfully.', 'success')
+            return redirect(url_for('loan.view_loans'))
+        except Exception as e:
+            flash(f"Error updating loan: {e}", 'danger')
+            return redirect(url_for('loan.edit_loan', loan_id=loan_id))
 
     return render_template('loans/edit_loan.html', loan=loan)
 

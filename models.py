@@ -211,7 +211,9 @@ class Loan(db.Model):
     amount_paid = db.Column(db.Float, default=0)
     remaining_balance = db.Column(db.Float, nullable=False)
 
-    loan_duration = db.Column(db.Integer)  # Changed to Integer
+    loan_duration_value = db.Column(db.Integer)
+    loan_duration_unit = db.Column(db.String(10))  # e.g., 'days', 'weeks', 'months', 'years'
+
     collateral = db.Column(db.String(255))
 
     date = db.Column(db.DateTime, default=db.func.current_timestamp())
