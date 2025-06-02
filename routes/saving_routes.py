@@ -170,6 +170,22 @@ def deposit(saving_id):
     db.session.add(transaction)
     db.session.commit()
 
+    # Add Ledger Entry for Deposit
+    ledger_entry = LedgerEntry(
+        loan_id=None,  # Not related to a loan
+        date=datetime.utcnow().date(),
+        particulars=f"Savings deposit by {borrower_name}",
+        principal=0.0,
+        interest=0.0,
+        penalty=0.0,
+        principal_balance=0.0,
+        interest_balance=0.0,
+        penalty_balance=0.0,
+        running_balance=amount
+    )
+    db.session.add(ledger_entry)
+    db.session.commit()
+
     # Get borrower name for logging
     borrower = Borrower.query.filter_by(id=saving.borrower_id).first()
     borrower_name = borrower.name if borrower else "Unknown borrower"
@@ -230,6 +246,22 @@ def withdraw(saving_id):
         date=datetime.utcnow()
     )
     db.session.add(transaction)
+    db.session.commit()
+
+    # Add Ledger Entry for Withdrawal
+    ledger_entry = LedgerEntry(
+        loan_id=None,  # Not related to a loan
+        date=datetime.utcnow().date(),
+        particulars=f"Savings withdrawal by {borrower_name}",
+        principal=0.0,
+        interest=0.0,
+        penalty=0.0,
+        principal_balance=0.0,
+        interest_balance=0.0,
+        penalty_balance=0.0,
+        running_balance=-amount
+    )
+    db.session.add(ledger_entry)
     db.session.commit()
 
     # Get borrower name for logging

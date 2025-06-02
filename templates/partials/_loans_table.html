@@ -26,16 +26,6 @@
         <button type="submit" class="btn btn-outline-success btn-sm">Filter</button>
     </div>
 
-    <!-- Right: Export (preserving search & filter in links) -->
-    <div style="display: flex; gap: 6px;">
-        <a href="{{ url_for('loan.export_loans', file_type='excel', search=request.args.get('search', ''), month=request.args.get('month', ''), year=request.args.get('year', '')) }}" class="btn btn-outline-secondary btn-sm" title="Export Excel">
-            <i class="fas fa-file-excel"></i> Excel
-        </a>
-        <a href="{{ url_for('loan.export_loans', file_type='pdf', search=request.args.get('search', ''), month=request.args.get('month', ''), year=request.args.get('year', '')) }}" class="btn btn-outline-secondary btn-sm" title="Export PDF">
-            <i class="fas fa-file-pdf"></i> PDF
-        </a>
-    </div>
-
 </form>
 
 <div class="loan-table-wrapper table-responsive mt-3">

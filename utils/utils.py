@@ -4,6 +4,13 @@ from functools import wraps
 from flask_login import current_user
 from flask import abort
 from extensions import db
+from sqlalchemy import func
+from models import LoanRepayment 
+
+def sum_paid(loan_id, field):
+    return db.session.query(
+        func.coalesce(func.sum(getattr(LoanRepayment, field)), 0)
+    ).filter_by(loan_id=loan_id).scalar()
 
 def log_activity(user_id, action):
     """Logs user activity in the database."""

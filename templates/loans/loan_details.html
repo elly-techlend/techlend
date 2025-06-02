@@ -3,85 +3,121 @@
 {% block content %}
 <div class="container mt-4">
     <div class="card shadow rounded-3 p-4">
-        <h4 class="card-title mb-4 text-center">Loan Details - {{ loan.loan_id }}</h4>
 
-        <!-- Header Box -->
-        <div class="row g-3 mb-4 bg-light p-3 rounded border">
-            <div class="header" style="background-color: #28a745; color: white; padding: 10px;">
-               <h2>{{ loan.company.name }}</h2>
-            </div>
-            <div class="col-md-4">
-                <strong>Borrower:</strong> {{ loan.borrower_name }}
-            </div>
-            <div class="col-md-4">
-                <strong>Date of Loan:</strong> {{ loan.date.strftime('%Y-%m-%d') if loan.date else '' }}
-            </div>
-            <div class="col-md-4">
-                <strong>Interest Rate:</strong> {{ loan.interest_rate }}%
-            </div>
-            <div class="col-md-4">
-                <strong>Total Due:</strong> {{ loan.total_due }}
-            </div>
-            <div class="col-md-4">
-                <strong>Remaining Balance:</strong> {{ loan.remaining_balance }}
+        <!-- Loan Overview Header -->
+        <div class="card-body loan-overview border-start border-4 border-success mb-4">
+            <div class="row align-items-start">
+                <div class="col-md-4 text-md-start">
+                    <h5 class="mb-1">{{ loan.borrower_name }}</h5>
+                    <small>(currency = UGX)</small><br>
+                    <small><strong>Borrower ID:</strong> {{ loan.loan_id }}</small>
+                </div>
+                <div class="col-md-4 text-md-center">
+                    <p><strong>Principal:</strong> {{ "{:,.2f}".format(loan.amount_borrowed or 0) }}</p>
+                    <p><strong>Interest Rate:</strong> {{ loan.interest_rate }}%</p>
+                    <p><strong>Date of Loan:</strong> {{ loan.date.strftime('%b %d, %Y') if loan.date else '' }}</p>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <p><strong>Total Due:</strong> {{ "{:,.2f}".format(loan.total_due or 0) }}</p>
+                    <p><strong>Repaid Amount:</strong> {{ "{:,.2f}".format(loan.amount_paid or 0) }}</p>
+                    <p><strong>Outstanding Balance:</strong> {{ "{:,.2f}".format(loan.remaining_balance or 0) }}</p>
+                </div>
             </div>
         </div>
 
-        <!-- Repayments Section -->
-        <h5 class="mt-4 mb-3">Repayment History</h5>
+        <!-- Repayment History Header with Dropdown -->
+        <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
+            <h5 class="mb-0">Repayment History</h5>
+            <div class="dropdown">
+                <button class="btn btn-light dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-three-dots-vertical"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
+                    <li>
+                        <a class="dropdown-item text-warning" href="{{ url_for('loan.edit_loan', loan_id=loan.id) }}">
+                            <i class="bi bi-pencil-square me-2"></i> Edit Loan
+                        </a>
+                    </li>
+                    <li>
+                        <form method="POST" action="{{ url_for('loan.delete_loan', loan_id=loan.id) }}"
+                              onsubmit="return confirm('Are you sure you want to delete this loan?');">
+                            <button class="dropdown-item text-danger" type="submit">
+                                <i class="bi bi-trash me-2"></i> Delete Loan
+                            </button>
+                        </form>
+                    </li>
+                    <li>
+                        <a class="dropdown-item text-info" href="{{ url_for('loan.export_loan_pdf', loan_id=loan.id) }}">
+                            <i class="bi bi-file-earmark-pdf me-2"></i> Export to PDF
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item text-secondary" href="{{ url_for('loan.view_loans') }}">
+                            <i class="bi bi-arrow-left-circle me-2"></i> Back to Loans
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item text-primary" href="{{ url_for('loan.loan_ledger', loan_id=loan.id) }}">
+                            <i class="bi bi-journal-text me-2"></i> View Ledger
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
         {% if repayments %}
-            <table class="table table-bordered table-striped">
-                <thead class="table-light">
-                    <tr>
-                        <th>Date</th>
-                        <th>Amount Paid</th>
-                        <th>Outstanding Balance</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for repayment in repayments %}
-                    <tr>
-                        <td>{{ repayment.date_paid.strftime('%b %d, %Y') }}</td>  {# e.g., May 28, 2025 #}
-                        <td>{{ repayment.amount_paid }}</td>
-                        <td>{{ repayment.balance_after }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover text-center align-middle">
+                    <thead class="table-secondary">
+                        <tr>
+                            <th>Type</th>
+                            <th>Payment ID</th>
+                            <th>Date</th>
+                            <th>Amount Paid</th>
+                            <th>Principal</th>
+                            <th>Interest</th>
+                            <th>Cumulative Interest</th>
+                            <th>Outstanding Balance</th>
+                        </tr>
+                    </thead>
+<tbody>
+  {% for repayment in repayments %}
+  <tr class="{% if repayment.is_system_generated %}bg-light text-muted fst-italic small{% endif %}">
+    <td>
+      {% if repayment.is_system_generated %}
+        <span class="badge bg-secondary">System Penalty</span>
+      {% else %}
+        <span class="badge bg-success">Manual</span>
+      {% endif %}
+    </td>
+    <td>{{ repayment.id }}</td>
+    <td>{{ repayment.date_paid.strftime('%b %d, %Y') }}</td>
+    <td>{{ "%.2f"|format(repayment.amount_paid or 0) }}</td>
+    <td>{{ "%.2f"|format(repayment.principal_paid or 0) }}</td>
+    <td>{{ "%.2f"|format(repayment.interest_paid or 0) }}</td>
+    <td>{{ "%.2f"|format(repayment.cumulative_interest_paid or 0) }}</td>  <!-- Now shows running total -->
+    <td>{{ "%.2f"|format(repayment.balance_after or 0) }}</td>
+  </tr>
+  {% endfor %}
+</tbody>
+                </table>
+            </div>
         {% else %}
             <p>No repayments made yet.</p>
         {% endif %}
 
-     <!-- Make Repayment: full row -->
-<form method="POST" action="{{ url_for('loan.repay_loan', loan_id=loan.id) }}" class="mt-4 row g-2">
-    <div class="col-md-5">
-        <input type="number" name="amount_paid" step="0.01" min="0" placeholder="Enter repayment amount" class="form-control" required>
-    </div>
-    <div class="col-md-4">
-        <input type="date" name="repayment_date" class="form-control" required>
-    </div>
-    <div class="col-md-3">
-        <button type="submit" class="btn btn-success w-100">Make Repayment</button>
-    </div>
-</form>
-
-<!-- Buttons: full row with 4 equal columns -->
-<div class="mt-4 row g-2">
-    <div class="col-3">
-        <a href="{{ url_for('loan.edit_loan', loan_id=loan.id) }}" class="btn btn-warning w-100">Edit</a>
-    </div>
-    <div class="col-3">
-        <form method="POST" action="{{ url_for('loan.delete_loan', loan_id=loan.id) }}" onsubmit="return confirm('Are you sure?');">
-            <button type="submit" class="btn btn-danger w-100">Delete</button>
+        <!-- Repayment Form -->
+        <form method="POST" action="{{ url_for('loan.repay_loan', loan_id=loan.id) }}" class="mt-4 row g-2">
+            <div class="col-md-5">
+                <input type="number" name="amount_paid" step="0.01" min="0" placeholder="Enter repayment amount" class="form-control" required>
+            </div>
+            <div class="col-md-4">
+                <input type="date" name="repayment_date" class="form-control" required>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-success w-100">Make Repayment</button>
+            </div>
         </form>
-    </div>
-    <div class="col-3">
-        <a href="{{ url_for('loan.export_loan_pdf', loan_id=loan.id) }}" class="btn btn-info w-100">Export PDF</a>
-    </div>
-    <div class="col-3">
-        <a href="{{ url_for('loan.view_loans') }}" class="btn btn-secondary w-100">Back to Loans</a>
-    </div>
-</div>
 
     </div>
 </div>

@@ -196,11 +196,13 @@ class Borrower(db.Model):
 
 class Loan(db.Model):
     __tablename__ = 'loans'
+
     id = db.Column(db.Integer, primary_key=True)
     branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
     loan_id = db.Column(db.String(20), unique=True, nullable=True)
-    borrower_id = db.Column(db.Integer, db.ForeignKey('borrowers.id'), nullable=False)  # ForeignKey to Borrower
-    borrower = db.relationship('Borrower', back_populates='loans')  # Relationship to Borrower
+    borrower_id = db.Column(db.Integer, db.ForeignKey('borrowers.id'), nullable=False)
+    borrower = db.relationship('Borrower', back_populates='loans')
+    
     is_archived = db.Column(db.Boolean, default=False)
     borrower_name = db.Column(db.String(150), nullable=False)
     phone_number = db.Column(db.String(20))
@@ -212,21 +214,24 @@ class Loan(db.Model):
     remaining_balance = db.Column(db.Float, nullable=False)
 
     loan_duration_value = db.Column(db.Integer)
-    loan_duration_unit = db.Column(db.String(10))  # e.g., 'days', 'weeks', 'months', 'years'
-
+    loan_duration_unit = db.Column(db.String(10))  # 'days', 'weeks', etc.
     collateral = db.Column(db.String(255))
 
     date = db.Column(db.DateTime, default=db.func.current_timestamp())
     due_date = db.Column(db.DateTime, nullable=True)
     status = db.Column(db.String(50), default='Pending')
-    approval_status = db.Column(db.String(20), default='pending')  # 'approved', 'rejected', 'pending'
-    repayments = db.relationship('LoanRepayment', backref='loan', cascade='all, delete-orphan', passive_deletes=True)
+    approval_status = db.Column(db.String(20), default='pending')  # approved, rejected, pending
 
+    repayments = db.relationship('LoanRepayment', backref='loan', cascade='all, delete-orphan', passive_deletes=True)
+    ledger_entries = db.relationship('LedgerEntry', back_populates='loan', cascade='all, delete-orphan', order_by='LedgerEntry.date')
 
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     company_id = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=False)
-
     company = db.relationship('Company', back_populates='loans')
+
+    @property
+    def total_interest(self):
+        return self.amount_borrowed * self.interest_rate / 100
 
     def __repr__(self):
         return f"<Loan {self.loan_id} for {self.borrower_name}>"
@@ -246,11 +251,34 @@ class LoanRepayment(db.Model):
     branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
     loan_id = db.Column(db.Integer, db.ForeignKey('loans.id', ondelete='CASCADE'), nullable=False)
     amount_paid = db.Column(db.Float, nullable=False)
-    date_paid = db.Column(db.Date, nullable=False, default=datetime.utcnow)
-    balance_after = db.Column(db.Float, nullable=True)  # New field
+    principal_paid = db.Column(db.Float, nullable=False, default=0.0)
+    interest_paid = db.Column(db.Float, nullable=False, default=0.0)
+    cumulative_interest_paid = db.Column(db.Float, nullable=False, default=0.0)
+    date_paid = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    balance_after = db.Column(db.Float, nullable=True)
+    is_system_generated = db.Column(db.Boolean, default=False)
 
     def __repr__(self):
         return f"<Repayment of {self.amount_paid} for Loan ID {self.loan_id}>"
+
+class LedgerEntry(db.Model):
+    __tablename__ = 'ledger_entries'
+
+    id = db.Column(db.Integer, primary_key=True)
+    loan_id = db.Column(db.Integer, db.ForeignKey('loans.id', ondelete='CASCADE'), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    particulars = db.Column(db.String(255), nullable=False)
+    
+    principal = db.Column(db.Float, default=0.0)
+    interest = db.Column(db.Float, default=0.0)
+    cumulative_interest = db.Column(db.Float, default=0.0)
+    
+    principal_balance = db.Column(db.Float, default=0.0)
+    interest_balance = db.Column(db.Float, default=0.0)
+    cumulative_interest_balance = db.Column(db.Float, default=0.0)
+    running_balance = db.Column(db.Float, default=0.0)
+
+    loan = db.relationship('Loan', back_populates='ledger_entries')
 
 class SavingAccount(db.Model):
     __tablename__ = 'saving_accounts'

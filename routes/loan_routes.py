@@ -5,7 +5,7 @@ from utils.decorators import roles_required
 from forms import LoginForm
 from extensions import db
 from utils.logging import log_company_action, log_system_action, log_action
-from models import Loan, Borrower, LoanRepayment, Collateral
+from models import Loan, Borrower, LoanRepayment, Collateral, LedgerEntry
 from flask import session
 from datetime import datetime, timedelta
 from utils import get_company_filter
@@ -24,6 +24,8 @@ import os
 from extensions import csrf
 from zoneinfo import ZoneInfo
 from utils.time_helpers import today
+from utils.utils import sum_paid
+from utils.loan_helpers import apply_cumulative_interest_for_overdue_loans
 
 loan_bp = Blueprint('loan', __name__)
 
@@ -100,6 +102,8 @@ def view_loans():
 def loan_details(loan_id):
     from utils.branch_filter import filter_by_active_branch
 
+    tab = request.args.get('tab', 'payments')  # default to 'payments'
+
     # Build base query for the loan
     query = Loan.query.filter_by(company_id=current_user.company_id)
     query = filter_by_active_branch(query, model=Loan)
@@ -107,15 +111,49 @@ def loan_details(loan_id):
     # Now filter by ID
     loan = query.filter_by(id=loan_id).first_or_404()
 
-    # Repayments are tied to loan, so we don't need further filtering
-    repayments = (
+    # Repayments (for payments tab)
+    repayments_raw = (
         LoanRepayment.query
         .filter_by(loan_id=loan.id)
         .order_by(LoanRepayment.date_paid.asc())
         .all()
     )
 
-    return render_template('loans/loan_details.html', loan=loan, repayments=repayments)
+    repayments = []
+    cumulative_interest_running_total = 0.0
+    for r in repayments_raw:
+        cumulative_interest_running_total += r.cumulative_interest_paid or 0
+        total_paid = (r.principal_paid or 0) + (r.interest_paid or 0) + (r.cumulative_interest_paid or 0)
+        repayments.append({
+            'id': r.id,
+            'loan_id': r.loan_id,
+            'date_paid': r.date_paid,
+            'amount_paid': total_paid,
+            'principal_paid': r.principal_paid,
+            'interest_paid': r.interest_paid,
+            'cumulative_interest_paid': cumulative_interest_running_total,  # running total here
+            'balance_after': r.balance_after,
+            'is_system_generated': r.is_system_generated
+        })
+
+    # Only fetch ledger entries if tab is 'ledger'
+    ledger_entries = []
+    if tab == 'ledger':
+        from models import LedgerEntry  # Adjust path if needed
+        ledger_entries = (
+            LedgerEntry.query
+            .filter_by(loan_id=loan.id)
+            .order_by(LedgerEntry.date.asc())
+            .all()
+        )
+
+    return render_template(
+        'loans/loan_details.html',
+        loan=loan,
+        repayments=repayments,
+        ledger_entries=ledger_entries,
+        tab=tab
+    )
 
 @loan_bp.route('/borrower/<int:borrower_id>')
 @login_required
@@ -214,6 +252,7 @@ def add_loan():
         )
 
         db.session.add(loan)
+        db.session.flush()
 
         # Handle collateral
         item_name = request.form.get('collateral_item_name')
@@ -241,16 +280,46 @@ def add_loan():
                 created_by=current_user.id
             ))
 
+        # Ledger: Loan Application Submitted
+        db.session.add(LedgerEntry(
+            loan_id=loan.id,
+            date=loan_date,
+            particulars='Loan Application Submitted',
+            principal=loan.amount_borrowed,
+            interest=loan.total_interest,          # total_interest includes cumulative interest now
+            cumulative_interest=0.0,
+            principal_balance=loan.amount_borrowed,
+            interest_balance=loan.total_interest,
+            cumulative_interest_balance=0.0,
+            running_balance=loan.total_due
+        ))
+
         if loan.approval_status == 'approved':
+            # Cashbook: actual loan disbursement (money given out)
             db.session.add(CashbookEntry(
                 date=loan_date,
                 particulars=f"Loan disbursed to {borrower.name}",
-                debit=amount_borrowed,
+                debit=loan.amount_borrowed,
                 credit=0.0,
                 balance=0.0,
                 company_id=current_user.company_id,
                 branch_id=branch_id,
                 created_by=current_user.id
+            ))
+
+            # Ledger: Loan Disbursement (principal only)
+            db.session.add(LedgerEntry(
+                loan_id=loan.id,
+                date=loan_date,
+                particulars='Loan Disbursement',
+                principal=loan.amount_borrowed,
+                interest=0.0,  # No interest disbursed
+                principal_balance=loan.amount_borrowed,
+                interest_balance=0.0,
+                cumulative_interest=0.0,
+                penalty_balance=0.0,
+                cumulative_interest_balance=0.0,
+                running_balance=loan.amount_borrowed
             ))
 
         db.session.commit()
@@ -292,6 +361,8 @@ def rejected_loans():
     loans = query.order_by(Loan.date.desc()).all()
     return render_template('loans/rejected_loans.html', loans=loans)
 
+from math import ceil
+
 @loan_bp.route('/loans-in-arrears')
 @login_required
 def loans_in_arrears():
@@ -300,86 +371,63 @@ def loans_in_arrears():
 
     query = Loan.query.filter(
         Loan.company_id == current_user.company_id,
-        Loan.approval_status == 'approved',
+        Loan.status == 'Partially Paid',
         Loan.due_date < today,
         Loan.remaining_balance > 0
     )
+
     if branch_id:
         query = query.filter_by(branch_id=branch_id)
 
-    raw_loans = query.order_by(Loan.due_date.asc()).all()
-
+    loans = query.order_by(Loan.due_date.asc()).all()
     enriched_loans = []
 
-    # Initialize totals
     total_amount = 0
     total_principal_arrears = 0
-    total_interest_arrears = 0
-    total_penalty_arrears = 0
+    total_cumulative_interest = 0
     total_total_arrears = 0
-    total_days_overdue = 0
 
-    for loan in raw_loans:
-        # Interest due
+    for loan in loans:
+        # Interest and cumulative interest
         interest_due = loan.amount_borrowed * loan.interest_rate / 100
+        interest_paid = db.session.query(func.coalesce(func.sum(LoanRepayment.interest_paid), 0)).filter_by(loan_id=loan.id).scalar()
+        cumulative_paid = db.session.query(func.coalesce(func.sum(LoanRepayment.cumulative_interest_paid), 0)).filter_by(loan_id=loan.id).scalar()
 
-        # Total paid = original due - remaining balance
-        total_paid = loan.amount_borrowed + interest_due - loan.remaining_balance
+        days_overdue = (today - loan.due_date.date()).days
+        months_overdue = days_overdue // 30
+        cumulative_interest_due = months_overdue * (loan.remaining_balance * loan.interest_rate / 100)
+        cumulative_interest_arrears = max(0, cumulative_interest_due - cumulative_paid)
 
-        # Split payment into interest and principal
-        interest_paid = min(total_paid, interest_due)
-        principal_paid = max(0, total_paid - interest_paid)
+        total_arrears = loan.remaining_balance + cumulative_interest_arrears
 
-        # Arrears
-        interest_arrears = max(0, interest_due - interest_paid)
-        principal_arrears = loan.remaining_balance  # direct from loan
-
-        # Penalty
-        penalty_arrears = 0
-        if loan.due_date and today > loan.due_date.date():
-            months_overdue = (today.year - loan.due_date.year) * 12 + (today.month - loan.due_date.month)
-            months_overdue = max(1, months_overdue)  # at least 1 month if overdue
-            penalty_arrears = principal_arrears * loan.interest_rate / 100 * months_overdue
-
-        total_arrears = principal_arrears + interest_arrears + penalty_arrears
-
-        # Last repayment
-        last_repayment = (
-            LoanRepayment.query.filter_by(loan_id=loan.id)
-            .order_by(LoanRepayment.date_paid.desc())
-            .first()
-        )
-
-        due_date = loan.due_date.date() if isinstance(loan.due_date, datetime) else loan.due_date
-        days_overdue = (today - due_date).days if due_date else 0
+        # Get last repayment date
+        last_repayment = db.session.query(LoanRepayment.date_paid).filter_by(loan_id=loan.id).order_by(LoanRepayment.date_paid.desc()).first()
+        last_repayment_date = last_repayment[0] if last_repayment else None
 
         enriched_loans.append({
             'loan_id': loan.id,
+            'loan_code': loan.loan_id,
             'name': loan.borrower_name,
-            'phone': loan.borrower.phone if loan.borrower else '',
+            'phone': loan.borrower.phone,
             'amount': loan.amount_borrowed,
-            'date': loan.date,
-            'principal_arrears': principal_arrears,
-            'interest_arrears': interest_arrears,
-            'penalty_arrears': penalty_arrears,
+            'disbursement_date': loan.date,
+            'balance': loan.remaining_balance,
+            'cumulative_interest': cumulative_interest_arrears,
             'total_arrears': total_arrears,
             'days': days_overdue,
-            'last_repayment': last_repayment.date_paid if last_repayment else 'N/A',
+            'last_repayment': last_repayment_date
         })
 
-        # Totals
-        total_amount += loan.amount_borrowed
-        total_principal_arrears += principal_arrears
-        total_interest_arrears += interest_arrears
-        total_penalty_arrears += penalty_arrears
+        total_amount += loan.amount_borrowed or 0
+        total_principal_arrears += loan.remaining_balance or 0
+        total_cumulative_interest += cumulative_interest_arrears
         total_total_arrears += total_arrears
 
     totals = {
         'amount': total_amount,
         'principal_arrears': total_principal_arrears,
-        'interest_arrears': total_interest_arrears,
-        'penalty_arrears': total_penalty_arrears,
-        'total_arrears': total_total_arrears,
+        'cumulative_interest': total_cumulative_interest,
+        'total_arrears': total_total_arrears
     }
 
     return render_template('loans/loans_in_arrears.html', loans=enriched_loans, totals=totals)
@@ -390,29 +438,65 @@ def loans_in_arrears():
 @roles_required('Admin', 'Loans_Supervisor')
 def approve_loan(loan_id):
     loan = Loan.query.filter_by(id=loan_id, company_id=current_user.company_id).first_or_404()
-    
+
     if loan.approval_status != 'pending':
-        flash("Loan is already processed.", "warning")
+        flash("Loan is already processed or not pending.", "warning")
         return redirect(url_for('loan.pending_loans'))
 
-    loan.approval_status = 'approved'
+    # Calculate total interest for records
+    total_interest = loan.amount_borrowed * loan.interest_rate / 100
 
-    # Add cashbook entry on approval
-    cashbook_entry = CashbookEntry(
+    # Mark loan as approved and disbursed
+    loan.approval_status = 'approved'
+    loan.status = 'Disbursed'
+    loan.total_due = loan.amount_borrowed + total_interest
+    loan.remaining_balance = loan.remaining_balance
+
+    # Ledger Entry: Loan Approved
+    ledger_approved = LedgerEntry(
+        loan_id=loan.id,
+        date=loan.date,
+        particulars='Loan Approved',
+        principal=loan.amount_borrowed,
+        interest=total_interest,
+        principal_balance=loan.amount_borrowed,
+        interest_balance=total_interest,
+        running_balance=loan.amount_borrowed + total_interest
+    )
+    db.session.add(ledger_approved)
+
+    # Ledger Entry: Loan Disbursed
+    ledger_disbursed = LedgerEntry(
+        loan_id=loan.id,
+        date=loan.date,
+        particulars='Loan Disbursed',
+        principal=loan.amount_borrowed,
+        interest=0.0,
+        principal_balance=loan.amount_borrowed,
+        interest_balance=0,
+        running_balance=loan.amount_borrowed + total_interest
+    )
+    db.session.add(ledger_disbursed)
+
+    # Cashbook Entry: Loan disbursement
+    add_cashbook_entry(
         date=loan.date,
         particulars=f"Loan disbursed to {loan.borrower.name}",
         debit=loan.amount_borrowed,
         credit=0.0,
-        balance=0.0,
         company_id=loan.company_id,
         branch_id=loan.branch_id,
         created_by=current_user.id
     )
-    db.session.add(cashbook_entry)
+
+    # Log action
+    log_action(
+        f"{current_user.full_name} approved and disbursed loan {loan.loan_id} "
+        f"to {loan.borrower.name}. Amount: {loan.amount_borrowed}, Interest: {total_interest}"
+    )
 
     db.session.commit()
-    log_action(f"{current_user.full_name} approved loan {loan.loan_id}")
-    flash(f"Loan {loan.loan_id} approved and disbursed.", "success")
+    flash(f"Loan {loan.loan_id} approved and disbursed successfully.", "success")
     return redirect(url_for('loan.pending_loans'))
 
 @csrf.exempt
@@ -571,64 +655,123 @@ def repay_loan(loan_id):
     loan_query = get_company_filter(Loan)
     if branch_id:
         loan_query = loan_query.filter_by(branch_id=branch_id)
-
     loan = loan_query.filter_by(id=loan_id).first_or_404()
 
     try:
         amount = float(request.form['amount_paid'])
-    except (ValueError, KeyError):
-        flash('Invalid repayment amount.', 'danger')
+        repayment_date_str = request.form.get('repayment_date')
+        repayment_date = datetime.strptime(repayment_date_str, '%Y-%m-%d').date()
+    except (ValueError, TypeError, KeyError):
+        flash('Invalid repayment amount or date.', 'danger')
         return redirect(url_for('loan.loan_details', loan_id=loan.id))
 
     if amount <= 0:
         flash('Repayment amount must be greater than zero.', 'warning')
         return redirect(url_for('loan.loan_details', loan_id=loan.id))
 
-    # 📅 Get date from form input
-    repayment_date_str = request.form.get('repayment_date')
-    try:
-        repayment_date = datetime.strptime(repayment_date_str, '%Y-%m-%d').date()
-    except (ValueError, TypeError):
-        flash('Invalid repayment date.', 'danger')
-        return redirect(url_for('loan.loan_details', loan_id=loan.id))
+    # Calculate original interest due
+    interest_due = loan.amount_borrowed * loan.interest_rate / 100
 
-    # 💰 Update loan balances
-    loan.amount_paid += amount
-    loan.remaining_balance = loan.total_due - loan.amount_paid
+    # Sum interest paid so far on this loan
+    interest_paid_so_far = db.session.query(func.coalesce(func.sum(LoanRepayment.interest_paid), 0)) \
+        .filter_by(loan_id=loan.id).scalar()
 
-    if loan.remaining_balance <= 0:
-        loan.remaining_balance = 0
-        loan.status = 'Paid'
-    else:
-        loan.status = 'Partially Paid'
+    interest_remaining = max(0, interest_due - interest_paid_so_far)
 
-    # 💾 Save repayment
+    # Calculate cumulative interest due (penalty)
+    cumulative_interest_paid_so_far = db.session.query(func.coalesce(func.sum(LoanRepayment.cumulative_interest_paid), 0)) \
+        .filter_by(loan_id=loan.id).scalar()
+
+    months_overdue = 0
+    cumulative_interest_due = 0
+    if repayment_date > loan.due_date.date():
+        delta = repayment_date - loan.due_date.date()
+        months_overdue = delta.days // 30
+        cumulative_interest_due = months_overdue * (loan.remaining_balance * loan.interest_rate / 100)
+    cumulative_interest_remaining = max(0, cumulative_interest_due - cumulative_interest_paid_so_far)
+
+    # Allocate payment: interest -> cumulative interest -> principal
+    interest_payment = min(amount, interest_remaining)
+    amount -= interest_payment
+
+    cumulative_interest_payment = min(amount, cumulative_interest_remaining)
+    amount -= cumulative_interest_payment
+
+    principal_payment = min(amount, loan.remaining_balance)  # principal left (initially might be total_due - interest_due)
+    amount -= principal_payment
+
+    total_paid = interest_payment + cumulative_interest_payment + principal_payment
+
+    # Update total amount paid
+    loan.amount_paid += total_paid
+
+    # **Update remaining balance as total_due - amount_paid**
+    loan.remaining_balance = max(0, loan.total_due - loan.amount_paid)
+
+    # Update loan status
+    loan.status = 'Paid' if loan.remaining_balance <= 0 else 'Partially Paid'
+
+    # Create repayment record
     repayment = LoanRepayment(
         loan_id=loan.id,
-        amount_paid=amount,
+        branch_id=branch_id,
+        amount_paid=total_paid,
+        principal_paid=principal_payment,
+        interest_paid=interest_payment,
+        cumulative_interest_paid=cumulative_interest_payment,
         date_paid=repayment_date,
-        balance_after=loan.remaining_balance
+        balance_after=loan.remaining_balance,
+        is_system_generated=False
     )
-
     db.session.add(repayment)
-    db.session.commit()
 
-    # 🧾 Record in cashbook
+    # Create ledger entry
+    ledger_entry = LedgerEntry(
+        loan_id=loan.id,
+        date=repayment_date,
+        particulars=f"Loan repayment",
+        principal=principal_payment,
+        interest=interest_payment,
+        cumulative_interest=cumulative_interest_payment,
+        principal_balance=max(0, loan.amount_borrowed - db.session.query(func.coalesce(func.sum(LoanRepayment.principal_paid), 0)).filter_by(loan_id=loan.id).scalar()),
+        interest_balance=interest_remaining - interest_payment,
+        cumulative_interest_balance=cumulative_interest_remaining - cumulative_interest_payment,
+        running_balance=loan.remaining_balance
+    )
+    db.session.add(ledger_entry)
+
+    # Add cashbook entry
     add_cashbook_entry(
         date=repayment_date,
         particulars=f"Loan repayment by {loan.borrower_name}",
         debit=0,
-        credit=amount,
+        credit=total_paid,
         company_id=current_user.company_id,
         branch_id=branch_id,
         created_by=current_user.id
     )
 
-    # 🧠 Log action
-    log_action(f"{current_user.full_name} made a repayment of {amount} for loan {loan.loan_id} (borrower: {loan.borrower_name})")
+    # Log action
+    log_action(
+        f"{current_user.full_name} made a repayment of {total_paid} for loan {loan.id} "
+        f"(Borrower: {loan.borrower_name}) — Interest: {interest_payment}, "
+        f"Cumulative Interest: {cumulative_interest_payment}, Principal: {principal_payment}"
+    )
 
+    db.session.commit()
     flash('Repayment recorded successfully.', 'success')
     return redirect(url_for('loan.loan_details', loan_id=loan.id))
+
+@loan_bp.route('/loan/<int:loan_id>/ledger')
+@login_required
+def loan_ledger(loan_id):
+    loan = Loan.query.filter_by(id=loan_id, company_id=current_user.company_id).first_or_404()
+
+    apply_cumulative_interest_for_overdue_loans(company_id=current_user.company_id)
+
+    ledger_entries = LedgerEntry.query.filter_by(loan_id=loan.id).order_by(LedgerEntry.date.asc()).all()
+
+    return render_template('loans/ledger.html', loan=loan, ledger_entries=ledger_entries)
 
 # View repayment history
 @csrf.exempt

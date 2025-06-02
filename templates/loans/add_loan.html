@@ -9,22 +9,23 @@
 
             <!-- LOAN DETAILS -->
             <h5 class="mb-3">Loan Details</h5>
-            <div class="row mb-4">
-                <div class="col-md-6">
-                    <label for="borrower_id" class="form-label">Select Borrower</label>
-                    <select name="borrower_id" id="borrower_id" class="form-control" required>
-                        <option value="" disabled selected>Select Borrower</option>
-                        {% for borrower in borrowers %}
-                            <option value="{{ borrower.id }}" data-phone="{{ borrower.phone }}">{{ borrower.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-6">
-                    <label for="phone_number" class="form-label">Phone Number</label>
-                    <input type="text" id="phone_number" name="phone_number" class="form-control" readonly>
-                </div>
-            </div>
-
+<div class="row mb-4">
+    <div class="col-md-6">
+        <label for="borrower_id" class="form-label">Select Borrower</label>
+        <select name="borrower_id" id="borrower_id" class="form-control select-borrower" required>
+            <option value="">-- Select Borrower --</option>
+            {% for borrower in borrowers %}
+                <option value="{{ borrower.id }}" data-phone="{{ borrower.phone }}">
+                    {{ borrower.name }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-6">
+        <label for="phone_number" class="form-label">Phone Number</label>
+        <input type="text" id="phone_number" name="phone_number" class="form-control" readonly>
+    </div>
+</div>
             <div class="row mb-3">
                 <div class="col-md-4">
                     <label for="amount_borrowed" class="form-label">Amount Borrowed</label>
@@ -121,36 +122,42 @@
 <!-- Select2 CSS -->
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
-<!-- jQuery and Select2 JS -->
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+<!-- jQuery (required by Select2) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- Select2 JS -->
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
+<!-- Your custom script to activate Select2 -->
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const borrowerSelect = document.getElementById('borrower_id');
-    const phoneInput = document.getElementById('phone_number');
-    const amountInput = document.getElementById('amount_borrowed');
-    const interestInput = document.getElementById('interest');
-    const totalDueInput = document.getElementById('total_due');
+    function calculateTotalDue() {
+        const amount = parseFloat($('#amount_borrowed').val()) || 0;
+        const interestRate = parseFloat($('#interest').val()) || 0;
+        const interestAmount = (interestRate / 100) * amount;
+        const totalDue = amount + interestAmount;
 
-    function updateTotalDue() {
-        const amount = parseFloat(amountInput.value) || 0;
-        const interest = parseFloat(interestInput.value) || 0;
-        const total = amount + (amount * interest / 100);
-        totalDueInput.value = total.toFixed(2);
+        $('#total_due').val(totalDue.toFixed(2));
     }
 
-    function updatePhone() {
-        const selected = borrowerSelect.options[borrowerSelect.selectedIndex];
-        phoneInput.value = selected?.getAttribute('data-phone') || '';
-    }
+    $(document).ready(function () {
+        // Already existing logic
+        $('.select-borrower').select2({
+            placeholder: "Search borrower...",
+            allowClear: true
+        });
 
-    amountInput.addEventListener('input', updateTotalDue);
-    interestInput.addEventListener('input', updateTotalDue);
-    borrowerSelect.addEventListener('change', updatePhone);
+        $('#borrower_id').on('change', function () {
+            const selectedOption = $(this).find(':selected');
+            const phone = selectedOption.data('phone') || '';
+            $('#phone_number').val(phone);
+        });
 
-    updateTotalDue();
-    updatePhone();
-});
+        // 🔁 Listen for changes on amount and interest inputs
+        $('#amount_borrowed, #interest').on('input', calculateTotalDue);
+
+        // Optionally, calculate on page load if values exist
+        calculateTotalDue();
+    });
 </script>
+
 {% endblock %}

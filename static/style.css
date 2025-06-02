@@ -28,6 +28,17 @@ body.dark-mode a:hover {
     color: #d0aaff;
 }
 
+.card-body.loan-overview {
+    background-color: #f8f9fa; /* light bg for light mode */
+    color: #212529; /* dark text for light mode */
+}
+
+body.dark-mode .card-body.loan-overview {
+    background-color: #2c2c2c; /* dark bg for dark mode */
+    color: #e0e0e0; /* light text for dark mode */
+    border-color: #4caf50; /* keep border green */
+}
+
 /* Top Navigation */
 .top-nav {
     height: 60px;
