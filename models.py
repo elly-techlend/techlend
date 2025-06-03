@@ -253,7 +253,6 @@ class LoanRepayment(db.Model):
     amount_paid = db.Column(db.Float, nullable=False)
     principal_paid = db.Column(db.Float, nullable=False, default=0.0)
     interest_paid = db.Column(db.Float, nullable=False, default=0.0)
-    cumulative_interest_paid = db.Column(db.Float, nullable=False, default=0.0)
     date_paid = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     balance_after = db.Column(db.Float, nullable=True)
     is_system_generated = db.Column(db.Boolean, default=False)
@@ -271,11 +270,9 @@ class LedgerEntry(db.Model):
     
     principal = db.Column(db.Float, default=0.0)
     interest = db.Column(db.Float, default=0.0)
-    cumulative_interest = db.Column(db.Float, default=0.0)
     
     principal_balance = db.Column(db.Float, default=0.0)
     interest_balance = db.Column(db.Float, default=0.0)
-    cumulative_interest_balance = db.Column(db.Float, default=0.0)
     running_balance = db.Column(db.Float, default=0.0)
 
     loan = db.relationship('Loan', back_populates='ledger_entries')

@@ -32,7 +32,7 @@
                 <button class="btn btn-light dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="bi bi-three-dots-vertical"></i>
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton"> 
                     <li>
                         <a class="dropdown-item text-warning" href="{{ url_for('loan.edit_loan', loan_id=loan.id) }}">
                             <i class="bi bi-pencil-square me-2"></i> Edit Loan
@@ -70,36 +70,26 @@
                 <table class="table table-bordered table-hover text-center align-middle">
                     <thead class="table-secondary">
                         <tr>
-                            <th>Type</th>
                             <th>Payment ID</th>
                             <th>Date</th>
                             <th>Amount Paid</th>
                             <th>Principal</th>
                             <th>Interest</th>
-                            <th>Cumulative Interest</th>
                             <th>Outstanding Balance</th>
                         </tr>
                     </thead>
-<tbody>
-  {% for repayment in repayments %}
-  <tr class="{% if repayment.is_system_generated %}bg-light text-muted fst-italic small{% endif %}">
-    <td>
-      {% if repayment.is_system_generated %}
-        <span class="badge bg-secondary">System Penalty</span>
-      {% else %}
-        <span class="badge bg-success">Manual</span>
-      {% endif %}
-    </td>
-    <td>{{ repayment.id }}</td>
-    <td>{{ repayment.date_paid.strftime('%b %d, %Y') }}</td>
-    <td>{{ "%.2f"|format(repayment.amount_paid or 0) }}</td>
-    <td>{{ "%.2f"|format(repayment.principal_paid or 0) }}</td>
-    <td>{{ "%.2f"|format(repayment.interest_paid or 0) }}</td>
-    <td>{{ "%.2f"|format(repayment.cumulative_interest_paid or 0) }}</td>  <!-- Now shows running total -->
-    <td>{{ "%.2f"|format(repayment.balance_after or 0) }}</td>
-  </tr>
-  {% endfor %}
-</tbody>
+                    <tbody>
+                        {% for repayment in repayments %}
+                        <tr>
+                            <td>{{ repayment.id }}</td>
+                            <td>{{ repayment.date_paid.strftime('%b %d, %Y') }}</td>
+                            <td>{{ "%.2f"|format(repayment.amount_paid or 0) }}</td>
+                            <td>{{ "%.2f"|format(repayment.principal_paid or 0) }}</td>
+                            <td>{{ "%.2f"|format(repayment.interest_paid or 0) }}</td>
+                            <td>{{ "%.2f"|format(repayment.balance_after or 0) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
                 </table>
             </div>
         {% else %}

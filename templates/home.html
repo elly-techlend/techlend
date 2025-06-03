@@ -32,170 +32,73 @@
     </div>
 
     <!-- Dashboard Boxes -->
-    <div class="row g-4 mb-5">
+<div class="row">
+    <!-- Left Column: Summary Cards -->
+    <div class="col-lg-6 col-12 mb-4">
+        <div class="d-grid gap-4">
 
-        <!-- Borrowers Box -->
-        <div class="col-md-3 col-sm-6">
-            <div class="h-100 d-flex flex-column p-3 shadow-sm rounded bg-white text-dark fade-in-up"
-                 style="border: 2px solid black;">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <div class="fw-bold">Total: <span id="total-borrowers">{{ total_borrowers }}</span></div>
-                        <div>This Year: <span id="borrower-year-count">{{ borrowers_year }}</span></div>
-                        <div>This Month: <span id="borrower-month-count">{{ borrowers_month }}</span></div>
-                    </div>
-                    <i class="fa fa-user fa-2x text-secondary"></i>
-                </div>
+            <!-- Total Borrowers -->
+            <div class="d-flex flex-column p-3 shadow-sm rounded bg-white text-dark fade-in-up" style="border: 2px solid black;">
+                <div class="fw-bold">Total Borrowers: <span>{{ total_borrowers }}</span></div>
+                <i class="fa fa-user fa-2x text-secondary mt-2"></i>
                 <a href="#" class="mt-auto bg-primary text-white text-center py-2 d-block rounded text-decoration-none">
                     Borrowers <i class="fa fa-arrow-right ms-1"></i>
                 </a>
             </div>
-        </div>
 
-        <!-- Principal Released -->
-        <div class="col-md-3 col-sm-6">
-            <div class="h-100 d-flex flex-column p-3 shadow-sm rounded bg-white text-dark fade-in-up"
-                 style="border: 2px solid black;">
-                <div>
-                    <div class="fw-bold">Total: <span class="count" data-target="{{ total_disbursed }}">0</span></div>
-                    <div>This Year: <span class="count" data-target="{{ disbursed_year }}">0</span></div>
-                    <div>This Month: <span class="count" data-target="{{ disbursed_month }}">0</span></div>
-                </div>
-                <div class="d-flex justify-content-end mt-2">
-                    <i class="fa fa-files-o fa-2x text-secondary"></i>
-                </div>
+            <!-- Total Disbursed -->
+            <div class="d-flex flex-column p-3 shadow-sm rounded bg-white text-dark fade-in-up" style="border: 2px solid black;">
+                <div class="fw-bold">Total Disbursed: <span class="count" data-target="{{ total_disbursed }}">0</span></div>
+                <i class="fa fa-files-o fa-2x text-secondary mt-2"></i>
                 <a href="#" class="mt-auto bg-primary text-white text-center py-2 d-block rounded text-decoration-none">
                     Principal Released <i class="fa fa-arrow-right ms-1"></i>
                 </a>
             </div>
-        </div>
 
-        <!-- Collections -->
-        <div class="col-md-3 col-sm-6">
-            <div class="h-100 d-flex flex-column p-3 shadow-sm rounded bg-white text-dark fade-in-up"
-                 style="border: 2px solid black;">
-                <div>
-                    <div class="fw-bold">Total: <span class="count" data-target="{{ total_repaid }}">0</span></div>
-                    <div>This Year: <span class="count" data-target="{{ collections_year }}">0</span></div>
-                    <div>This Month: <span class="count" data-target="{{ collections_month }}">0</span></div>
-                </div>
-                <div class="d-flex justify-content-end mt-2">
-                    <i class="fa fa-dollar fa-2x text-secondary"></i>
-                </div>
+            <!-- Total Repaid -->
+            <div class="d-flex flex-column p-3 shadow-sm rounded bg-white text-dark fade-in-up" style="border: 2px solid black;">
+                <div class="fw-bold">Total Repaid: <span class="count" data-target="{{ total_repaid }}">0</span></div>
+                <i class="fa fa-dollar fa-2x text-secondary mt-2"></i>
                 <a href="#" class="mt-auto bg-primary text-white text-center py-2 d-block rounded text-decoration-none">
                     Collections <i class="fa fa-arrow-right ms-1"></i>
                 </a>
             </div>
-        </div>
 
-        <!-- Overdue Loans -->
-        <div class="col-md-3 col-sm-6">
-            <div class="h-100 d-flex flex-column p-3 shadow-sm rounded bg-white text-dark fade-in-up"
-                 style="border: 2px solid black;">
-                <div>
-                    <div class="fw-bold text-danger">Overdue Loans</div>
-                    <div>Total: <span>{{ overdue_loans|length }}</span></div>
-                    <div>Click below to view</div>
-                </div>
-                <div class="d-flex justify-content-end mt-2">
-                    <i class="fa fa-exclamation-triangle fa-2x text-danger"></i>
-                </div>
-                <a href="#" class="mt-auto bg-danger text-white text-center py-2 d-block rounded text-decoration-none"
-                   data-bs-toggle="collapse" data-bs-target="#overdueTable">
-                    View Overdue <i class="fa fa-arrow-down ms-1"></i>
+            <!-- Overdue Loans -->
+            <div class="d-flex flex-column p-3 shadow-sm rounded bg-white text-dark fade-in-up" style="border: 2px solid black;">
+                <div class="fw-bold text-danger">Overdue Loans: <span>{{ overdue_loans|length }}</span></div>
+                <i class="fa fa-exclamation-triangle fa-2x text-danger mt-2"></i>
+                <a href="#" class="mt-auto bg-danger text-white text-center py-2 d-block rounded text-decoration-none">
+                    View Overdue <i class="fa fa-arrow-right ms-1"></i>
                 </a>
             </div>
+
         </div>
     </div>
 
-    <!-- Overdue Loans Table -->
-    <div class="collapse mt-3 mb-5 fade-in-up" id="overdueTable">
-        <div class="card">
-            <div class="card-header bg-danger text-white">
-                <h5 class="mb-0">Overdue Loans</h5>
-            </div>
-            <div class="card-body">
-                {% if overdue_loans %}
-                <table class="table table-sm table-hover">
-                    <thead>
-                        <tr>
-                            <th>Borrower</th>
-                            <th>Due Date</th>
-                            <th>Remaining (UGX)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for loan in overdue_loans %}
-                        <tr>
-                            <td>{{ loan.borrower_name }}</td>
-                            <td>{{ loan.due_date.strftime('%d-%b-%Y') }}</td>
-                            <td>{{ "{:,.0f}".format(loan.remaining_balance) }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                {% else %}
-                <p class="text-muted mb-0">No overdue loans at the moment.</p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
+    <!-- Right Column: Charts -->
+    <div class="col-lg-6 col-12">
+<!-- Bar Chart -->
+<div class="card shadow-sm p-3 fade-in-up" style="height: 350px;">
+    <h5 class="text-center mb-3">Monthly Borrowed vs Paid (Bar Chart)</h5>
+    <canvas id="barChart" style="width: 100%; height: 100%;"></canvas>
+</div>
 
-    <!-- Loan Summary Table -->
-    {% if 'admin' in current_user.role_names %}
-<!-- Loan Summary Table (Visible only to Admins) -->
-<div class="card mt-5 mb-5 fade-in-up">
-    <div class="card-header bg-secondary text-white">
-        <h5 class="mb-0">Loan Overview</h5>
-    </div>
-    <div class="card-body p-3">
-        <div class="table-responsive">
-            <table class="table table-bordered text-center mb-0">
-                <thead>
-                    <tr>
-                        <th>Total Disbursed</th>
-                        <th>Total Repaid</th>
-                        <th>Outstanding Balance</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><strong>UGX {{ "{:,.0f}".format(total_disbursed or 0) }}</strong></td>
-                        <td><strong>UGX {{ "{:,.0f}".format(total_repaid or 0) }}</strong></td>
-                        <td><strong>UGX {{ "{:,.0f}".format(total_balance or 0) }}</strong></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+<!-- Pie Chart -->
+<div class="card shadow-sm p-3 fade-in-up" style="height: 350px;">
+    <h5 class="text-center mb-3">Overall Loan Status (Pie Chart)</h5>
+    <canvas id="pieChart" style="position: absolute; left: 0; top: 0; width: 100% !important; height: 100% !important;"></canvas>
+</div>
+
+<!-- Line Chart -->
+<div class="card shadow-sm p-3 fade-in-up" style="height: 350px;">
+    <h5 class="text-center mb-3">Loan Trends Over Time (Line Chart)</h5>
+    <canvas id="lineChart" style="width: 100%; height: 100%;"></canvas>
+</div>
+
     </div>
 </div>
-{% endif %}
 
-    <!-- Charts Section -->
-    <div class="container mt-5 mb-5 px-3 fade-in-up">
-        <div class="row">
-            <div class="col-md-6 mb-5">
-                <div class="card shadow-sm p-3 fade-in-up" style="height: 500px;">
-                    <h5 class="text-center mb-3">Overall Loan Status (Pie Chart)</h5>
-                    <canvas id="pieChart" style="width: 100%; height: 100%;"></canvas>
-                </div>
-            </div>
-            <div class="col-md-6 mb-4">
-                <div class="card shadow-sm p-3 fade-in-up" style="height: 500px;">
-                    <h5 class="text-center mb-3">Monthly Loan Breakdown (Bar Chart)</h5>
-                    <canvas id="barChart" style="width: 100%; height: 100%;"></canvas>
-                </div>
-            </div>
-        </div>
-        <div class="row mb-4">
-            <div class="col-md-6">
-                <div class="card shadow-sm p-3 fade-in-up" style="height: 500px;">
-                    <h5 class="text-center mb-3">Loan Trends Over Time (Line Chart)</h5>
-                    <canvas id="lineChart" style="width: 100%; height: 100%;"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 
 <!-- Chart.js -->
@@ -207,7 +110,36 @@ document.addEventListener("DOMContentLoaded", function () {
     fetch('/loan_data', { credentials: 'include' })
         .then(response => response.json())
         .then(data => {
-            // Updated Pie Chart (Removed Remaining Balance)
+            // --- Bar Chart: Monthly Disbursed vs Repaid ---
+            new Chart(document.getElementById("barChart"), {
+                type: 'bar',
+                data: {
+                    labels: data.months,
+                    datasets: [
+                        {
+                            label: 'Borrowed',
+                            data: data.loans_disbursed,
+                            backgroundColor: '#007bff'
+                        },
+                        {
+                            label: 'Paid',
+                            data: data.loans_repaid,
+                            backgroundColor: '#28a745'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+
+            // --- Pie Chart: Overall Status ---
             new Chart(document.getElementById("pieChart"), {
                 type: 'pie',
                 data: {
@@ -217,46 +149,69 @@ document.addEventListener("DOMContentLoaded", function () {
                         backgroundColor: ['#007bff', '#28a745']
                     }]
                 },
-                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
-            });
-
-            // Updated Bar Chart (Removed Remaining)
-            new Chart(document.getElementById("barChart"), {
-                type: 'bar',
-                data: {
-                    labels: data.months,
-                    datasets: [
-                        { label: 'Borrowed', data: data.loans_disbursed, backgroundColor: '#007bff' },
-                        { label: 'Paid', data: data.loans_repaid, backgroundColor: '#28a745' }
-                    ]
-                },
                 options: {
                     responsive: true,
-                    plugins: { legend: { position: 'bottom' } },
-                    scales: { y: { beginAtZero: true } }
+                    plugins: {
+                        legend: { position: 'right' }
+                    }
                 }
             });
 
-            // Leave Line Chart as-is (unchanged)
-            new Chart(document.getElementById("lineChart"), {
-                type: 'line',
-                data: {
-                    labels: data.months,
-                    datasets: [
-                        { label: 'Borrowed', data: data.loans_disbursed, borderColor: '#007bff', fill: false, tension: 0.4 },
-                        { label: 'Paid', data: data.loans_repaid, borderColor: '#28a745', fill: false, tension: 0.4 },
-                        { label: 'Remaining', data: data.remaining_balances, borderColor: '#dc3545', fill: false, tension: 0.4 },
-                        { label: 'Interest Earned', data: data.interest_earned, borderColor: '#ffc107', fill: false, tension: 0.4 }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { position: 'bottom' } },
-                    scales: { y: { beginAtZero: true } }
-                }
-            });
+            // --- Line Chart: Trend Over Time ---
+            const hasLineData = data.months && data.months.length &&
+                                data.loans_disbursed && data.loans_repaid;
+
+            if (hasLineData) {
+                new Chart(document.getElementById("lineChart"), {
+                    type: 'line',
+                    data: {
+                        labels: data.months,
+                        datasets: [
+                            {
+                                label: 'Borrowed',
+                                data: data.loans_disbursed,
+                                borderColor: '#007bff',
+                                fill: false,
+                                tension: 0.4
+                            },
+                            {
+                                label: 'Paid',
+                                data: data.loans_repaid,
+                                borderColor: '#28a745',
+                                fill: false,
+                                tension: 0.4
+                            },
+                            {
+                                label: 'Remaining',
+                                data: data.remaining_balances,
+                                borderColor: '#dc3545',
+                                fill: false,
+                                tension: 0.4
+                            },
+                            {
+                                label: 'Interest Earned',
+                                data: data.interest_earned,
+                                borderColor: '#ffc107',
+                                fill: false,
+                                tension: 0.4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { position: 'bottom' }
+                        },
+                        scales: {
+                            y: { beginAtZero: true }
+                        }
+                    }
+                });
+            } else {
+                console.warn('Line chart data incomplete or missing.');
+            }
         })
-        .catch(err => console.error('Error loading charts:', err));
+        .catch(err => console.error('Error loading chart data:', err));
 });
 </script>
 

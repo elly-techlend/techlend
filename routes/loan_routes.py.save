@@ -383,7 +383,7 @@ def loans_in_arrears():
         days_overdue = (today - loan.due_date.date()).days
         months_overdue = days_overdue // 30
 
-        total_arrears = loan.remaining_balance
+        total_arrears = loan.remaining_balance + cumulative_interest_arrears
 
         last_repayment = db.session.query(LoanRepayment.date_paid).filter_by(loan_id=loan.id).order_by(LoanRepayment.date_paid.desc()).first()
         last_repayment_date = last_repayment[0] if last_repayment else None
