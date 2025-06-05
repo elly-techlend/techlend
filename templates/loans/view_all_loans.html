@@ -2,12 +2,24 @@
 {% block content %}
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h3 class="mb-0">📋 Approved Loans - {{ session.get('active_branch_name') or 'All Branches' }}</h3>
+        <h3 class="mb-0">📋 Approved Loans</h3>
+
         <div class="dropdown">
             <button class="btn btn-light dropdown-toggle btn-sm" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="bi bi-three-dots-vertical"></i>
             </button>
             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
+                <li>
+                    <a class="dropdown-item text-primary" href="#" data-bs-toggle="modal" data-bs-target="#searchModal">
+                        <i class="bi bi-search me-2"></i> Search
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item text-success" href="#" data-bs-toggle="modal" data-bs-target="#filterModal">
+                        <i class="bi bi-funnel me-2"></i> Filter
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider"></li>
                 <li>
                     <a class="dropdown-item text-success" href="{{ url_for('loan.export_loans', file_type='excel') }}">
                         <i class="bi bi-file-earmark-excel me-2"></i> Export Excel
@@ -21,8 +33,84 @@
             </ul>
         </div>
     </div>
+
     <div class="card-body">
+        {% if request.args.get('search') or request.args.get('month') or request.args.get('year') %}
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <small class="text-muted">
+                {% if request.args.get('search') %}
+                    🔍 <strong>Search:</strong> {{ request.args.get('search') }}
+                {% endif %}
+                {% if request.args.get('month') %}
+                    | 📆 <strong>Month:</strong> {{ request.args.get('month') }}
+                {% endif %}
+                {% if request.args.get('year') %}
+                    | 🗓 <strong>Year:</strong> {{ request.args.get('year') }}
+                {% endif %}
+            </small>
+            <a href="{{ url_for('loan.view_loans') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-x-circle"></i> Clear Filters
+            </a>
+        </div>
+        {% endif %}
+
         {% include 'partials/_loans_table.html' %}
     </div>
 </div>
+
+<!-- 🔍 Search Modal -->
+<div class="modal fade" id="searchModal" tabindex="-1" aria-labelledby="searchModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <form method="GET" action="{{ url_for('loan.view_loans') }}" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="searchModalLabel">Search Loans</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <input type="text" name="search" value="{{ request.args.get('search', '') }}"
+               class="form-control" placeholder="Name or Loan ID">
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary btn-sm">Search</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 🔃 Filter Modal -->
+<div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <form method="GET" action="{{ url_for('loan.view_loans') }}" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="filterModalLabel">Filter Loans</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body d-flex flex-column gap-3">
+        <select name="month" class="form-select">
+          <option value="">Select Month</option>
+          {% for m in range(1, 13) %}
+              <option value="{{ '%02d' % m }}" {% if request.args.get('month') == '%02d' % m %}selected{% endif %}>
+                  {{ '%02d' % m }}
+              </option>
+          {% endfor %}
+        </select>
+
+        <select name="year" class="form-select">
+          <option value="">Select Year</option>
+          {% for y in range(2024, 2035) %}
+              <option value="{{ y }}" {% if request.args.get('year') == y|string %}selected{% endif %}>
+                  {{ y }}
+              </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-success btn-sm">Apply</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 {% endblock %}

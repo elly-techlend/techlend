@@ -12,7 +12,7 @@ from sqlalchemy import extract
 from extensions import csrf
 from decimal import Decimal, InvalidOperation
 
-cashbook_bp = Blueprint('cashbook', __name__)
+cashbook_bp = Blueprint('cashbook', __name__, url_prefix='/cashbook')
 
 @cashbook_bp.route('/cashbook/new', methods=['GET', 'POST'])
 @login_required
@@ -52,29 +52,54 @@ def new_cashbook_entry():
     return render_template('cashbook/new_entry.html', form=form)
 
 
-@cashbook_bp.route('/cashbook')
+@cashbook_bp.route('/cashbook', methods=['GET'])
 @login_required
 @roles_required('Superuser', 'Admin', 'Accountant', 'Branch_Manager', 'Loans_Supervisor', 'Cashier')
 def view_cashbook():
     page = request.args.get('page', 1, type=int)
     per_page = 50
     branch_id = session.get('active_branch_id')
+    today = datetime.today()
 
     query = CashbookEntry.query.filter_by(company_id=current_user.company_id)
     if not current_user.is_superuser and branch_id:
         query = query.filter_by(branch_id=branch_id)
 
-    # Filters
-    selected_day = request.args.get('day', type=int)
-    selected_month = request.args.get('month', type=int)
-    selected_year = request.args.get('year', type=int)
+    # Get filter type (all, today, weekly, monthly, yearly, etc)
+    filter_option = request.args.get('filter', default=None)
 
-    if selected_day:
-        query = query.filter(extract('day', CashbookEntry.date) == selected_day)
-    if selected_month:
-        query = query.filter(extract('month', CashbookEntry.date) == selected_month)
-    if selected_year:
+    selected_day = None
+    selected_month = None
+    selected_year = None
+
+    if filter_option == 'today':
+        query = query.filter(CashbookEntry.date == today.date())
+    elif filter_option == 'weekly':
+        start_week = today - timedelta(days=today.weekday())  # Monday
+        end_week = start_week + timedelta(days=6)             # Sunday
+        query = query.filter(CashbookEntry.date.between(start_week.date(), end_week.date()))
+    elif filter_option == 'monthly':
+        selected_month = request.args.get('month', today.month, type=int)
+        selected_year = request.args.get('year', today.year, type=int)
+        query = query.filter(
+            extract('month', CashbookEntry.date) == selected_month,
+            extract('year', CashbookEntry.date) == selected_year
+        )
+    elif filter_option == 'yearly':
+        selected_year = request.args.get('year', today.year, type=int)
         query = query.filter(extract('year', CashbookEntry.date) == selected_year)
+    else:
+        # Fallback: manual day/month/year filters if provided in URL
+        selected_day = request.args.get('day', type=int)
+        selected_month = request.args.get('month', type=int)
+        selected_year = request.args.get('year', type=int)
+
+        if selected_day:
+            query = query.filter(extract('day', CashbookEntry.date) == selected_day)
+        if selected_month:
+            query = query.filter(extract('month', CashbookEntry.date) == selected_month)
+        if selected_year:
+            query = query.filter(extract('year', CashbookEntry.date) == selected_year)
 
     total_entries = query.count()
     paginated_entries = query.order_by(CashbookEntry.date.desc(), CashbookEntry.id.desc())\
@@ -82,7 +107,7 @@ def view_cashbook():
 
     # Compute running balance
     all_entries = query.order_by(CashbookEntry.date.asc(), CashbookEntry.id.asc()).all()
-    running_balance = Decimal('0.00')  # Initialize as Decima
+    running_balance = Decimal('0.00')
     balance_map = {}
     for entry in all_entries:
         running_balance += (entry.credit or 0) - (entry.debit or 0)
@@ -112,7 +137,8 @@ def view_cashbook():
         selected_month=selected_month,
         selected_year=selected_year,
         months=months,
-        years=years
+        years=years,
+        filter=filter_option
     )
 
 def add_cashbook_entry(date, particulars, debit, credit, company_id, branch_id=None, created_by=None):
@@ -157,8 +183,8 @@ def edit_cashbook_entry(entry_id):
     if form.validate_on_submit():
         entry.date = form.date.data
         entry.particulars = form.particulars.data
-        entry.debit = float(form.debit.data or 0)
-        entry.credit = float(form.credit.data or 0)
+        entry.debit = Decimal(form.debit.data or 0)
+        entry.credit = Decimal(form.credit.data or 0)
 
         db.session.commit()
         recalculate_balances(entry.company_id)
@@ -180,9 +206,11 @@ def delete_cashbook_entry(entry_id):
 
 def recalculate_balances(company_id):
     entries = CashbookEntry.query.filter_by(company_id=company_id).order_by(CashbookEntry.date, CashbookEntry.id).all()
-    running_balance = 0.0
+    running_balance = Decimal('0.00')
     for entry in entries:
-        running_balance = running_balance + (entry.credit or 0) - (entry.debit or 0)
+        credit = entry.credit or Decimal('0.00')
+        debit = entry.debit or Decimal('0.00')
+        running_balance += credit - debit
         entry.balance = running_balance
     db.session.commit()
 

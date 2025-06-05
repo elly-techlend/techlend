@@ -1,33 +1,3 @@
-<!-- Combined Search + Filter + Export -->
-<form method="GET" action="{{ url_for('loan.view_loans') }}" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-
-    <!-- Left: Search -->
-    <div style="display: flex; gap: 6px; align-items: center;">
-        <input type="text" name="search" value="{{ request.args.get('search', '') }}" placeholder="Search by Name or ID" style="width: 160px;">
-        <button type="submit" class="btn btn-outline-primary btn-sm">Search</button>
-    </div>
-
-    <!-- Center: Filter -->
-    <div style="display: flex; gap: 6px; align-items: center;">
-        <select name="month" class="form-select" style="width: 120px; font-size: 13px;">
-            <option value="">Select Month</option>
-            {% for m in range(1, 13) %}
-                <option value="{{ '%02d' % m }}" {% if request.args.get('month') == '%02d' % m %}selected{% endif %}>{{ '%02d' % m }}</option>
-            {% endfor %}
-        </select>
-
-        <select name="year" class="form-select" style="width: 120px; font-size: 13px;">
-            <option value="">Select Year</option>
-            {% for y in range(2024, 2035) %}
-                <option value="{{ y }}" {% if request.args.get('year') == y|string %}selected{% endif %}>{{ y }}</option>
-            {% endfor %}
-        </select>
-
-        <button type="submit" class="btn btn-outline-success btn-sm">Filter</button>
-    </div>
-
-</form>
-
 <div class="loan-table-wrapper table-responsive mt-3">
     <table class="table table-bordered table-hover align-middle">
         <thead class="table-primary text-center">

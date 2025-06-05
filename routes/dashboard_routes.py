@@ -65,7 +65,7 @@ def index():
         monthly_data[month_key]["total_disbursed"] += loan.amount_borrowed
         monthly_data[month_key]["total_paid"] += loan.amount_paid
         monthly_data[month_key]["total_remaining"] += loan.remaining_balance
-        monthly_data[month_key]["total_interest"] += loan.amount_borrowed * Decimal('0.2')
+        monthly_data[month_key]["total_interest"] += float(loan.amount_borrowed) * 0.2
 
     sorted_months = sorted(monthly_data.keys())
     months = [datetime.strptime(m, "%Y-%m").strftime("%b %Y") for m in sorted_months]
@@ -172,10 +172,10 @@ def loan_data():
 
     for loan in loans:
         month_key = loan.date.strftime('%Y-%m')
-        monthly_data[month_key]["total_disbursed"] += loan.amount_borrowed
-        monthly_data[month_key]["total_paid"] += loan.amount_paid
-        monthly_data[month_key]["total_remaining"] += loan.remaining_balance
-        monthly_data[month_key]["total_interest"] += loan.amount_borrowed * 0.2
+        monthly_data[month_key]["total_disbursed"] += float(loan.amount_borrowed)
+        monthly_data[month_key]["total_paid"] += float(loan.amount_paid)
+        monthly_data[month_key]["total_remaining"] += float(loan.remaining_balance)
+        monthly_data[month_key]["total_interest"] += loan.amount_borrowed * Decimal('0.2')
 
     sorted_months = sorted(monthly_data.keys())
     months = [datetime.strptime(m, "%Y-%m").strftime("%b %Y") for m in sorted_months]
@@ -194,14 +194,14 @@ def loan_data():
     return jsonify({
         'total_borrowers_this_year': total_borrowers_this_year,
         'total_borrowers_this_month': total_borrowers_this_month,
-        "total_borrowed": total_borrowed,
-        "total_paid": total_paid,
-        "total_remaining": total_remaining,
+        "total_borrowed": float(total_borrowed),
+        "total_paid": float(total_paid),
+        "total_remaining": float(total_remaining),
         "months": months,
-        "loans_disbursed": loans_disbursed,
-        "loans_repaid": loans_repaid,
-        "remaining_balances": remaining_balances,
-        "interest_earned": interest_earned
+        "loans_disbursed": [float(x) for x in loans_disbursed],
+        "loans_repaid": [float(x) for x in loans_repaid],
+        "remaining_balances": [float(x) for x in remaining_balances],
+        "interest_earned": [float(x) for x in interest_earned]
     })
 
 @dashboard_bp.route('/summary_data')
@@ -218,18 +218,18 @@ def summary_data():
 
     if not loans:
         return jsonify({
-            "total_borrowers": 0,
-            "total_loans": 0,
-            "total_borrowed": 0,
-            "total_paid": 0,
-            "total_remaining": 0,
-            "total_interest": 0,
-            "last_updated": "No data"
+            "total_borrowers": total_borrowers,
+            "total_loans": total_loans,
+            "total_borrowed": float(total_borrowed),
+            "total_paid": float(total_paid),
+            "total_remaining": float(total_remaining),
+            "total_interest": float(total_interest),
+            "last_updated": last_updated
         })
 
     total_borrowers = len(set(loan.borrower_name for loan in loans))
     total_loans = len(loans)
-    total_borrowed = sum(l.amount_borrowed for l in loans)
+    total_borrowed = float(sum(l.amount_borrowed for l in loans))
     total_paid = sum(l.amount_paid for l in loans)
     total_remaining = sum(l.remaining_balance for l in loans)
     total_interest = sum(l.amount_borrowed * 0.2 for l in loans)
