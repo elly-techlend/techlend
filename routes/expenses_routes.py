@@ -7,6 +7,7 @@ from datetime import datetime
 from models import CashbookEntry
 from routes.cashbook_routes import add_cashbook_entry
 from extensions import csrf
+from decimal import Decimal, InvalidOperation
 
 expenses_bp = Blueprint('expenses', __name__, url_prefix='/expenses')
 
@@ -29,7 +30,7 @@ def add_expense():
     if request.method == 'POST':
         date = datetime.strptime(request.form['date'], '%Y-%m-%d')
         description = request.form['description']
-        amount = float(request.form['amount'])
+        amount = Decimal(request.form['amount'])
         category = request.form.get('category', '')
         branch_id = session.get('active_branch_id')
 
@@ -51,7 +52,7 @@ def add_expense():
             date=date,
             particulars=f"Expense: {description}",
             debit=amount,
-            credit=0,
+            credit=Decimal("0"),
             company_id=current_user.company_id,
             branch_id=branch_id,
             created_by=current_user.id
