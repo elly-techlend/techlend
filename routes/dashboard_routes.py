@@ -7,6 +7,7 @@ from collections import defaultdict
 from flask import session
 import pytz
 from extensions import csrf
+from decimal import Decimal, InvalidOperation
 
 dashboard_bp = Blueprint('dashboard', __name__)
 
@@ -50,7 +51,7 @@ def index():
     total_disbursed = sum(l.amount_borrowed for l in loans)
     total_repaid = sum(l.amount_paid for l in loans)
     total_balance = sum(l.remaining_balance for l in loans)
-    total_interest = sum(l.amount_borrowed * 0.2 for l in loans)
+    total_interest = sum(l.amount_borrowed * Decimal('0.2') for l in loans)
 
     monthly_data = defaultdict(lambda: {
         "total_disbursed": 0,
@@ -64,7 +65,7 @@ def index():
         monthly_data[month_key]["total_disbursed"] += loan.amount_borrowed
         monthly_data[month_key]["total_paid"] += loan.amount_paid
         monthly_data[month_key]["total_remaining"] += loan.remaining_balance
-        monthly_data[month_key]["total_interest"] += loan.amount_borrowed * 0.2
+        monthly_data[month_key]["total_interest"] += loan.amount_borrowed * Decimal('0.2')
 
     sorted_months = sorted(monthly_data.keys())
     months = [datetime.strptime(m, "%Y-%m").strftime("%b %Y") for m in sorted_months]

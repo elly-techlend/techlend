@@ -32,7 +32,7 @@
                 <button class="btn btn-light dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="bi bi-three-dots-vertical"></i>
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton"> 
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
                     <li>
                         <a class="dropdown-item text-warning" href="{{ url_for('loan.edit_loan', loan_id=loan.id) }}">
                             <i class="bi bi-pencil-square me-2"></i> Edit Loan
@@ -66,34 +66,75 @@
         </div>
 
         {% if repayments %}
-            <div class="table-responsive">
-                <table class="table table-bordered table-hover text-center align-middle">
-                    <thead class="table-secondary">
-                        <tr>
-                            <th>Payment ID</th>
-                            <th>Date</th>
-                            <th>Amount Paid</th>
-                            <th>Principal</th>
-                            <th>Interest</th>
-                            <th>Outstanding Balance</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for repayment in repayments %}
-                        <tr>
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover text-center align-middle">
+                <thead class="table-secondary">
+                    <tr>
+                        <th>Action</th>
+                        <th>Payment ID</th>
+                        <th>Date</th>
+                        <th>Amount Paid</th>
+                        <th>Principal</th>
+                        <th>Interest</th>
+                        <th>Outstanding Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for repayment in repayments %}
+                    <tr id="repayment-row-{{ repayment.id }}">
+                        <td>
+                            <a href="javascript:void(0);" onclick="showEditForm({{ repayment.id }})" title="Edit">
+                                <i class="bi bi-pencil-square text-primary"></i>
+                            </a>
+<form action="{{ url_for('loan.delete_repayment', repayment_id=repayment.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Delete this repayment?')">
+    <button type="submit" class="btn btn-link p-0 m-0" title="Delete">
+        <i class="bi bi-trash text-danger"></i>
+    </button>
+</form>
+                        </td>
+                        <td>{{ repayment.id }}</td>
+                        <td>{{ repayment.date_paid.strftime('%b %d, %Y') }}</td>
+                        <td>{{ "%.2f"|format(repayment.amount_paid or 0) }}</td>
+                        <td>{{ "%.2f"|format(repayment.principal_paid or 0) }}</td>
+                        <td>{{ "%.2f"|format(repayment.interest_paid or 0) }}</td>
+                        <td>{{ "%.2f"|format(repayment.balance_after or 0) }}</td>
+                    </tr>
+
+                    <!-- Inline edit form row (hidden initially) -->
+                    <tr id="edit-row-{{ repayment.id }}" class="edit-row" style="display:none;">
+                        <form method="POST" action="{{ url_for('loan.edit_repayment', repayment_id=repayment.id) }}">
+                            <td>
+                                <button type="submit" class="btn btn-sm btn-success me-1" title="Save">
+                                    <i class="bi bi-check-lg"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="hideEditForm({{ repayment.id }})" title="Cancel">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </td>
                             <td>{{ repayment.id }}</td>
-                            <td>{{ repayment.date_paid.strftime('%b %d, %Y') }}</td>
-                            <td>{{ "%.2f"|format(repayment.amount_paid or 0) }}</td>
-                            <td>{{ "%.2f"|format(repayment.principal_paid or 0) }}</td>
-                            <td>{{ "%.2f"|format(repayment.interest_paid or 0) }}</td>
-                            <td>{{ "%.2f"|format(repayment.balance_after or 0) }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                            <td>
+                                <input type="date" name="date_paid" value="{{ repayment.date_paid.strftime('%Y-%m-%d') }}" class="form-control form-control-sm">
+                            </td>
+                            <td>
+                                <input type="number" name="amount_paid" step="0.01" min="0" value="{{ repayment.amount_paid }}" class="form-control form-control-sm">
+                            </td>
+                            <td>
+                                <input type="number" name="principal_paid" step="0.01" min="0" value="{{ repayment.principal_paid }}" class="form-control form-control-sm principal-input" data-id="{{ repayment.id }}">
+                            </td>
+                            <td>
+                                <input type="number" name="interest_paid" step="0.01" min="0" value="{{ repayment.interest_paid }}" class="form-control form-control-sm interest-input" data-id="{{ repayment.id }}">
+                            </td>
+                            <td>
+                                <input type="number" name="balance_after" step="0.01" min="0" value="{{ repayment.balance_after }}" class="form-control form-control-sm">
+                            </td>
+                        </form>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
         {% else %}
-            <p>No repayments made yet.</p>
+        <p>No repayments made yet.</p>
         {% endif %}
 
         <!-- Repayment Form -->
@@ -111,4 +152,37 @@
 
     </div>
 </div>
+
+<script>
+function showEditForm(id) {
+    document.getElementById('edit-row-' + id).style.display = 'table-row';
+}
+function hideEditForm(id) {
+    document.getElementById('edit-row-' + id).style.display = 'none';
+}
+
+// Live amount_paid calculation (optional enhancement if needed)
+document.addEventListener('DOMContentLoaded', function () {
+    const principalInputs = document.querySelectorAll('.principal-input');
+    const interestInputs = document.querySelectorAll('.interest-input');
+
+    function updateAmountPaid(id) {
+        const principal = parseFloat(document.querySelector(`.principal-input[data-id='${id}']`).value) || 0;
+        const interest = parseFloat(document.querySelector(`.interest-input[data-id='${id}']`).value) || 0;
+        const total = (principal + interest).toFixed(2);
+        const amountPaidInput = document.querySelector(`#edit-row-${id} input[name='amount_paid']`);
+        if (amountPaidInput) {
+            amountPaidInput.value = total;
+        }
+    }
+
+    principalInputs.forEach(input => {
+        input.addEventListener('input', () => updateAmountPaid(input.dataset.id));
+    });
+
+    interestInputs.forEach(input => {
+        input.addEventListener('input', () => updateAmountPaid(input.dataset.id));
+    });
+});
+</script>
 {% endblock %}

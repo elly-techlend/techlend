@@ -10,6 +10,7 @@ from slugify import slugify
 from sqlalchemy.event import listens_for
 from itsdangerous import URLSafeTimedSerializer
 from flask import current_app
+from decimal import Decimal
 
 user_roles = db.Table('user_roles',
     db.Column('user_id', db.Integer, db.ForeignKey('users.id'), primary_key=True),
@@ -202,16 +203,17 @@ class Loan(db.Model):
     loan_id = db.Column(db.String(20), unique=True, nullable=True)
     borrower_id = db.Column(db.Integer, db.ForeignKey('borrowers.id'), nullable=False)
     borrower = db.relationship('Borrower', back_populates='loans')
-    
+
     is_archived = db.Column(db.Boolean, default=False)
     borrower_name = db.Column(db.String(150), nullable=False)
     phone_number = db.Column(db.String(20))
-    amount_borrowed = db.Column(db.Float, nullable=False)
-    processing_fee = db.Column(db.Float, default=0)
-    interest_rate = db.Column(db.Float, default=20.0)
-    total_due = db.Column(db.Float, nullable=False)
-    amount_paid = db.Column(db.Float, default=0)
-    remaining_balance = db.Column(db.Float, nullable=False)
+    
+    amount_borrowed = db.Column(db.Numeric(12, 2), nullable=False)
+    processing_fee = db.Column(db.Numeric(12, 2), default=Decimal('0.00'))
+    interest_rate = db.Column(db.Float, default=20.0)  # Keep this as Float unless you're calculating interest with Decimal
+    total_due = db.Column(db.Numeric(12, 2), nullable=False)
+    amount_paid = db.Column(db.Numeric(12, 2), default=Decimal('0.00'))
+    remaining_balance = db.Column(db.Numeric(12, 2), nullable=False)
 
     loan_duration_value = db.Column(db.Integer)
     loan_duration_unit = db.Column(db.String(10))  # 'days', 'weeks', etc.
@@ -220,7 +222,7 @@ class Loan(db.Model):
     date = db.Column(db.DateTime, default=db.func.current_timestamp())
     due_date = db.Column(db.DateTime, nullable=True)
     status = db.Column(db.String(50), default='Pending')
-    approval_status = db.Column(db.String(20), default='pending')  # approved, rejected, pending
+    approval_status = db.Column(db.String(20), default='pending')
 
     repayments = db.relationship('LoanRepayment', backref='loan', cascade='all, delete-orphan', passive_deletes=True)
     ledger_entries = db.relationship('LedgerEntry', back_populates='loan', cascade='all, delete-orphan', order_by='LedgerEntry.date')
@@ -231,7 +233,7 @@ class Loan(db.Model):
 
     @property
     def total_interest(self):
-        return self.amount_borrowed * self.interest_rate / 100
+        return Decimal(self.amount_borrowed) * Decimal(self.interest_rate) / Decimal(100)
 
     def __repr__(self):
         return f"<Loan {self.loan_id} for {self.borrower_name}>"
@@ -250,12 +252,13 @@ class LoanRepayment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
     loan_id = db.Column(db.Integer, db.ForeignKey('loans.id', ondelete='CASCADE'), nullable=False)
-    amount_paid = db.Column(db.Float, nullable=False)
-    principal_paid = db.Column(db.Float, nullable=False, default=0.0)
-    interest_paid = db.Column(db.Float, nullable=False, default=0.0)
+    
+    amount_paid = db.Column(db.Numeric(12, 2), nullable=False)
+    principal_paid = db.Column(db.Numeric(12, 2), nullable=False, default=Decimal('0.00'))
+    interest_paid = db.Column(db.Numeric(12, 2), nullable=False, default=Decimal('0.00'))
+    
     date_paid = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    balance_after = db.Column(db.Float, nullable=True)
-    is_system_generated = db.Column(db.Boolean, default=False)
+    balance_after = db.Column(db.Numeric(12, 2), nullable=True)
 
     def __repr__(self):
         return f"<Repayment of {self.amount_paid} for Loan ID {self.loan_id}>"
@@ -267,31 +270,32 @@ class LedgerEntry(db.Model):
     loan_id = db.Column(db.Integer, db.ForeignKey('loans.id', ondelete='CASCADE'), nullable=False)
     date = db.Column(db.Date, nullable=False)
     particulars = db.Column(db.String(255), nullable=False)
+
+    principal = db.Column(db.Numeric(12, 2), default=Decimal('0.00'))
+    interest = db.Column(db.Numeric(12, 2), default=Decimal('0.00'))
     
-    principal = db.Column(db.Float, default=0.0)
-    interest = db.Column(db.Float, default=0.0)
-    
-    principal_balance = db.Column(db.Float, default=0.0)
-    interest_balance = db.Column(db.Float, default=0.0)
-    running_balance = db.Column(db.Float, default=0.0)
+    principal_balance = db.Column(db.Numeric(12, 2), default=Decimal('0.00'))
+    interest_balance = db.Column(db.Numeric(12, 2), default=Decimal('0.00'))
+    running_balance = db.Column(db.Numeric(12, 2), default=Decimal('0.00'))
 
     loan = db.relationship('Loan', back_populates='ledger_entries')
 
 class SavingAccount(db.Model):
     __tablename__ = 'saving_accounts'
+
     id = db.Column(db.Integer, primary_key=True)
 
     company_id = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=False)
     borrower_id = db.Column(db.Integer, db.ForeignKey('borrowers.id'), nullable=False)
-    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=False)  # ✅ Add this line
+    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=False)
 
     account_number = db.Column(db.String(30), unique=True, nullable=False)
-    balance = db.Column(db.Float, default=0.0)
+    balance = db.Column(db.Numeric(12, 2), default=Decimal('0.00'))
     date_opened = db.Column(db.DateTime, default=datetime.utcnow)
 
     borrower = db.relationship('Borrower', back_populates='savings_accounts')
     company = db.relationship('Company', backref='saving_accounts')
-    branch = db.relationship('Branch')  # optional if you need to access branch info
+    branch = db.relationship('Branch')
 
     def __repr__(self):
         return f"<SavingAccount {self.account_number} for {self.borrower.name}>"
@@ -302,7 +306,7 @@ class SavingTransaction(db.Model):
 
     account_id = db.Column(db.Integer, db.ForeignKey('saving_accounts.id'), nullable=False)
     transaction_type = db.Column(db.String(10), nullable=False)  # 'deposit' or 'withdrawal'
-    amount = db.Column(db.Float, nullable=False)
+    amount = db.Column(db.Numeric(12, 2), nullable=False, default=Decimal('0.00'))
     date = db.Column(db.DateTime, default=datetime.utcnow)
 
     account = db.relationship('SavingAccount', backref='transactions')
@@ -318,7 +322,7 @@ class ArchivedLoan(db.Model):
     borrower_name = db.Column(db.String(255))
     company_id = db.Column(db.Integer, db.ForeignKey('companies.id'))
     branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'))
-    amount = db.Column(db.Float)
+    amount = db.Column(db.Numeric(12, 2))
     interest = db.Column(db.Float)
     duration = db.Column(db.Integer)
     status = db.Column(db.String(50))
@@ -334,23 +338,17 @@ class CashbookEntry(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     
-    # Company & Branch (for multi-tenant + multi-branch systems)
     company_id = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=False)
     branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
-
-    # Date of transaction
     date = db.Column(db.Date, default=date.today, nullable=False)
 
-    # Transaction Details
     particulars = db.Column(db.String(255), nullable=False)
-    debit = db.Column(db.Float, default=0.0)
-    credit = db.Column(db.Float, default=0.0)
-    balance = db.Column(db.Float, nullable=False)
+    debit = db.Column(db.Numeric(12, 2), default=Decimal('0.00'))
+    credit = db.Column(db.Numeric(12, 2), default=Decimal('0.00'))
+    balance = db.Column(db.Numeric(12, 2), nullable=False, default=Decimal('0.00'))
 
-    # Created by which user
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
-    # Relationships
     company = db.relationship('Company', backref='cashbook_entries')
     branch = db.relationship('Branch', backref='cashbook_entries')
     user = db.relationship('User', backref='cashbook_entries')

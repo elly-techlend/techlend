@@ -10,6 +10,7 @@ from datetime import datetime
 import pandas as pd
 from sqlalchemy import extract
 from extensions import csrf
+from decimal import Decimal, InvalidOperation
 
 cashbook_bp = Blueprint('cashbook', __name__)
 
@@ -35,8 +36,8 @@ def new_cashbook_entry():
         entry = CashbookEntry(
             date=form.date.data,
             particulars=form.particulars.data,
-            debit=debit,
-            credit=credit,
+            debit = Decimal(entry.debit or 0),
+            credit = Decimal(entry.credit or 0),
             balance=new_balance,
             company_id=current_user.company_id,
             branch_id=current_user.branch_id,
@@ -81,7 +82,7 @@ def view_cashbook():
 
     # Compute running balance
     all_entries = query.order_by(CashbookEntry.date.asc(), CashbookEntry.id.asc()).all()
-    running_balance = 0.0
+    running_balance = Decimal('0.00')  # Initialize as Decima
     balance_map = {}
     for entry in all_entries:
         running_balance += (entry.credit or 0) - (entry.debit or 0)
