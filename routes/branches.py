@@ -17,7 +17,7 @@ branches = Blueprint('branches', __name__)
 def add_branch():
     # ✅ Only allow Admins or Superusers to access this
     if not current_user.is_admin:
-       abort(403)
+        abort(403)
 
     if request.method == 'POST':
         name = request.form.get('name')
@@ -47,7 +47,12 @@ def add_branch():
 
         db.session.add(new_branch)
         db.session.commit()
-        log_action(f"{current_user.full_name} added a new branch: {Branch.name}")
+
+        # ✅ SET the active branch in session
+        session['active_branch_id'] = new_branch.id
+
+        # ✅ Fix typo in log
+        log_action(f"{current_user.full_name} added a new branch: {new_branch.name}")
 
         flash('Branch added successfully!', 'success')
         return redirect(url_for('dashboard.index'))
