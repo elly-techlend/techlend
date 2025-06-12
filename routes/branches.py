@@ -7,6 +7,7 @@ from flask import abort
 from utils.decorators import superuser_required, roles_required, admin_or_superuser_required
 from utils.logging import log_company_action, log_system_action, log_action
 from extensions import csrf
+from flask import session
 
 branches = Blueprint('branches', __name__)
 
@@ -50,6 +51,7 @@ def add_branch():
 
         # ✅ SET the active branch in session
         session['active_branch_id'] = new_branch.id
+        session['active_branch_name'] = new_branch.name
 
         # ✅ Fix typo in log
         log_action(f"{current_user.full_name} added a new branch: {new_branch.name}")
