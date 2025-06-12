@@ -1,61 +1,98 @@
-{% extends 'base.html' %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TechLend Subscriptions</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f8f9fa;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    .pricing-section {
+      padding: 60px 15px;
+    }
+    .pricing-card {
+      border: none;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      transition: 0.3s;
+    }
+    .pricing-card:hover {
+      transform: translateY(-5px);
+    }
+    .price {
+      font-size: 32px;
+      font-weight: bold;
+    }
+    .annual-price {
+      font-size: 15px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="container pricing-section text-center">
+    <h2 class="mb-4">Choose Your TechLend Plan</h2>
+    <div class="row g-4 justify-content-center">
 
-{% block content %}
-<div class="container mt-5">
-  <h2 class="mb-4"><i class="fas fa-credit-card me-2"></i>Billing</h2>
+      <!-- Starter Plan -->
+      <div class="col-md-4">
+        <div class="card pricing-card p-4">
+          <h4 class="text-primary">Starter Plan</h4>
+          <p class="price">UGX 100,000 <span class="fs-6">/ month</span></p>
+          <p class="annual-price">UGX 1,000,000 / year (2 months free)</p>
+          <ul class="list-unstyled mt-3">
+            <li>✔️ Up to 2 branches</li>
+            <li>✔️ 5 staff users</li>
+            <li>✔️ 1 GB file storage</li>
+            <li>✔️ Core modules (Loans, Borrowers, Repayments, Expenses)</li>
+            <li>✔️ Basic reports & reminders</li>
+            <li>✔️ Email support</li>
+          </ul>
+          <a href="#" class="btn btn-primary mt-3">Choose Plan</a>
+        </div>
+      </div>
 
-  <!-- Current Plan -->
-  <div class="card shadow-sm p-4 mb-4">
-    <h5>Current Plan</h5>
-    <p class="mb-1"><strong>Plan:</strong> Pro (Monthly)</p>
-    <p><strong>Status:</strong> Active</p>
-    <a href="#" class="btn btn-outline-primary btn-sm disabled">Upgrade Plan (Coming Soon)</a>
-  </div>
+      <!-- Growth Plan -->
+      <div class="col-md-4">
+        <div class="card pricing-card p-4 border border-success">
+          <h4 class="text-success">Growth Plan</h4>
+          <p class="price">UGX 180,000 <span class="fs-6">/ month</span></p>
+          <p class="annual-price">UGX 1,800,000 / year (2 months free)</p>
+          <ul class="list-unstyled mt-3">
+            <li>✔️ Up to 5 branches</li>
+            <li>✔️ 15 staff users</li>
+            <li>✔️ 5 GB file storage</li>
+            <li>✔️ All modules included</li>
+            <li>✔️ Priority email support</li>
+            <li>✔️ Company branding</li>
+          </ul>
+          <a href="#" class="btn btn-success mt-3">Choose Plan</a>
+        </div>
+      </div>
 
-  <!-- Billing History with responsive table -->
-  <div class="card shadow-sm p-4 mb-4">
-    <h5>Billing History</h5>
-    
-    <div class="table-responsive mt-3">
-      <table class="table table-bordered mb-0">
-        <thead class="table-light">
-          <tr>
-            <th>Date</th>
-            <th>Amount</th>
-            <th>Payment Method</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>2025-04-01</td>
-            <td>$49.00</td>
-            <td>Visa •••• 4242</td>
-            <td><span class="badge bg-success">Paid</span></td>
-          </tr>
-          <tr>
-            <td>2025-03-01</td>
-            <td>$49.00</td>
-            <td>Visa •••• 4242</td>
-            <td><span class="badge bg-success">Paid</span></td>
-          </tr>
-          <tr>
-            <td>2025-02-01</td>
-            <td>$49.00</td>
-            <td>Visa •••• 4242</td>
-            <td><span class="badge bg-danger">Failed</span></td>
-          </tr>
-        </tbody>
-      </table>
+      <!-- Enterprise Plan -->
+      <div class="col-md-4">
+        <div class="card pricing-card p-4 border border-dark">
+          <h4 class="text-dark">Enterprise Plan</h4>
+          <p class="price">UGX 360,000 <span class="fs-6">/ month</span></p>
+          <p class="annual-price">UGX 3,600,000 / year (2 months free)</p>
+          <ul class="list-unstyled mt-3">
+            <li>✔️ Unlimited branches & staff</li>
+            <li>✔️ 20 GB file storage</li>
+            <li>✔️ Full features unlocked</li>
+            <li>✔️ Custom user roles</li>
+            <li>✔️ System audit logs</li>
+            <li>✔️ WhatsApp & phone support</li>
+          </ul>
+          <a href="#" class="btn btn-dark mt-3">Choose Plan</a>
+        </div>
+      </div>
+
     </div>
   </div>
-
-  <!-- Payment Method -->
-  <div class="card shadow-sm p-4">
-    <h5>Payment Method</h5>
-    <p class="text-muted">Visa ending in 4242 (expires 12/27)</p>
-    <a href="#" class="btn btn-outline-secondary btn-sm disabled">Update Card (Coming Soon)</a>
-  </div>
-</div>
-{% endblock %}
-
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
