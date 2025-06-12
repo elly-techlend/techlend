@@ -20,7 +20,7 @@
 
     <!-- Welcome Banner -->
     <div class="text-center mb-5 fade-in-up">
-        <div class="shadow-sm p-4 rounded" style="background: linear-gradient(135deg, #e0f7fa, #ffffff);">
+        <div class="shadow-sm p-4 rounded bg-light bg-gradient dark-mode-gradient">
             <h2 class="fw-bold mb-3" style="font-size: 2rem; color: #0a3d62;">
                 Welcome Back, {{ current_user.username }} ({{ current_user.roles|join(', ')|capitalize }})
             </h2>
@@ -38,7 +38,7 @@
         <div class="d-grid gap-4">
 
             <!-- Total Borrowers -->
-            <div class="d-flex flex-column p-3 shadow-sm rounded bg-white text-dark fade-in-up" style="border: 2px solid black;">
+            <div class="d-flex flex-column p-3 shadow-sm rounded bg-body text-body fade-in-up border">
                 <div class="fw-bold">Total Borrowers: <span>{{ total_borrowers }}</span></div>
                 <i class="fa fa-user fa-2x text-secondary mt-2"></i>
                 <a href="#" class="mt-auto bg-primary text-white text-center py-2 d-block rounded text-decoration-none">
@@ -47,7 +47,7 @@
             </div>
 
             <!-- Total Disbursed -->
-            <div class="d-flex flex-column p-3 shadow-sm rounded bg-white text-dark fade-in-up" style="border: 2px solid black;">
+            <div class="d-flex flex-column p-3 shadow-sm rounded bg-body text-body fade-in-up border">
                 <div class="fw-bold">Total Disbursed: <span class="count" data-target="{{ total_disbursed }}">0</span></div>
                 <i class="fa fa-files-o fa-2x text-secondary mt-2"></i>
                 <a href="#" class="mt-auto bg-primary text-white text-center py-2 d-block rounded text-decoration-none">
@@ -56,7 +56,7 @@
             </div>
 
             <!-- Total Repaid -->
-            <div class="d-flex flex-column p-3 shadow-sm rounded bg-white text-dark fade-in-up" style="border: 2px solid black;">
+            <div class="d-flex flex-column p-3 shadow-sm rounded bg-body text-body fade-in-up border">
                 <div class="fw-bold">Total Repaid: <span class="count" data-target="{{ total_repaid }}">0</span></div>
                 <i class="fa fa-dollar fa-2x text-secondary mt-2"></i>
                 <a href="#" class="mt-auto bg-primary text-white text-center py-2 d-block rounded text-decoration-none">
@@ -65,7 +65,7 @@
             </div>
 
             <!-- Overdue Loans -->
-            <div class="d-flex flex-column p-3 shadow-sm rounded bg-white text-dark fade-in-up" style="border: 2px solid black;">
+            <div class="d-flex flex-column p-3 shadow-sm rounded bg-body text-body fade-in-up border">
                 <div class="fw-bold text-danger">Overdue Loans: <span>{{ overdue_loans|length }}</span></div>
                 <i class="fa fa-exclamation-triangle fa-2x text-danger mt-2"></i>
                 <a href="#" class="mt-auto bg-danger text-white text-center py-2 d-block rounded text-decoration-none">

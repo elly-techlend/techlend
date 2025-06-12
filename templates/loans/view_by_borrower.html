@@ -3,6 +3,7 @@
 <div class="container mt-4">
     <div class="card shadow p-4">
         <h4 class="mb-3">Loans for {{ borrower.name }}</h4>
+
         <table class="table table-bordered table-hover">
             <thead class="table-light">
                 <tr>
@@ -27,7 +28,15 @@
                 {% endfor %}
             </tbody>
         </table>
-        <a href="{{ url_for('borrowers.view_borrowers') }}" class="btn btn-secondary mt-3">Back to Borrowers</a>
+
+        <div class="d-flex justify-content-between mt-3">
+            <a href="{{ url_for('borrowers.view_borrowers') }}" class="btn btn-secondary">
+                Back to Borrowers
+            </a>
+            <a href="{{ url_for('loan.add_loan') }}" class="btn btn-primary">
+                <i class="fa fa-circle-o"></i> Add Loan
+            </a>
+        </div>
     </div>
 </div>
 {% endblock %}

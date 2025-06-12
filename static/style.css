@@ -27,7 +27,14 @@ body.dark-mode a {
 body.dark-mode a:hover {
     color: #d0aaff;
 }
+.dark-mode-gradient {
+  background: linear-gradient(135deg, #e0f7fa, #ffffff);
+}
 
+body.dark-mode .dark-mode-gradient {
+  background: linear-gradient(135deg, #1e1e2f, #2c2c3c);
+  color: #f1f1f1;
+}
 .card-body.loan-overview {
     background-color: #f8f9fa; /* light bg for light mode */
     color: #212529; /* dark text for light mode */
@@ -295,4 +302,34 @@ body.dark-mode .action-btn:hover {
     .logo-header h5 {
         font-size: 16px;
     }
+}
+/* === Dark Mode Fixes for Dashboard Cards & Welcome Banner === */
+body.dark-mode .bg-white,
+body.dark-mode .bg-light,
+body.dark-mode .bg-body,
+body.dark-mode .fade-in-up,
+body.dark-mode .shadow-sm,
+body.dark-mode .rounded,
+body.dark-mode .p-3,
+body.dark-mode .p-4 {
+    background-color: #1e1e2f !important;
+    color: #e0e0e0 !important;
+    border-color: #444 !important;
+}
+
+/* Welcome banner gradient fix */
+body.dark-mode .dark-mode-gradient {
+    background: linear-gradient(135deg, #1e1e2f, #2c2c3c) !important;
+    color: #f1f1f1 !important;
+}
+
+/* Fix .text-muted contrast */
+body.dark-mode .text-muted {
+    color: #bbbbbb !important;
+}
+
+/* Optional: Improve border visuals */
+body.dark-mode .border,
+body.dark-mode .card {
+    border-color: #444 !important;
 }
