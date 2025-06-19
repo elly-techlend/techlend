@@ -7,7 +7,7 @@ from extensions import db
 from utils.logging import log_company_action, log_system_action, log_action
 from models import Loan, Borrower, LoanRepayment, Collateral, LedgerEntry
 from flask import session
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from utils import get_company_filter
 from routes.cashbook_routes import add_cashbook_entry
 from models import CashbookEntry
@@ -25,7 +25,7 @@ from extensions import csrf
 from zoneinfo import ZoneInfo
 from utils.time_helpers import today
 from utils.utils import sum_paid
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 loan_bp = Blueprint('loan', __name__)
 
@@ -279,8 +279,8 @@ def delete_repayment(repayment_id):
         db.session.delete(ledger_entry)
 
     # Remove cashbook entry linked to this repayment
-    from models import Cashbook  # or wherever your Cashbook model is defined
-    cashbook_entry = Cashbook.query.filter_by(
+    from models import CashbookEntry  # or wherever your Cashbook model is defined
+    cashbook_entry = CashbookEntry.query.filter_by(
         date=repayment.date_paid,
         credit=repayment.amount_paid,
         particulars=f"Loan repayment by {loan.borrower_name}"
@@ -522,7 +522,7 @@ from math import ceil
 @login_required
 def loans_in_arrears():
     branch_id = session.get('active_branch_id')
-    today = datetime.today().date()
+    today = date.today()
 
     query = Loan.query.filter(
         Loan.company_id == current_user.company_id,
@@ -537,37 +537,47 @@ def loans_in_arrears():
     loans = query.order_by(Loan.due_date.asc()).all()
     enriched_loans = []
 
-    total_amount = 0
-    total_principal_arrears = 0
-    total_total_arrears = 0
+    total_amount = Decimal('0')
+    total_principal_arrears = Decimal('0')
+    total_total_arrears = Decimal('0')
 
     for loan in loans:
-        interest_due = loan.amount_borrowed * loan.interest_rate / 100
-        interest_paid = db.session.query(func.coalesce(func.sum(LoanRepayment.interest_paid), 0)).filter_by(loan_id=loan.id).scalar()
+        balance = Decimal(loan.remaining_balance or 0)
+        total_due = Decimal(loan.total_due or 0)
+        amount_paid = Decimal(loan.amount_paid or 0)
+        disbursed_amount = Decimal(loan.amount_borrowed or 0)
 
+        # Penalty only after 3-day grace period
+        penalty = Decimal('0')
+        if (today - loan.due_date.date()).days > 3:
+            rate = Decimal(str(loan.interest_rate))
+            penalty = (rate / Decimal('100')) * balance
+            penalty = penalty.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+        total_arrears = balance + penalty
         days_overdue = (today - loan.due_date.date()).days
-        months_overdue = days_overdue // 30
 
-        total_arrears = loan.remaining_balance
-
-        last_repayment = db.session.query(LoanRepayment.date_paid).filter_by(loan_id=loan.id).order_by(LoanRepayment.date_paid.desc()).first()
-        last_repayment_date = last_repayment[0] if last_repayment else None
+        last_repayment = db.session.query(LoanRepayment.date_paid)\
+            .filter_by(loan_id=loan.id)\
+            .order_by(LoanRepayment.date_paid.desc())\
+            .first()
 
         enriched_loans.append({
             'loan_id': loan.id,
             'loan_code': loan.loan_id,
             'name': loan.borrower_name,
             'phone': loan.borrower.phone,
-            'amount': loan.amount_borrowed,
+            'amount_borrowed': disbursed_amount,
             'disbursement_date': loan.date,
-            'balance': loan.remaining_balance,
+            'balance': balance,
+            'penalty': penalty,
             'total_arrears': total_arrears,
             'days': days_overdue,
-            'last_repayment': last_repayment_date
+            'last_repayment': last_repayment[0] if last_repayment else None
         })
 
-        total_amount += loan.amount_borrowed or 0
-        total_principal_arrears += loan.remaining_balance or 0
+        total_amount += disbursed_amount
+        total_principal_arrears += balance
         total_total_arrears += total_arrears
 
     totals = {

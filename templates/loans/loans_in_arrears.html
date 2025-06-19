@@ -13,6 +13,7 @@
             <th>Amount Borrowed</th>
             <th>Disbursement Date</th>
             <th>Balance</th>
+            <th>Penalty</th>
             <th>Total Arrears</th>
             <th>Days Overdue</th>
             <th>Last Repayment</th>
@@ -24,9 +25,10 @@
             <td>{{ loan.loan_code }}</td>
             <td>{{ loan.name }}</td>
             <td>{{ loan.phone }}</td>
-            <td>{{ "{:,.2f}".format(loan.amount or 0) }}</td>
+            <td>{{ "{:,.2f}".format(loan.amount_borrowed or 0) }}</td>
             <td>{{ loan.disbursement_date.strftime('%Y-%m-%d') if loan.disbursement_date else 'N/A' }}</td>
             <td>{{ "{:,.2f}".format(loan.balance or 0) }}</td>
+            <td>{{ "{:,.2f}".format(loan.penalty or 0) }}</td>
             <td><strong>{{ "{:,.2f}".format(loan.total_arrears or 0) }}</strong></td>
             <td>{{ loan.days }}</td>
             <td>{{ loan.last_repayment.strftime('%Y-%m-%d') if loan.last_repayment else 'N/A' }}</td>
@@ -43,6 +45,7 @@
             <td>{{ "{:,.2f}".format(totals.amount or 0) }}</td>
             <td></td>
             <td>{{ "{:,.2f}".format(totals.principal_arrears or 0) }}</td>
+            <td></td>
             <td>{{ "{:,.2f}".format(totals.total_arrears or 0) }}</td>
             <td></td>
             <td></td>
@@ -50,6 +53,5 @@
         {% endif %}
     </tbody>
 </table>
-
 </div>
 {% endblock %}
