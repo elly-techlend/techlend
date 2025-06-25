@@ -61,9 +61,45 @@
                             <i class="bi bi-journal-text me-2"></i> View Ledger
                         </a>
                     </li>
+                    <li>
+                        <a class="dropdown-item text-dark" href="#" data-bs-toggle="modal" data-bs-target="#cumulativeInterestModal">
+                            <i class="bi bi-percent me-2"></i> Add Cumulative Interest
+                        </a>
+                    </li>
                 </ul>
             </div>
         </div>
+<!-- Cumulative Interest Modal -->
+<div class="modal fade" id="cumulativeInterestModal" tabindex="-1" aria-labelledby="cumulativeInterestModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <form method="POST" action="{{ url_for('loan.add_cumulative_interest', loan_id=loan.id) }}">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="cumulativeInterestModalLabel">Add Cumulative Interest</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <div class="mb-3">
+                <label for="amount" class="form-label">Amount</label>
+                <input type="number" step="0.01" min="0" class="form-control" name="amount" required>
+            </div>
+            <div class="mb-3">
+                <label for="date_applied" class="form-label">Date Applied</label>
+                <input type="date" class="form-control" name="date_applied" value="{{ current_date }}">
+            </div>
+            <div class="mb-3">
+                <label for="particulars" class="form-label">Particulars (optional)</label>
+                <input type="text" class="form-control" name="particulars" placeholder="e.g. Late payment penalty">
+            </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Apply</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
 
         {% if repayments %}
         <div class="table-responsive">
@@ -123,6 +159,9 @@
                             </td>
                             <td>
                                 <input type="number" name="interest_paid" step="0.01" min="0" value="{{ repayment.interest_paid }}" class="form-control form-control-sm interest-input" data-id="{{ repayment.id }}">
+                            </td>
+                            <td>
+                                <input type="number" name="cumulative_interest" step="0.01" min="0" value="{{ repayment.cumulative_interest or 0 }}" class="form-control form-control-sm">
                             </td>
                             <td>
                                 <input type="number" name="balance_after" step="0.01" min="0" value="{{ repayment.balance_after }}" class="form-control form-control-sm">

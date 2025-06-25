@@ -219,6 +219,7 @@ class Loan(db.Model):
     loan_duration_unit = db.Column(db.String(10))  # 'days', 'weeks', etc.
     collateral = db.Column(db.String(255))
 
+    cumulative_interest = db.Column(db.Numeric(12, 2), default=Decimal('0.00'))
     date = db.Column(db.DateTime, default=db.func.current_timestamp())
     due_date = db.Column(db.DateTime, nullable=True)
     status = db.Column(db.String(50), default='Pending')
@@ -256,7 +257,8 @@ class LoanRepayment(db.Model):
     amount_paid = db.Column(db.Numeric(12, 2), nullable=False)
     principal_paid = db.Column(db.Numeric(12, 2), nullable=False, default=Decimal('0.00'))
     interest_paid = db.Column(db.Numeric(12, 2), nullable=False, default=Decimal('0.00'))
-    
+
+    cumulative_interest = db.Column(db.Numeric(12, 2), default=Decimal('0.00'))  # ✅ Add this line    
     date_paid = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     balance_after = db.Column(db.Numeric(12, 2), nullable=True)
 
@@ -273,9 +275,12 @@ class LedgerEntry(db.Model):
 
     principal = db.Column(db.Numeric(12, 2), default=Decimal('0.00'))
     interest = db.Column(db.Numeric(12, 2), default=Decimal('0.00'))
+    cumulative_interest = db.Column(db.Numeric(12, 2), default=Decimal('0.00'))  # NEW
     
     principal_balance = db.Column(db.Numeric(12, 2), default=Decimal('0.00'))
     interest_balance = db.Column(db.Numeric(12, 2), default=Decimal('0.00'))
+    cumulative_interest_balance = db.Column(db.Numeric(12, 2), default=Decimal('0.00'))  # NEW
+    
     running_balance = db.Column(db.Numeric(12, 2), default=Decimal('0.00'))
 
     loan = db.relationship('Loan', back_populates='ledger_entries')

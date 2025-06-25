@@ -37,21 +37,25 @@
                             <th>Particulars</th>
                             <th>Principal</th>
                             <th>Interest</th>
+                            <th>Cumulative Interest</th>
                             <th>Principal Balance</th>
                             <th>Interest Balance</th>
+                            <th>Cumulative Interest Balance</th>
                             <th>Running Balance</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for entry in ledger_entries %}
                         <tr>
-                            <td class="text-start">{{ entry.date.strftime('%b %d, %Y') }}</td>
-                            <td class="text-start">{{ entry.particulars }}</td>
-                            <td>{{ "%.2f"|format(entry.principal or 0) }}</td>
-                            <td>{{ "%.2f"|format(entry.interest or 0) }}</td>
-                            <td>{{ "%.2f"|format(entry.principal_balance or 0) }}</td>
-                            <td>{{ "%.2f"|format(entry.interest_balance or 0) }}</td>
-                            <td>{{ "%.2f"|format(entry.running_balance or 0) }}</td>
+                            <td>{{ entry.date.strftime('%b %d, %Y') }}</td>
+                            <td>{{ entry.particulars }}</td>
+                            <td>{{ '{:,.2f}'.format(entry.principal or 0) }}</td>
+                            <td>{{ '{:,.2f}'.format(entry.interest or 0) }}</td>
+                            <td>{{ '{:,.2f}'.format(entry.cumulative_interest or 0) }}</td>
+                            <td>{{ '{:,.2f}'.format(entry.principal_balance or 0) }}</td>
+                            <td>{{ '{:,.2f}'.format(entry.interest_balance or 0) }}</td>
+                            <td>{{ '{:,.2f}'.format(entry.cumulative_interest_balance or 0) }}</td>
+                            <td>{{ '{:,.2f}'.format(entry.running_balance or 0) }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -64,3 +68,4 @@
     </div>
 </div>
 {% endblock %}
+
