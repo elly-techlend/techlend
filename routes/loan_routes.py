@@ -962,7 +962,10 @@ def repay_loan(loan_id):
         return redirect(url_for('loan.loan_details', loan_id=loan.id))
 
     # ---- Step 1: Allocate to cumulative interest ----
-    cumulative_interest_due = loan.cumulative_interest or Decimal('0.00')
+    if loan.cumulative_interest is None:
+        loan.cumulative_interest = Decimal('0.00')
+
+    cumulative_interest_due = loan.cumulative_interest
     cumulative_interest_payment = min(amount, cumulative_interest_due)
     amount -= cumulative_interest_payment
     loan.cumulative_interest -= cumulative_interest_payment
