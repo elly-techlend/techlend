@@ -51,7 +51,7 @@
                 {{ transfer.transfer_type }}
               </span>
             </td>
-            <td>${{ "{:,.2f}".format(transfer.amount) }}</td>
+            <td>UGX{{ "{:,.2f}".format(transfer.amount) }}</td>
             <td>{{ transfer.reference or '—' }}</td>
             <td>{{ transfer.branch.name if transfer.branch else '—' }}</td>
           </tr>

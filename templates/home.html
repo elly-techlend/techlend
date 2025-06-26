@@ -40,17 +40,20 @@
             <!-- Total Borrowers -->
             <div class="d-flex flex-column p-3 shadow-sm rounded bg-body text-body fade-in-up border">
                 <div class="fw-bold">Total Borrowers: <span>{{ total_borrowers }}</span></div>
+                <small class="text-muted">
+                   This Month: {{ borrowers_month }} | This Year: {{ borrowers_year }}
+                </small>
                 <i class="fa fa-user fa-2x text-secondary mt-2"></i>
-                <a href="#" class="mt-auto bg-primary text-white text-center py-2 d-block rounded text-decoration-none">
-                    Borrowers <i class="fa fa-arrow-right ms-1"></i>
-                </a>
+                    <a href="{{ url_for('borrowers.view_borrowers') }}" class="mt-auto bg-primary text-white text-center py-2 d-block rounded text-decoration-none">
+                      Borrowers <i class="fa fa-arrow-right ms-1"></i>
+                    </a>
             </div>
 
             <!-- Total Disbursed -->
             <div class="d-flex flex-column p-3 shadow-sm rounded bg-body text-body fade-in-up border">
                 <div class="fw-bold">Total Disbursed: <span class="count" data-target="{{ total_disbursed }}">0</span></div>
                 <i class="fa fa-files-o fa-2x text-secondary mt-2"></i>
-                <a href="#" class="mt-auto bg-primary text-white text-center py-2 d-block rounded text-decoration-none">
+                <a href="{{ url_for('loan.view_loans') }}" class="mt-auto bg-primary text-white text-center py-2 d-block rounded text-decoration-none">
                     Principal Released <i class="fa fa-arrow-right ms-1"></i>
                 </a>
             </div>
@@ -59,7 +62,7 @@
             <div class="d-flex flex-column p-3 shadow-sm rounded bg-body text-body fade-in-up border">
                 <div class="fw-bold">Total Repaid: <span class="count" data-target="{{ total_repaid }}">0</span></div>
                 <i class="fa fa-dollar fa-2x text-secondary mt-2"></i>
-                <a href="#" class="mt-auto bg-primary text-white text-center py-2 d-block rounded text-decoration-none">
+                <a href="{{ url_for('repayments.all_repayments') }}" class="mt-auto bg-primary text-white text-center py-2 d-block rounded text-decoration-none">
                     Collections <i class="fa fa-arrow-right ms-1"></i>
                 </a>
             </div>
@@ -68,7 +71,7 @@
             <div class="d-flex flex-column p-3 shadow-sm rounded bg-body text-body fade-in-up border">
                 <div class="fw-bold text-danger">Overdue Loans: <span>{{ overdue_loans|length }}</span></div>
                 <i class="fa fa-exclamation-triangle fa-2x text-danger mt-2"></i>
-                <a href="#" class="mt-auto bg-danger text-white text-center py-2 d-block rounded text-decoration-none">
+                <a href="{{ url_for('loan.loans_in_arrears') }}" class="mt-auto bg-danger text-white text-center py-2 d-block rounded text-decoration-none">
                     View Overdue <i class="fa fa-arrow-right ms-1"></i>
                 </a>
             </div>
@@ -87,7 +90,7 @@
 <!-- Pie Chart -->
 <div class="card shadow-sm p-3 fade-in-up" style="height: 350px;">
     <h5 class="text-center mb-3">Overall Loan Status (Pie Chart)</h5>
-    <canvas id="pieChart" style="position: absolute; left: 0; top: 0; width: 100% !important; height: 100% !important;"></canvas>
+    <canvas id="pieChart" style="width: 100%; height: 100px;"></canvas>
 </div>
 
 <!-- Line Chart -->
