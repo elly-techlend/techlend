@@ -1,78 +1,122 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="text-primary fw-bold mb-0">
+    <i class="bi bi-cash-stack me-2"></i> Repayments
+  </h2>
 
-  <!-- Header -->
-  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
-    <h3 class="text-primary fw-bold mb-2">
-      <i class="bi bi-cash-stack me-2"></i>Repayments
-    </h3>
-  </div>
+  <div class="dropdown d-inline-block me-2">
+    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="repaymentMenu" data-bs-toggle="dropdown" aria-expanded="false">
+      <i class="fas fa-filter me-1"></i> Filter
+    </button>
+    <ul class="dropdown-menu p-3" aria-labelledby="repaymentMenu" style="min-width: 250px;">
 
-  <!-- Filter & PDF Export -->
-  <div class="row g-2 align-items-end mb-4">
-    <div class="col-12 col-md-9">
-      <form method="get" action="{{ url_for('repayments.all_repayments') }}" class="row g-2">
-        <div class="col-12 col-sm-4">
-          <input type="date" name="date" id="date" class="form-control" required>
-        </div>
-        <div class="col-12 col-sm-4">
-          <select name="period" class="form-select" required>
-            <option value="day">Day</option>
-            <option value="month">Month</option>
-            <option value="year">Year</option>
-          </select>
-        </div>
-        <div class="col-12 col-sm-4 d-grid">
-          <button type="submit" class="btn btn-primary">
-            <i class="bi bi-funnel-fill me-1"></i>Filter
+      <!-- Quick Filters -->
+      <li class="mb-2">
+        <a href="{{ url_for('repayments.all_repayments') }}" class="dropdown-item {% if not filter %}active{% endif %}">
+          <i class="fas fa-list-ul me-2"></i> All
+        </a>
+      </li>
+      <li class="mb-2">
+        <a href="{{ url_for('repayments.all_repayments', filter='today') }}" class="dropdown-item {% if filter == 'today' %}active{% endif %}">
+          <i class="fas fa-calendar-day me-2"></i> Today
+        </a>
+      </li>
+      <li class="mb-2">
+        <a href="{{ url_for('repayments.all_repayments', filter='weekly') }}" class="dropdown-item {% if filter == 'weekly' %}active{% endif %}">
+          <i class="fas fa-calendar-week me-2"></i> Weekly
+        </a>
+      </li>
+
+      <!-- Monthly filter with month/year selectors -->
+      <li>
+        <form method="get" action="{{ url_for('repayments.all_repayments') }}" class="px-3 py-2">
+          <input type="hidden" name="filter" value="monthly">
+          <div class="mb-2">
+            <label for="filter-month" class="form-label small mb-1">Month</label>
+            <select name="month" id="filter-month" class="form-select form-select-sm">
+              {% for m_num, m_name in months %}
+                <option value="{{ m_num }}" {% if m_num == selected_month %}selected{% endif %}>{{ m_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-2">
+            <label for="filter-year" class="form-label small mb-1">Year</label>
+            <select name="year" id="filter-year" class="form-select form-select-sm">
+              {% for y in years %}
+                <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm w-100">
+            <i class="fas fa-filter me-1"></i> Filter Monthly
           </button>
-        </div>
-      </form>
-    </div>
-    <div class="col-12 col-md-3 d-grid">
-      <a href="{{ url_for('repayments.export_pdf') }}" class="btn btn-danger">
-        <i class="bi bi-file-earmark-pdf-fill me-1"></i>Export PDF
-      </a>
-    </div>
+        </form>
+      </li>
+
+      <li class="mt-3">
+        <a href="{{ url_for('repayments.all_repayments', filter='yearly') }}" class="dropdown-item {% if filter == 'yearly' %}active{% endif %}">
+          <i class="fas fa-calendar-alt me-2"></i> Yearly
+        </a>
+      </li>
+    </ul>
   </div>
 
-  <!-- Total Summary -->
-  <div class="mb-3">
-    <h5 class="text-success">Total Amount Collected: 
-      <strong>{{ "{:,.2f}".format(total_collected) }}</strong>
-    </h5>
+  <div class="dropdown">
+    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="exportMenu" data-bs-toggle="dropdown" aria-expanded="false">
+      More
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="exportMenu">
+      <li>
+        <a class="dropdown-item text-danger" href="{{ url_for('repayments.export_pdf') }}">
+          <i class="fas fa-file-pdf me-2"></i> Export as PDF
+        </a>
+      </li>
+    </ul>
   </div>
-
-  <!-- Repayments Table -->
-  {% if repayments %}
-  <div class="table-responsive shadow-sm">
-    <table class="table table-hover table-bordered align-middle">
-      <thead class="table-dark">
-        <tr>
-          <th>Loan ID</th>
-          <th>Borrower Name</th>
-          <th>Amount Paid</th>
-          <th>Date Paid</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for repayment in repayments %}
-        <tr>
-          <td>{{ repayment.loan_id }}</td>
-          <td>{{ repayment.loan.borrower.name }}</td>
-          <td>{{ "{:,.2f}".format(repayment.amount_paid) }}</td>
-          <td>{{ repayment.date_paid.strftime('%b %d, %Y') }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% else %}
-  <div class="alert alert-info mt-4">
-    <i class="bi bi-info-circle-fill me-1"></i> No repayments found for the selected period.
-  </div>
-  {% endif %}
 </div>
+
+<!-- Total Summary -->
+<div class="alert alert-success mb-4">
+  <strong>Total Amount Collected:</strong> {{ "{:,.2f}".format(total_collected) }}
+</div>
+
+<!-- Repayments Table -->
+<div class="card shadow-sm">
+  <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">Repayment Records</h5>
+    <span class="badge bg-light text-dark">Total Entries: {{ repayments|length }}</span>
+  </div>
+  <div class="card-body p-0" style="max-height: 80vh; overflow-y: auto;">
+    <div class="table-responsive">
+      <table class="table table-striped table-bordered mb-0 align-middle text-center">
+        <thead class="table-primary" style="position: sticky; top: 0; z-index: 10;">
+          <tr>
+            <th>Loan ID</th>
+            <th>Borrower Name</th>
+            <th>Amount Paid</th>
+            <th>Date Paid</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for repayment in repayments %}
+          <tr>
+            <td>{{ repayment.loan_id }}</td>
+            <td>{{ repayment.loan.borrower.name }}</td>
+            <td>{{ "{:,.2f}".format(repayment.amount_paid) }}</td>
+            <td>{{ repayment.date_paid.strftime('%Y-%m-%d') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% if not repayments %}
+<div class="alert alert-info mt-4">
+  <i class="fas fa-info-circle me-1"></i> No repayments found for the selected period.
+</div>
+{% endif %}
 {% endblock %}

@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, send_file, make_response
+from flask import Blueprint, render_template, request, send_file, make_response, session, flash
 from flask_login import login_required, current_user
 from utils.decorators import superuser_required, roles_required, admin_or_superuser_required
 from datetime import datetime, timedelta
@@ -10,6 +10,8 @@ from extensions import db
 from flask import session
 from sqlalchemy.orm import joinedload
 from io import BytesIO
+import calendar
+from sqlalchemy import func
 
 # Create the blueprint
 repayment_bp = Blueprint('repayments', __name__)
@@ -21,10 +23,6 @@ repayment_bp = Blueprint('repayments', __name__)
 def all_repayments():
     branch_id = session.get('active_branch_id')
 
-    # Import Borrower model at the top of your file
-    # from models import Borrower
-
-    # Base query: join Loan and Borrower and filter by company and optional branch
     repayments_query = LoanRepayment.query\
         .join(Loan)\
         .join(Borrower, Borrower.id == Loan.borrower_id)\
@@ -42,29 +40,38 @@ def all_repayments():
             filter_date = datetime.strptime(date_str, '%Y-%m-%d')
         except ValueError:
             flash('Invalid date format. Please use YYYY-MM-DD.', 'danger')
-            return render_template('repayments/view_repayments.html', repayments=[])
+            return render_template('repayments/view_repayments.html', repayments=[], total_collected=0)
 
         if period == 'day':
-            repayments_query = repayments_query.filter(func.date(LoanRepayment.date_paid) == filter_date.date())
+            repayments_query = repayments_query.filter(
+                func.date(LoanRepayment.date_paid) == filter_date.date()
+            )
         elif period == 'month':
             start_date = filter_date.replace(day=1)
-            next_month = (start_date + timedelta(days=32)).replace(day=1)
+            # Get the first day of next month safely
+            month_days = calendar.monthrange(start_date.year, start_date.month)[1]
+            next_month = start_date + timedelta(days=month_days)
+            next_month = next_month.replace(day=1)
             repayments_query = repayments_query.filter(
                 LoanRepayment.date_paid >= start_date,
                 LoanRepayment.date_paid < next_month
             )
         elif period == 'year':
-            start_date = filter_date.replace(month=1, day=1)
-            end_date = filter_date.replace(month=12, day=31, hour=23, minute=59, second=59)
+            start_date = datetime(filter_date.year, 1, 1)
+            end_date = datetime(filter_date.year, 12, 31, 23, 59, 59)
             repayments_query = repayments_query.filter(
                 LoanRepayment.date_paid >= start_date,
                 LoanRepayment.date_paid <= end_date
             )
 
-    repayments = repayments_query.all()
+    repayments = repayments_query.order_by(LoanRepayment.date_paid.desc()).all()
     total_collected = sum(r.amount_paid for r in repayments)
 
-    return render_template('repayments/view_repayments.html', repayments=repayments, total_collected=total_collected)
+    return render_template(
+        'repayments/view_repayments.html',
+        repayments=repayments,
+        total_collected=total_collected
+    )
 
 @repayment_bp.route('/repayments/export/pdf')
 @login_required

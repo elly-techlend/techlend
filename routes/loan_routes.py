@@ -674,23 +674,18 @@ def loans_in_arrears():
     enriched_loans = []
 
     total_amount = Decimal('0')
-    total_principal_arrears = Decimal('0')
+    total_original_balance = Decimal('0')
+    total_penalty = Decimal('0')
     total_total_arrears = Decimal('0')
 
     for loan in loans:
-        balance = Decimal(loan.remaining_balance or 0)
-        total_due = Decimal(loan.total_due or 0)
-        amount_paid = Decimal(loan.amount_paid or 0)
+        remaining_balance = Decimal(loan.remaining_balance or 0)
+        penalty = Decimal(loan.cumulative_interest or 0)
+        original_balance = remaining_balance - penalty  # ❗ Key Line
+
         disbursed_amount = Decimal(loan.amount_borrowed or 0)
+        total_arrears = original_balance + penalty  # Or just remaining_balance
 
-        # Penalty only after 3-day grace period
-        penalty = Decimal('0')
-        if (today - loan.due_date.date()).days > 3:
-            rate = Decimal(str(loan.interest_rate))
-            penalty = (rate / Decimal('100')) * balance
-            penalty = penalty.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-
-        total_arrears = balance + penalty
         days_overdue = (today - loan.due_date.date()).days
 
         last_repayment = db.session.query(LoanRepayment.date_paid)\
@@ -705,7 +700,7 @@ def loans_in_arrears():
             'phone': loan.borrower.phone,
             'amount_borrowed': disbursed_amount,
             'disbursement_date': loan.date,
-            'balance': balance,
+            'balance': original_balance,  # This shows pre-penalty balance
             'penalty': penalty,
             'total_arrears': total_arrears,
             'days': days_overdue,
@@ -713,12 +708,14 @@ def loans_in_arrears():
         })
 
         total_amount += disbursed_amount
-        total_principal_arrears += balance
+        total_original_balance += original_balance
+        total_penalty += penalty
         total_total_arrears += total_arrears
 
     totals = {
         'amount': total_amount,
-        'principal_arrears': total_principal_arrears,
+        'original_balance': total_original_balance,
+        'penalty': total_penalty,
         'total_arrears': total_total_arrears
     }
 
@@ -1019,9 +1016,11 @@ def repay_loan(loan_id):
         date=repayment_date,
         particulars="Loan repayment",
         principal=principal_payment,
-        interest=interest_payment + cumulative_interest_payment,
+        interest=interest_payment,
+        cumulative_interest=cumulative_interest_payment,
         principal_balance=max(Decimal('0.00'), loan.amount_borrowed - total_principal_paid),
         interest_balance=max(Decimal('0.00'), standard_interest_due - total_interest_paid + loan.cumulative_interest),
+        cumulative_interest_balance=max(Decimal('0.00'), loan.cumulative_interest),
         running_balance=loan.remaining_balance
     )
     db.session.add(ledger_entry)
