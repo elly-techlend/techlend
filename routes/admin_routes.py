@@ -370,12 +370,18 @@ def company_notifications():
 
     return render_template('admin/company_notifications.html', logs=logs)
 
+@csrf.exempt
 @admin_bp.route('/notifications/clear', methods=['POST'])
 @login_required
 @roles_required('Admin')
 def clear_company_notifications():
+    logs = CompanyLog.query.filter_by(company_id=current_user.company_id).all()
+    count = len(logs)
+    
     CompanyLog.query.filter_by(company_id=current_user.company_id).delete()
     db.session.commit()
+    
     flash('Company notifications cleared.', 'success')
-    print(f"Company ID: {current_user.company_id} - Logs found: {len(logs)}")
+    print(f"Company ID: {current_user.company_id} - Logs found: {count}")
+    
     return redirect(url_for('admin.company_notifications'))
