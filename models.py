@@ -175,12 +175,11 @@ class Borrower(db.Model):
     education = db.Column(db.String(50))
     next_of_kin = db.Column(db.String(100))
     photo = db.Column(db.String(200))
-    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'))
     company_id = db.Column(db.Integer)  # For multi-tenancy
 
     # Relationships
-    loans = db.relationship('Loan', back_populates='borrower', lazy='dynamic')
-    savings_accounts = db.relationship('SavingAccount', back_populates='borrower', lazy='dynamic')
+    loans = db.relationship('Loan', back_populates='borrower', lazy='dynamic', cascade='all, delete-orphan')
+    savings_accounts = db.relationship('SavingAccount', back_populates='borrower', lazy='dynamic', cascade='all, delete-orphan')
 
     @property
     def total_paid(self):
