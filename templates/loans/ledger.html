@@ -5,12 +5,12 @@
     <div class="card shadow rounded-3 p-4">
 
         <!-- Loan Overview Header -->
-        <div class="card-body loan-overview border-start border-4 border-primary mb-4">
+        <div class="card-body loan-overview border-start border-4 border-primary bg-light rounded mb-4">
             <div class="row align-items-start">
                 <div class="col-md-4 text-md-start">
-                    <h5 class="mb-1">{{ loan.borrower_name }}</h5>
-                    <small>(currency = UGX)</small><br>
-                    <small><strong>Borrower ID:</strong> {{ loan.loan_id }}</small>
+                    <h5 class="mb-1"><i class="fa fa-user text-primary me-2"></i>{{ loan.borrower_name }}</h5>
+                    <p><strong>(currency = UGX)</strong></p>
+                    <p><strong>Loan ID:</strong> {{ loan.loan_id }}</p>
                 </div>
                 <div class="col-md-4 text-md-center">
                     <p><strong>Principal:</strong> {{ "{:,.2f}".format(loan.amount_borrowed or 0) }}</p>
@@ -24,48 +24,78 @@
                 </div>
             </div>
         </div>
+<!-- Ledger Entries Table -->
+<style>
+    .custom-ledger-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
 
-        <!-- Ledger Entries Table -->
-        <h5 class="mt-4 mb-3">Customer Ledger Entries</h5>
-        {% if ledger_entries %}
-        <div class="card shadow-sm p-3 mb-4">
-            <div class="table-responsive" style="overflow-x: auto;">
-                <table class="table table-hover align-middle text-center" style="min-width: 1000px;">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Date</th>
-                            <th>Particulars</th>
-                            <th>Principal</th>
-                            <th>Interest</th>
-                            <th>Cumulative Interest</th>
-                            <th>Principal Balance</th>
-                            <th>Interest Balance</th>
-                            <th>Cumulative Interest Balance</th>
-                            <th>Running Balance</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for entry in ledger_entries %}
-                        <tr>
-                            <td>{{ entry.date.strftime('%b %d, %Y') }}</td>
-                            <td>{{ entry.particulars }}</td>
-                            <td>{{ '{:,.2f}'.format(entry.principal or 0) }}</td>
-                            <td>{{ '{:,.2f}'.format(entry.interest or 0) }}</td>
-                            <td>{{ '{:,.2f}'.format(entry.cumulative_interest or 0) }}</td>
-                            <td>{{ '{:,.2f}'.format(entry.principal_balance or 0) }}</td>
-                            <td>{{ '{:,.2f}'.format(entry.interest_balance or 0) }}</td>
-                            <td>{{ '{:,.2f}'.format(entry.cumulative_interest_balance or 0) }}</td>
-                            <td>{{ '{:,.2f}'.format(entry.running_balance or 0) }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        {% else %}
-            <p class="text-muted">No ledger entries found for this loan.</p>
-        {% endif %}
+    .custom-ledger-table th, .custom-ledger-table td {
+        border: none;
+        font-weight: bold;
+    }
+
+    .custom-ledger-table thead {
+        border-bottom: 2px solid #dee2e6;
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5><i class="fa fa-book text-primary me-2"></i>Customer Ledger Entries</h5>
+    <a href="#" class="btn btn-outline-primary btn-sm">
+        <i class="fa fa-download me-1"></i> Download Ledger
+    </a>
+</div>
+
+{% if ledger_entries %}
+<div class="card shadow-sm p-3 mb-4">
+    <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+        <table class="table align-middle text-center custom-ledger-table" style="min-width: 1000px;">
+            <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
+                <tr>
+                    <th>Date</th>
+                    <th>Particulars</th>
+                    <th>Principal</th>
+                    <th>Interest</th>
+                    <th>Cumulative Interest</th>
+                    <th>Principal Balance</th>
+                    <th>Interest Balance</th>
+                    <th>Cumulative Interest Balance</th>
+                    <th>Running Balance</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in ledger_entries %}
+                <tr>
+                    <td>{{ entry.date.strftime('%b %d, %Y') }}</td>
+                    <td>{{ entry.particulars }}</td>
+                    <td>{{ '{:,.2f}'.format(entry.principal or 0) }}</td>
+                    <td>{{ '{:,.2f}'.format(entry.interest or 0) }}</td>
+                    <td>{{ '{:,.2f}'.format(entry.cumulative_interest or 0) }}</td>
+                    <td class="{% if entry.principal_balance < 0 %}text-danger{% endif %}">{{ '{:,.2f}'.format(entry.principal_balance or 0) }}</td>
+                    <td class="{% if entry.interest_balance < 0 %}text-danger{% endif %}">{{ '{:,.2f}'.format(entry.interest_balance or 0) }}</td>
+                    <td>{{ '{:,.2f}'.format(entry.cumulative_interest_balance or 0) }}</td>
+                    <td>
+                        {% if entry.running_balance == 0 %}
+                            <span class="badge bg-success">0.00</span>
+                        {% else %}
+                            {{ '{:,.2f}'.format(entry.running_balance or 0) }}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+    <p class="text-muted">No ledger entries found for this loan.</p>
+{% endif %}
+
     </div>
 </div>
 {% endblock %}
-

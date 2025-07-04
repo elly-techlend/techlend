@@ -5,12 +5,12 @@
     <div class="card shadow rounded-3 p-4">
 
         <!-- Loan Overview Header -->
-        <div class="card-body loan-overview border-start border-4 border-success mb-4">
+        <div class="card-body loan-overview border-start border-4 border-primary bg-light rounded mb-4">
             <div class="row align-items-start">
                 <div class="col-md-4 text-md-start">
-                    <h5 class="mb-1">{{ loan.borrower_name }}</h5>
-                    <small>(currency = UGX)</small><br>
-                    <small><strong>Borrower ID:</strong> {{ loan.loan_id }}</small>
+                    <h5 class="mb-1"><i class="fa fa-user text-primary me-2"></i>{{ loan.borrower_name }}</h5>
+                    <p><strong>(currency = UGX)</strong></p>
+                    <p><strong>Loan ID:</strong> {{ loan.loan_id }}</p>
                 </div>
                 <div class="col-md-4 text-md-center">
                     <p><strong>Principal:</strong> {{ "{:,.2f}".format(loan.amount_borrowed or 0) }}</p>

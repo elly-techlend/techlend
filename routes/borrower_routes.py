@@ -47,7 +47,7 @@ def view_borrowers():
     if month:
         borrowers_query = borrowers_query.filter(extract('month', Borrower.created_at) == month)
 
-    pagination = borrowers_query.order_by(Borrower.created_at.desc()).paginate(page=page, per_page=10)
+    pagination = borrowers_query.order_by(Borrower.created_at.desc()).paginate(page=page, per_page=50)
     borrowers = pagination.items
 
     # Preload calculated properties

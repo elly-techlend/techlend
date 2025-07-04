@@ -18,10 +18,10 @@
                 {% for loan in loans %}
                     <tr>
                         <td>{{ loan.id }}</td>
-                        <td>{{ loan.amount }}</td>
+                        <td>{{ loan.amount_borrowed }}</td>
                         <td>{{ loan.status }}</td>
                         <td>{{ loan.remaining_balance }}</td>
-                        <td>{{ loan.issue_date.strftime('%Y-%m-%d') if loan.issue_date else 'N/A' }}</td>
+                        <td>{{ loan.date.strftime('%Y-%m-%d') if loan.issue_date else 'N/A' }}</td>
                     </tr>
                 {% else %}
                     <tr><td colspan="5" class="text-center">No loans found for this borrower.</td></tr>
