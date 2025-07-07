@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 10px; /* Unified small font for compactness */
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        th, td {
+            padding: 3px 5px; /* Tight padding for compactness */
+            background-color: #f9f9f9;
+            text-align: left;
+        }
+
+        .header-table .company-name {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .no-inner-borders th, .no-inner-borders td {
+            border: none;
+        }
+
+        .repayments-table th {
+            background-color: #eee;
+            font-weight: bold;
+        }
+
+        .repayments-table th, .repayments-table td {
+            padding: 2px 4px;
+            background-color: #fff;
+            border: none; /* No borders for repayments table */
+        }
+
+        /* Optional: subtle header background in repayment table */
+        .repayments-table thead th {
+            background-color: #f0f0f0;
+        }
+        .header-container {
+            text-align: center;
+            font-weight: bold;
+        }
+        .company-info {
+            font-size: 18px;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Header with logo and details -->
+<div class="header-container" style="text-align: center; font-weight: bold;">
+    <div class="company-info" style="font-size: 18px; text-transform: uppercase;">
+        {{ company.name }}
+    </div>
+    <div style="font-size: 14px; margin-top: 5px;">
+        Email: {{ company.email or 'N/A' }} | Phone: {{ company.phone or 'N/A' }}<br>
+        Address: {{ company.address or 'N/A' }}
+    </div>
+    <p style="margin-top: 10px; font-size: 16px;"><strong>Customer Repayment Statement</strong></p>
+</div>
+
+    <hr>
+
+<!-- Loan Details Table -->
+<table class="no-inner-borders">
+    <tr>
+        <th>Borrower Name</th>
+        <td>{{ loan.borrower_name }}</td>
+        <th>Loan ID</th>
+        <td>{{ loan.loan_id }}</td>
+    </tr>
+    <tr>
+        <th>Principal</th>
+        <td>{{ "{:,.2f}".format(loan.amount_borrowed or 0) }}</td>
+        <th>Interest Rate</th>
+        <td>{{ loan.interest_rate }}%</td>
+    </tr>
+    <tr>
+        <th>Date of Loan</th>
+        <td>{{ loan.date.strftime('%b %d, %Y') if loan.date else '' }}</td>
+        <th>Total Due</th>
+        <td>{{ "{:,.2f}".format(loan.total_due or 0) }}</td>
+    </tr>
+    <tr>
+        <th>Repaid Amount</th>
+        <td>{{ "{:,.2f}".format(loan.amount_paid or 0) }}</td>
+        <th>Outstanding Balance</th>
+        <td>{{ "{:,.2f}".format(loan.remaining_balance or 0) }}</td>
+    </tr>
+</table>
+
+<!-- Repayments Table -->
+{% if repayments %}
+<table class="repayments-table">
+    <thead>
+        <tr>
+            <th>Payment ID</th>
+            <th>Date</th>
+            <th>Amount Paid</th>
+            <th>Principal</th>
+            <th>Interest</th>
+            <th>Outstanding Balance</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for repayment in repayments %}
+        <tr>
+            <td>{{ repayment.id }}</td>
+            <td>{{ repayment.date_paid.strftime('%b %d, %Y') }}</td>
+            <td>{{ "%.2f"|format(repayment.amount_paid or 0) }}</td>
+            <td>{{ "%.2f"|format(repayment.principal_paid or 0) }}</td>
+            <td>{{ "%.2f"|format(repayment.interest_paid or 0) }}</td>
+            <td>{{ "%.2f"|format(repayment.balance_after or 0) }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+</body>
+</html>

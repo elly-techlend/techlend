@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Loan Ledger PDF</title>
+    <style>
+        /* Make the table more compact and remove inner borders */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px; /* smaller font for compactness */
+        }
+        /* Only outer border, no inner lines */
+        table, th, td {
+            border: 1px solid black;
+        }
+        /* Remove inner horizontal and vertical borders */
+        th, td {
+            border: none;
+            padding: 4px 6px;
+        }
+        /* Add border only to the table to keep outer frame */
+        table {
+            border: 1px solid black;
+        }
+        thead tr th {
+            border-bottom: 1px solid black; /* underline header */
+            font-weight: bold;
+            text-align: left;
+            padding-bottom: 6px;
+        }
+        /* Smaller margins and padding for header */
+        .header-container {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .header-logo {
+            max-height: 80px;
+            margin-bottom: 6px;
+        }
+        /* Company info section next to logo */
+        .company-info {
+            margin-bottom: 12px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        hr {
+            margin: 10px 0;
+            border: 0;
+            border-top: 1px solid #333;
+        }
+        .header-container {
+            text-align: center;
+            font-weight: bold;
+        }
+        .company-info {
+            font-size: 18px;
+            text-transform: uppercase;
+        }
+
+    </style>
+</head>
+<body>
+<div class="header-container" style="text-align: center; font-weight: bold;">
+    <div class="company-info" style="font-size: 18px; text-transform: uppercase;">
+        {{ company.name }}
+    </div>
+    <div style="font-size: 14px; margin-top: 5px;">
+        Email: {{ company.email or 'N/A' }} | Phone: {{ company.phone or 'N/A' }}<br>
+        Address: {{ company.address or 'N/A' }}
+    </div>
+    <p style="margin-top: 10px; font-size: 16px;"><strong>Customer Ledger Statement</strong></p>
+</div>
+
+    <hr>
+
+    <!-- Loan Overview -->
+    <table>
+        <tr>
+            <th>Borrower</th>
+            <td>{{ loan.borrower_name }}</td>
+            <th>Loan ID</th>
+            <td>{{ loan.loan_id }}</td>
+        </tr>
+        <tr>
+            <th>Principal</th>
+            <td>{{ "{:,.2f}".format(loan.amount_borrowed or 0) }}</td>
+            <th>Interest Rate</th>
+            <td>{{ loan.interest_rate }}%</td>
+        </tr>
+        <tr>
+            <th>Loan Date</th>
+            <td>{{ loan.date.strftime('%b %d, %Y') if loan.date else '' }}</td>
+            <th>Total Due</th>
+            <td>{{ "{:,.2f}".format(loan.total_due or 0) }}</td>
+        </tr>
+        <tr>
+            <th>Repaid Amount</th>
+            <td>{{ "{:,.2f}".format(loan.amount_paid or 0) }}</td>
+            <th>Outstanding Balance</th>
+            <td>{{ "{:,.2f}".format(loan.remaining_balance or 0) }}</td>
+        </tr>
+    </table>
+
+    <h4 style="margin-top: 20px;">Ledger Entries</h4>
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Particulars</th>
+                <th>Principal</th>
+                <th>Interest</th>
+                <th>Cumulative Interest</th>
+                <th>Principal Balance</th>
+                <th>Interest Balance</th>
+                <th>Cumulative Interest Balance</th>
+                <th>Running Balance</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in ledger_entries %}
+            <tr>
+                <td>{{ entry.date.strftime('%b %d, %Y') }}</td>
+                <td>{{ entry.particulars }}</td>
+                <td>{{ '{:,.2f}'.format(entry.principal or 0) }}</td>
+                <td>{{ '{:,.2f}'.format(entry.interest or 0) }}</td>
+                <td>{{ '{:,.2f}'.format(entry.cumulative_interest or 0) }}</td>
+                <td>{{ '{:,.2f}'.format(entry.principal_balance or 0) }}</td>
+                <td>{{ '{:,.2f}'.format(entry.interest_balance or 0) }}</td>
+                <td>{{ '{:,.2f}'.format(entry.cumulative_interest_balance or 0) }}</td>
+                <td>{{ '{:,.2f}'.format(entry.running_balance or 0) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

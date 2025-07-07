@@ -5,7 +5,7 @@ from utils.decorators import roles_required
 from forms import LoginForm
 from extensions import db
 from utils.logging import log_company_action, log_system_action, log_action
-from models import Loan, Borrower, LoanRepayment, Collateral, LedgerEntry
+from models import Loan, Borrower, LoanRepayment, Collateral, LedgerEntry, Company
 from flask import session
 from datetime import datetime, timedelta, date
 from utils import get_company_filter
@@ -26,6 +26,7 @@ from zoneinfo import ZoneInfo
 from utils.time_helpers import today
 from utils.utils import sum_paid
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from weasyprint import HTML, CSS
 
 loan_bp = Blueprint('loan', __name__)
 
@@ -1056,6 +1057,48 @@ def loan_ledger(loan_id):
 
     return render_template('loans/ledger.html', loan=loan, ledger_entries=ledger_entries)
 
+@loan_bp.route('/loans/<loan_id>/ledger/pdf')
+@login_required
+def generate_ledger_pdf(loan_id):
+    # Fetch loan and ledger data
+    loan = Loan.query.filter_by(loan_id=loan_id, company_id=current_user.company_id).first_or_404()
+    ledger_entries = LedgerEntry.query.filter_by(loan_id=loan.id).order_by(LedgerEntry.date, LedgerEntry.id).all()
+
+    # Fetch company info for current user's company
+    company = Company.query.get(current_user.company_id)
+
+    # Render HTML with company
+    rendered_html = render_template(
+        'loans/ledger_pdf.html',
+        loan=loan,
+        ledger_entries=ledger_entries,
+        company=company
+    )
+    
+    # Generate PDF
+    pdf_io = BytesIO()
+    HTML(string=rendered_html, base_url='').write_pdf(
+        pdf_io,
+        stylesheets=[
+            CSS(string='''
+                @page { size: A4; margin: 1cm; }
+                body { font-family: Arial, sans-serif; font-size: 12px; }
+                .text-center { text-align: center; }
+                .logo { width: 80px; }
+                table { border-collapse: collapse; width: 100%; }
+                th, td { border: 1px solid #ccc; padding: 5px; }
+                th { background-color: #f2f2f2; }
+            ''')
+        ]
+    )
+    
+    # Send PDF as response
+    pdf_io.seek(0)
+    response = make_response(pdf_io.read())
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = f'inline; filename=ledger_{loan.loan_id}.pdf'
+    return response
+
 # View repayment history
 @csrf.exempt
 @loan_bp.route('/loan/<int:loan_id>/repayments')
@@ -1174,15 +1217,14 @@ def export_loans(file_type):
 
     return "Unsupported file type", 400
 
-
 @loan_bp.route('/loan/<int:loan_id>/export_pdf')
 @login_required
 @roles_required('Admin', 'Accountant', 'Branch_Manager', 'Loans_Officer', 'Loans Supervisor')
 def export_loan_pdf(loan_id):
     loan = Loan.query.get_or_404(loan_id)
-    company = loan.company  # Assuming Loan has a company relationship
+    company = loan.company  # Assuming Loan has a 'company' relationship
 
-    # Prepare context for template
+    # Prepare data
     context = {
         'loan': loan,
         'repayments': loan.repayments,
@@ -1190,44 +1232,38 @@ def export_loan_pdf(loan_id):
         'logo_path': None
     }
 
-    # Compute absolute logo file path for template usage
+    # Check for company logo
     if company.logo_url:
-        # logo_url example: "/static/logos/company123.png"
         logo_file_path = os.path.join(current_app.root_path, company.logo_url.lstrip("/"))
         if os.path.exists(logo_file_path):
-            # pass relative path for <img src="{{ logo_path }}">
             context['logo_path'] = company.logo_url
-        else:
-            context['logo_path'] = None
 
-    # Render HTML template to string
-    html = render_template('export_repayments_pdf.html', **context)
+    # Render HTML
+    html = render_template('loans/export_loan_pdf.html', **context)
 
-    # Convert HTML to PDF
+    # Create PDF
     pdf = BytesIO()
     pisa_status = pisa.CreatePDF(
         src=html,
         dest=pdf,
-        link_callback=link_callback  # for resolving static files
+        link_callback=link_callback
     )
+
     if pisa_status.err:
-        return f'We had some errors: {pisa_status.err}', 500
+        return "PDF generation failed", 500
 
     pdf.seek(0)
     return send_file(pdf, as_attachment=True,
-                     download_name=f'loan_{loan.loan_id}_details.pdf',
+                     download_name=f"loan_{loan.loan_id}_details.pdf",
                      mimetype='application/pdf')
-
 
 # Helper function to resolve static files for xhtml2pdf
 def link_callback(uri, rel):
-    """
-    Convert HTML URIs to absolute system paths so xhtml2pdf can access those resources
-    """
+    """Resolve static file paths for xhtml2pdf."""
     if uri.startswith('/static/'):
         path = os.path.join(current_app.root_path, uri.lstrip('/'))
     else:
         path = uri
     if not os.path.isfile(path):
-        raise Exception('Media URI must start with /static/')
+        raise Exception(f'Missing file: {path}')
     return path
