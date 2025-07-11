@@ -389,7 +389,7 @@ def delete_repayment(repayment_id):
     total_paid = sum(r.amount_paid for r in repayments)
     total_principal_paid = sum(r.principal_paid for r in repayments)
     total_interest_paid = sum(r.interest_paid for r in repayments)
-    total_cumulative_interest = sum(r.cumulative_interest for r in repayments)
+    total_cumulative_interest = sum((r.cumulative_interest or Decimal('0.00')) for r in repayments)
 
     # Recalculate interest due
     original_interest = Decimal(str(loan.amount_borrowed)) * Decimal(str(loan.interest_rate)) / Decimal('100')
@@ -411,7 +411,7 @@ def delete_repayment(repayment_id):
     running_balance = loan.total_due
 
     for r in repayments:
-        if r.cumulative_interest > 0:
+        if (r.cumulative_interest or Decimal('0.00')) > 0:
             entry = LedgerEntry(
                 loan_id=loan.id,
                 date=r.date_paid,
