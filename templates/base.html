@@ -349,7 +349,7 @@
         {{ csrf_form.csrf_token }}
        <label for="branch_id" class="form-label"><i class="fas fa-exchange-alt me-2"></i>Switch Branch</label>
 <select id="branch_id" name="branch_id" class="form-select w-80" onchange="document.getElementById('branchForm').submit()">
-  {% for branch in current_user.company.branches %}
+  {% for branch in current_user.company.branches if not branch.deleted_at %}
     <option value="{{ branch.id }}" {% if branch.id == session['active_branch_id'] %}selected{% endif %}>
       {{ branch.name }}
     </option>

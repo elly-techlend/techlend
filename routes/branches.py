@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from extensions import db
-from models import Branch
+from models import Branch, Borrower
 from datetime import datetime
 from flask import abort
 from utils.decorators import superuser_required, roles_required, admin_or_superuser_required
@@ -79,11 +79,11 @@ def update_branch(branch_id):
     if not current_user.is_admin:
         abort(403)
 
-    branch = Branch.query.get_or_404(branch_id)
-
-    if branch.company_id != current_user.company_id or branch.deleted_at:
-        flash('You do not have permission to update this branch.', 'danger')
-        return redirect(url_for('branches.list_branches'))
+    # Only get non-deleted branches for this company
+    branch = Branch.query.filter_by(
+        id=branch_id,
+        company_id=current_user.company_id
+    ).filter(Branch.deleted_at.is_(None)).first_or_404()
 
     if request.method == 'POST':
         name = request.form.get('name')
@@ -102,7 +102,7 @@ def update_branch(branch_id):
         existing_branch = Branch.query.filter_by(
             name=name,
             company_id=current_user.company_id
-        ).filter(Branch.id != branch.id).first()
+        ).filter(Branch.id != branch.id, Branch.deleted_at.is_(None)).first()
 
         if existing_branch:
             flash('A branch with this name already exists.', 'danger')
@@ -120,6 +120,7 @@ def update_branch(branch_id):
 
     return render_template('branches/update_branch.html', branch=branch)
 
+@csrf.exempt
 @branches.route('/delete/<int:branch_id>', methods=['POST'])
 @login_required
 @roles_required('Admin')
@@ -135,7 +136,7 @@ def delete_branch(branch_id):
 
     branch.deleted_at = datetime.utcnow()
     db.session.commit()
-    log_action(f"{current_user.full_name} deleted branch: {borrower.full_name}")
+    log_action(f"{current_user.full_name} deleted branch: {branch.name}")
 
     flash('Branch deleted successfully!', 'success')
     return redirect(url_for('branches.list_branches'))
@@ -162,11 +163,11 @@ def toggle_branch_status(branch_id):
     if not current_user.is_admin:
         abort(403)
 
-    branch = Branch.query.get_or_404(branch_id)
-
-    if branch.company_id != current_user.company_id or branch.deleted_at:
-        flash('Unauthorized operation.', 'danger')
-        return redirect(url_for('branches.list_branches'))
+    # Ensure we only fetch non-deleted branches for this company
+    branch = Branch.query.filter_by(
+        id=branch_id,
+        company_id=current_user.company_id
+    ).filter(Branch.deleted_at.is_(None)).first_or_404()
 
     branch.is_active = not branch.is_active
     db.session.commit()

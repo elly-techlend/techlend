@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, jsonify
 from flask_login import login_required, current_user
 from extensions import db
-from models import Loan
+from models import Branch, Loan
 from datetime import datetime, date
 from collections import defaultdict
 from flask import session
@@ -14,17 +14,53 @@ dashboard_bp = Blueprint('dashboard', __name__)
 @dashboard_bp.before_app_request
 def set_active_branch_context():
     if current_user.is_authenticated and not current_user.is_superuser:
-        session.setdefault('active_branch_id', current_user.branch_id)
+        # Get the active branch from session or user's assigned branch
+        active_branch_id = session.get('active_branch_id', current_user.branch_id)
+
+        # Validate branch is not deleted
+        branch = Branch.query.filter_by(
+            id=active_branch_id,
+            company_id=current_user.company_id
+        ).filter(Branch.deleted_at.is_(None)).first()
+
+        if branch:
+            session['active_branch_id'] = branch.id
+            session['active_branch_name'] = branch.name  # Add branch name to session
+        else:
+            # Fallback to user's assigned branch if available
+            fallback_branch = Branch.query.filter_by(
+                id=current_user.branch_id,
+                company_id=current_user.company_id
+            ).filter(Branch.deleted_at.is_(None)).first()
+
+            if fallback_branch:
+                session['active_branch_id'] = fallback_branch.id
+                session['active_branch_name'] = fallback_branch.name  # Add fallback branch name
+            else:
+                # No valid branch, clear the session keys
+                session.pop('active_branch_id', None)
+                session.pop('active_branch_name', None)
 
 @dashboard_bp.route('/switch-branch/<int:branch_id>', methods=['POST'])
 @login_required
 def switch_branch(branch_id):
-    # Only allow superuser or admin
-    if 'superuser' in current_user.roles or 'admin' in current_user.roles:
-        session['active_branch_id'] = branch_id
-        flash('Branch switched successfully.', 'success')
+    branch_query = Branch.query.filter_by(id=branch_id).filter(Branch.deleted_at.is_(None))
+
+    if 'superuser' in current_user.roles:
+        # Superuser can switch to any non-deleted branch
+        branch = branch_query.first_or_404()
+
+    elif 'admin' in current_user.roles:
+        # Admin can only switch to branches in their own company
+        branch = branch_query.filter_by(company_id=current_user.company_id).first_or_404()
+
     else:
         flash('You do not have permission to switch branches.', 'danger')
+        return redirect(request.referrer or url_for('dashboard.index'))
+
+    session['active_branch_id'] = branch.id
+    session['active_branch_name'] = branch.name  # Store the branch name for display
+    flash(f"Switched to branch: {branch.name}", 'success')
 
     return redirect(request.referrer or url_for('dashboard.index'))
 
