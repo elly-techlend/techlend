@@ -1,7 +1,7 @@
 # utils/branch_filter.py
 from flask_login import current_user
 from flask import session
-from models import Borrower  # import others as needed
+from models import Borrower, Branch
 
 def filter_by_active_branch(query, model=None, borrower_join=False):
     # If superuser, no filtering needed — they can see all data
