@@ -217,7 +217,7 @@ def edit_repayment(repayment_id):
     loan.amount_paid = total_paid_so_far + total_paid
     loan.remaining_balance = max(Decimal('0'), loan.total_due - loan.amount_paid)
     loan.status = 'Paid' if loan.remaining_balance <= 0 else (
-        'In Arrears' if datetime.utcnow().date() > loan.due_date else 'Partially Paid'
+        'In Arrears' if datetime.utcnow().date() > loan.due_date.date() else 'Partially Paid'
     )
 
     # Create updated repayment
@@ -664,7 +664,7 @@ def loans_in_arrears():
     query = Loan.query.filter(
         Loan.company_id == current_user.company_id,
         Loan.status == 'Partially Paid',
-        Loan.due_date < today,
+        Loan.due_date < datetime.combine(today, datetime.min.time()),
         Loan.remaining_balance > 0
     )
 
