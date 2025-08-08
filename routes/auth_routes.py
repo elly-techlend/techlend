@@ -52,6 +52,7 @@ def register_company():
             flash('A company with this name already exists.', 'danger')
             return redirect(url_for('auth.register_company'))
 
+        # ✅ Save logo if provided
         logo_url = None
         if logo and allowed_file(logo.filename):
             filename = secure_filename(logo.filename)
@@ -64,12 +65,30 @@ def register_company():
             flash('Invalid logo file type.', 'danger')
             return redirect(request.url)
 
+        # ✅ Create company
         company = Company(name=name, email=email, phone=phone, address=address, logo_url=logo_url)
         db.session.add(company)
         db.session.commit()
 
-        flash('Company registered successfully!', 'success')
-        return redirect(url_for('auth.register_company'))
+        # ✅ Create default branch
+        default_branch = Branch(
+            name="Main Branch",
+            location=address,
+            address=address,
+            phone_number=phone,
+            company_id=company.id
+        )
+        db.session.add(default_branch)
+        db.session.commit()
+
+        # ✅ Set active branch in session
+        session['active_branch_id'] = default_branch.id
+        session['active_branch_name'] = default_branch.name
+
+        log_action(f"{current_user.full_name} registered company '{company.name}' with default branch '{default_branch.name}'")
+
+        flash('Company registered successfully with a default branch set as active!', 'success')
+        return redirect(url_for('borrowers.add_borrower'))
 
     elif request.method == 'POST':
         flash('CSRF token missing or invalid.', 'danger')
@@ -204,9 +223,21 @@ def login():
 
             login_user(user)
 
-            if not user.is_superuser and user.branch_id:
-                session['active_branch_id'] = user.branch_id
-                session['active_branch_name'] = user.branch.name
+            # ✅ Branch session assignment logic
+            if not user.is_superuser:
+                if user.branch_id:
+                    # Use user's assigned branch
+                    session['active_branch_id'] = user.branch_id
+                    session['active_branch_name'] = user.branch.name
+                else:
+                    # Auto-assign if company has only one branch
+                    branches = Branch.query.filter_by(company_id=user.company_id).all()
+                    if len(branches) == 1:
+                        session['active_branch_id'] = branches[0].id
+                        session['active_branch_name'] = branches[0].name
+                    else:
+                        session['active_branch_id'] = None
+                        session['active_branch_name'] = None
             else:
                 session['active_branch_id'] = None
                 session['active_branch_name'] = None
@@ -221,10 +252,20 @@ def login():
 
 @login_required
 def after_login_redirect():
-    if 'admin' in current_user.roles:
-        session['active_branch_id'] = current_user.default_branch_id
-    elif 'branch_manager' in current_user.roles or other_branch_roles:
+    # Get roles as names
+    role_names = [r.name for r in current_user.roles]
+
+    if 'admin' in role_names:
+        if current_user.default_branch_id:
+            session['active_branch_id'] = current_user.default_branch_id
+        else:
+            # Auto-pick branch if company has only one
+            branches = Branch.query.filter_by(company_id=current_user.company_id).all()
+            if len(branches) == 1:
+                session['active_branch_id'] = branches[0].id
+    elif any(role in role_names for role in ['branch_manager', 'loans_officer', 'cashier', 'accountant']):
         session['active_branch_id'] = current_user.branch_id
+
     return redirect(url_for('dashboard'))
 
 @csrf.exempt

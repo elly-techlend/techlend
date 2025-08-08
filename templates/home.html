@@ -15,6 +15,25 @@
         }
     }
 </style>
+<style>
+    /* Dashboard card hover effect */
+    .dashboard-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        position: relative;
+    }
+    .dashboard-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    }
+    /* Top-right icon */
+    .dashboard-icon {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        font-size: 2rem;
+        opacity: 0.15;
+    }
+</style>
 
 <div class="container mt-5">
 
@@ -33,75 +52,86 @@
 
     <!-- Dashboard Boxes -->
 <div class="row">
-    <!-- Left Column: Summary Cards -->
+    <!-- Left Column: Summary Cards (2x2 Grid) -->
     <div class="col-lg-6 col-12 mb-4">
-        <div class="d-grid gap-4">
-
+        <div class="row g-4">
+            
             <!-- Total Borrowers -->
-            <div class="d-flex flex-column p-3 shadow-sm rounded bg-body text-body fade-in-up border">
-                <div class="fw-bold">Total Borrowers: <span>{{ total_borrowers }}</span></div>
-                <small class="text-muted">
-                   This Month: {{ borrowers_month }} | This Year: {{ borrowers_year }}
-                </small>
-                <i class="fa fa-user fa-2x text-secondary mt-2"></i>
-                    <a href="{{ url_for('borrowers.view_borrowers') }}" class="mt-auto bg-primary text-white text-center py-2 d-block rounded text-decoration-none">
-                      Borrowers <i class="fa fa-arrow-right ms-1"></i>
+            <div class="col-md-6">
+                <div class="dashboard-card p-3 rounded shadow-sm border h-100" style="background-color: #e8f4ff;">
+                    <div class="fw-bold">Total Borrowers: <span>{{ total_borrowers }}</span></div>
+                    <small class="text-muted">
+                        This Month: {{ borrowers_month }} | This Year: {{ borrowers_year }}
+                    </small>
+                    <i class="fa fa-user dashboard-icon text-primary"></i>
+                    <a href="{{ url_for('borrowers.view_borrowers') }}" 
+                       class="mt-auto bg-primary text-white text-center py-2 d-block rounded text-decoration-none">
+                        Borrowers <i class="fa fa-arrow-right ms-1"></i>
                     </a>
+                </div>
             </div>
 
             <!-- Total Disbursed -->
-            <div class="d-flex flex-column p-3 shadow-sm rounded bg-body text-body fade-in-up border">
-                <div class="fw-bold">Total Disbursed: <span class="count" data-target="{{ total_disbursed }}">0</span></div>
-                <i class="fa fa-files-o fa-2x text-secondary mt-2"></i>
-                <a href="{{ url_for('loan.view_loans') }}" class="mt-auto bg-primary text-white text-center py-2 d-block rounded text-decoration-none">
-                    Principal Released <i class="fa fa-arrow-right ms-1"></i>
-                </a>
+            <div class="col-md-6">
+                <div class="dashboard-card p-3 rounded shadow-sm border h-100" style="background-color: #fff5e6;">
+                    <div class="fw-bold">Total Disbursed: <span class="count" data-target="{{ total_disbursed }}">0</span></div>
+                    <small class="text-muted">
+                        This Month: {{ borrowers_month }} | This Year: {{ borrowers_year }}
+                    </small>
+                    <i class="fa fa-files-o dashboard-icon text-warning"></i>
+                    <a href="{{ url_for('loan.view_loans') }}" 
+                       class="mt-auto bg-warning text-dark text-center py-2 d-block rounded text-decoration-none">
+                        Principal Released <i class="fa fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
             </div>
 
             <!-- Total Repaid -->
-            <div class="d-flex flex-column p-3 shadow-sm rounded bg-body text-body fade-in-up border">
-                <div class="fw-bold">Total Repaid: <span class="count" data-target="{{ total_repaid }}">0</span></div>
-                <i class="fa fa-dollar fa-2x text-secondary mt-2"></i>
-                <a href="{{ url_for('repayments.all_repayments') }}" class="mt-auto bg-primary text-white text-center py-2 d-block rounded text-decoration-none">
-                    Collections <i class="fa fa-arrow-right ms-1"></i>
-                </a>
+            <div class="col-md-6">
+                <div class="dashboard-card p-3 rounded shadow-sm border h-100" style="background-color: #e9fbe9;">
+                    <div class="fw-bold">Total Repaid: <span class="count" data-target="{{ total_repaid }}">0</span></div>
+                    <i class="fa fa-dollar dashboard-icon text-success"></i>
+                    <a href="{{ url_for('repayments.all_repayments') }}" 
+                       class="mt-auto bg-success text-white text-center py-2 d-block rounded text-decoration-none">
+                        Collections <i class="fa fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
             </div>
 
             <!-- Overdue Loans -->
-            <div class="d-flex flex-column p-3 shadow-sm rounded bg-body text-body fade-in-up border">
-                <div class="fw-bold text-danger">Overdue Loans: <span>{{ overdue_loans|length }}</span></div>
-                <i class="fa fa-exclamation-triangle fa-2x text-danger mt-2"></i>
-                <a href="{{ url_for('loan.loans_in_arrears') }}" class="mt-auto bg-danger text-white text-center py-2 d-block rounded text-decoration-none">
-                    View Overdue <i class="fa fa-arrow-right ms-1"></i>
-                </a>
+            <div class="col-md-6">
+                <div class="dashboard-card p-3 rounded shadow-sm border h-100" style="background-color: #ffeaea;">
+                    <div class="fw-bold text-danger">Overdue Loans: <span>{{ overdue_loans|length }}</span></div>
+                    <i class="fa fa-exclamation-triangle dashboard-icon text-danger"></i>
+                    <a href="{{ url_for('loan.loans_in_arrears') }}" 
+                       class="mt-auto bg-danger text-white text-center py-2 d-block rounded text-decoration-none">
+                        View Overdue <i class="fa fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
             </div>
-
         </div>
     </div>
 
     <!-- Right Column: Charts -->
     <div class="col-lg-6 col-12">
-<!-- Bar Chart -->
-<div class="card shadow-sm p-3 fade-in-up" style="height: 350px;">
-    <h5 class="text-center mb-3">Monthly Borrowed vs Paid (Bar Chart)</h5>
-    <canvas id="barChart" style="width: 100%; height: 100%;"></canvas>
-</div>
+        <!-- Bar Chart -->
+        <div class="card shadow-sm p-3 fade-in-up mb-4" style="height: 350px;">
+            <h5 class="text-center mb-3">Monthly Borrowed vs Paid (Bar Chart)</h5>
+            <canvas id="barChart" style="width: 100%; height: 100%;"></canvas>
+        </div>
 
-<!-- Pie Chart -->
-<div class="card shadow-sm p-3 fade-in-up" style="height: 350px;">
-    <h5 class="text-center mb-3">Overall Loan Status (Pie Chart)</h5>
-    <canvas id="pieChart" style="width: 100%; height: 100px;"></canvas>
-</div>
+        <!-- Pie Chart -->
+        <div class="card shadow-sm p-3 fade-in-up mb-4" style="height: 350px;">
+            <h5 class="text-center mb-3">Overall Loan Status (Pie Chart)</h5>
+            <canvas id="pieChart" style="width: 100%; height: 100px;"></canvas>
+        </div>
 
-<!-- Line Chart -->
-<div class="card shadow-sm p-3 fade-in-up" style="height: 350px;">
-    <h5 class="text-center mb-3">Loan Trends Over Time (Line Chart)</h5>
-    <canvas id="lineChart" style="width: 100%; height: 100%;"></canvas>
-</div>
-
+        <!-- Line Chart -->
+        <div class="card shadow-sm p-3 fade-in-up" style="height: 350px;">
+            <h5 class="text-center mb-3">Loan Trends Over Time (Line Chart)</h5>
+            <canvas id="lineChart" style="width: 100%; height: 100%;"></canvas>
+        </div>
     </div>
-</div>
-
 </div>
 
 <!-- Chart.js -->

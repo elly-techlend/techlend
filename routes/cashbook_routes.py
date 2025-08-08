@@ -6,7 +6,7 @@ from utils.decorators import roles_required
 from forms import CashbookEntryForm
 from datetime import date
 from models import CashbookEntry
-from datetime import datetime
+from datetime import datetime, timedelta
 import pandas as pd
 from sqlalchemy import extract
 from extensions import csrf
@@ -14,30 +14,40 @@ from decimal import Decimal, InvalidOperation
 
 cashbook_bp = Blueprint('cashbook', __name__, url_prefix='/cashbook')
 
+@cashbook_bp.route('/debug/session')
+@login_required
+def debug_session():
+    return {
+        'active_branch_id': session.get('active_branch_id'),
+        'user_branch_id': current_user.branch_id,
+        'company_id': current_user.company_id,
+        'is_superuser': current_user.is_superuser,
+    }
+
 @cashbook_bp.route('/cashbook/new', methods=['GET', 'POST'])
 @login_required
 def new_cashbook_entry():
-    from app import db  # Import here inside the function
+    from app import db
     from models import CashbookEntry
     form = CashbookEntryForm()
     if form.validate_on_submit():
-        # Get last balance for current company
         last_entry = CashbookEntry.query \
             .filter_by(company_id=current_user.company_id) \
             .order_by(CashbookEntry.date.desc(), CashbookEntry.id.desc()) \
             .first()
 
-        last_balance = last_entry.balance if last_entry else 0.0
+        last_balance = Decimal(last_entry.balance) if last_entry else Decimal('0.0')
 
-        debit = float(form.debit.data or 0)
-        credit = float(form.credit.data or 0)
+        debit = Decimal(form.debit.data or '0')
+        credit = Decimal(form.credit.data or '0')
+
         new_balance = last_balance + credit - debit
 
         entry = CashbookEntry(
             date=form.date.data,
             particulars=form.particulars.data,
-            debit = Decimal(entry.debit or 0),
-            credit = Decimal(entry.credit or 0),
+            debit=debit,
+            credit=credit,
             balance=new_balance,
             company_id=current_user.company_id,
             branch_id=current_user.branch_id,
@@ -50,7 +60,6 @@ def new_cashbook_entry():
         return redirect(url_for('cashbook.view_cashbook'))
 
     return render_template('cashbook/new_entry.html', form=form)
-
 
 @cashbook_bp.route('/cashbook', methods=['GET'])
 @login_required
@@ -145,18 +154,21 @@ def add_cashbook_entry(date, particulars, debit, credit, company_id, branch_id=N
     from models import CashbookEntry
     from extensions import db
 
-    # Get the last balance for this company and branch
     last_entry = CashbookEntry.query.filter_by(
         company_id=company_id,
         branch_id=branch_id
     ).order_by(CashbookEntry.id.desc()).first()
 
-    last_balance = last_entry.balance if last_entry else 0.0
+    last_balance = last_entry.balance if last_entry else Decimal('0.0')
 
-    # Calculate new balance
+    credit = Decimal(str(credit))
+    debit = Decimal(str(debit))
+
     new_balance = last_balance + credit - debit
 
-    # Create the entry
+    if created_by is None:
+        raise ValueError("created_by must be provided to add_cashbook_entry()")
+
     entry = CashbookEntry(
         date=date,
         particulars=particulars,
@@ -165,10 +177,8 @@ def add_cashbook_entry(date, particulars, debit, credit, company_id, branch_id=N
         balance=new_balance,
         company_id=company_id,
         branch_id=branch_id,
-        created_by=current_user.id 
+        created_by=created_by
     )
-    if created_by is None:
-        raise ValueError("created_by must be provided to add_cashbook_entry()")
 
     db.session.add(entry)
     db.session.commit()
