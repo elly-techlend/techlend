@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, jsonify
 from flask_login import login_required, current_user
 from extensions import db
-from models import Branch, Loan
+from models import Branch, Loan, LoanRepayment
 from datetime import datetime, date
 from collections import defaultdict
 from flask import session
@@ -69,26 +69,61 @@ def switch_branch(branch_id):
 def index():
     active_branch_id = session.get('active_branch_id')
 
-    # Filter loans based on active branch (if set)
+    # Filter loans for this company (and branch if set)
+    loan_query = Loan.query.filter_by(company_id=current_user.company_id)
     if active_branch_id:
-        loans = Loan.query.filter_by(
-            company_id=current_user.company_id,
-            branch_id=active_branch_id
-        ).all()
-    else:
-        loans = Loan.query.filter_by(company_id=current_user.company_id).all()
+        loan_query = loan_query.filter_by(branch_id=active_branch_id)
+    loans = loan_query.all()
 
     if not loans:
-        return render_template('home.html', user=current_user, loans=[], message="No loans found for your company.")
+        return render_template('home.html', message="No loans found for your company.")
 
-    total_borrowers = len(set(loan.borrower_name for loan in loans))
+    # Basic counts
+    total_borrowers = len(set(l.borrower_name for l in loans))
     total_loans = len(loans)
 
+    # Totals
     total_disbursed = sum(l.amount_borrowed for l in loans)
     total_repaid = sum(l.amount_paid for l in loans)
     total_balance = sum(l.remaining_balance for l in loans)
-    total_interest = sum(l.amount_borrowed * Decimal('0.2') for l in loans)
+    total_interest = sum(
+        l.total_due - l.amount_borrowed if hasattr(l, "total_due") else l.amount_borrowed * Decimal("0.2")
+        for l in loans
+    )
 
+    # Date filtering
+    now = datetime.now()
+    current_year = now.year
+    current_month = now.month
+
+    # Borrowers
+    borrowers_year = len({l.borrower_name for l in loans if l.date.year == current_year})
+    borrowers_month = len({l.borrower_name for l in loans if l.date.year == current_year and l.date.month == current_month})
+
+    # Disbursed
+    disbursed_year = sum(l.amount_borrowed for l in loans if l.date.year == current_year)
+    disbursed_month = sum(l.amount_borrowed for l in loans if l.date.year == current_year and l.date.month == current_month)
+
+    # Repaid — use repayment dates if you have LoanRepayment model
+    repayments_query = LoanRepayment.query.join(Loan).filter(Loan.company_id == current_user.company_id)
+    if active_branch_id:
+        repayments_query = repayments_query.filter(Loan.branch_id == active_branch_id)
+    repayments = repayments_query.all()
+
+    collections_year = sum(r.amount_paid for r in repayments if r.date_paid.year == current_year)
+    collections_month = sum(r.amount_paid for r in repayments if r.date_paid.year == current_year and r.date_paid.month == current_month)
+
+    # Overdue loans
+    overdue_loans_query = Loan.query.filter(
+        Loan.company_id == current_user.company_id,
+        Loan.due_date < date.today(),
+        Loan.remaining_balance > 0
+    )
+    if active_branch_id:
+        overdue_loans_query = overdue_loans_query.filter(Loan.branch_id == active_branch_id)
+    overdue_loans = overdue_loans_query.order_by(Loan.due_date.asc()).limit(5).all()
+
+    # Monthly chart data
     monthly_data = defaultdict(lambda: {
         "total_disbursed": 0,
         "total_paid": 0,
@@ -101,7 +136,9 @@ def index():
         monthly_data[month_key]["total_disbursed"] += loan.amount_borrowed
         monthly_data[month_key]["total_paid"] += loan.amount_paid
         monthly_data[month_key]["total_remaining"] += loan.remaining_balance
-        monthly_data[month_key]["total_interest"] += float(loan.amount_borrowed) * 0.2
+        monthly_data[month_key]["total_interest"] += (
+            loan.total_due - loan.amount_borrowed if hasattr(loan, "total_due") else loan.amount_borrowed * 0.2
+        )
 
     sorted_months = sorted(monthly_data.keys())
     months = [datetime.strptime(m, "%Y-%m").strftime("%b %Y") for m in sorted_months]
@@ -110,17 +147,7 @@ def index():
     remaining_balances = [monthly_data[m]["total_remaining"] for m in sorted_months]
     interest_earned = [monthly_data[m]["total_interest"] for m in sorted_months]
 
-    # Overdue loans scoped to branch if set
-    overdue_loans_query = Loan.query.filter(
-        Loan.company_id == current_user.company_id,
-        Loan.due_date < date.today(),
-        Loan.remaining_balance > 0
-    )
-    if active_branch_id:
-        overdue_loans_query = overdue_loans_query.filter(Loan.branch_id == active_branch_id)
-
-    overdue_loans = overdue_loans_query.order_by(Loan.due_date.asc()).limit(5).all()
-
+    # Last update
     latest_loan = max(loans, key=lambda l: l.date, default=None)
     if latest_loan:
         local_tz = pytz.timezone("Africa/Kampala")
@@ -129,26 +156,17 @@ def index():
     else:
         last_update = "No data"
 
-    now = datetime.now()
-    current_year = now.year
-    current_month = now.month
-
-    disbursed_year = sum(l.amount_borrowed for l in loans if l.date.year == current_year)
-    disbursed_month = sum(l.amount_borrowed for l in loans if l.date.year == current_year and l.date.month == current_month)
-
-    collections_year = sum(l.amount_paid for l in loans if l.date.year == current_year)
-    collections_month = sum(l.amount_paid for l in loans if l.date.year == current_year and l.date.month == current_month)
-
-    borrowers_year = len(set(loan.borrower_name for loan in loans if loan.date.year == current_year))
-    borrowers_month = len(set(loan.borrower_name for loan in loans if loan.date.year == current_year and loan.date.month == current_month))
-
     return render_template(
         'home.html',
         total_borrowers=total_borrowers,
         borrowers_year=borrowers_year,
         borrowers_month=borrowers_month,
         total_disbursed=total_disbursed,
+        disbursed_year=disbursed_year,
+        disbursed_month=disbursed_month,
         total_repaid=total_repaid,
+        collections_year=collections_year,
+        collections_month=collections_month,
         total_balance=total_balance,
         total_interest=total_interest,
         total_loans=total_loans,
@@ -159,11 +177,7 @@ def index():
         interest_earned=interest_earned,
         overdue_loans=overdue_loans,
         last_update=last_update,
-        user=current_user,
-        disbursed_year=disbursed_year,
-        disbursed_month=disbursed_month,
-        collections_year=collections_year,
-        collections_month=collections_month
+        user=current_user
     )
 
 @dashboard_bp.route('/loan_data')

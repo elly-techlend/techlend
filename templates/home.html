@@ -1,135 +1,297 @@
 {% extends 'base.html' %}
 
 {% block content %}
+
 <style>
-    .fade-in-up {
-        opacity: 0;
-        transform: translateY(20px);
-        animation: fadeInUp 0.6s ease-out forwards;
+    /* General Layout */
+    .dashboard-container {
+        max-width: 1400px;
+        margin: auto;
+        padding: 1rem;
     }
 
-    @keyframes fadeInUp {
-        to {
-            opacity: 1;
-            transform: translateY(0);
+    /* Welcome Banner */
+    .welcome-banner {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        background: linear-gradient(135deg, #f8f9fa, #ffffff);
+        border: 1px solid #eaeaea;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        color: #222; /* default text color */
+        gap: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .welcome-content {
+        flex: 1 1 60%;
+        min-width: 250px;
+        padding-right: 2rem; /* spacing between content and border */
+        border-right: 2px solid #ddd; /* subtle dividing line */
+    }
+
+    .welcome-banner h2 {
+        font-weight: 600;
+        font-size: 1.8rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .role-badge {
+        font-size: 0.8rem;
+        background-color: #eef2ff;
+        color: #4f46e5;
+        padding: 0.3rem 0.6rem;
+        border-radius: 8px;
+        margin-right: 0.3rem;
+    }
+
+    /* Quick Links Section */
+    .quick-links-section {
+        flex: 1 1 35%;
+        min-width: 200px;
+        padding-left: 2rem; /* spacing between border and links */
+    }
+
+    .quick-links-section h3 {
+        margin-bottom: 1rem;
+        font-weight: 600;
+        color: #4f46e5;
+    }
+
+    /* Quick Actions as vertical links */
+    .quick-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
+    }
+
+    .quick-actions a {
+        background: none;
+        color: #4f46e5;
+        text-decoration: underline;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: color 0.2s ease;
+        padding: 0;
+    }
+
+    .quick-actions a:hover {
+        color: #4338ca;
+        text-decoration: none;
+    }
+
+    /* Stat Cards */
+    .stat-card {
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        border: 1px solid #eaeaea;
+        height: 100%;
+        color: #222;
+    }
+
+    .stat-title {
+        font-size: 0.9rem;
+        color: #6b7280;
+    }
+
+    .stat-value {
+        font-size: 1.6rem;
+        font-weight: 600;
+        margin-top: 0.3rem;
+    }
+
+    .stat-link {
+        margin-top: 1rem;
+        font-size: 0.85rem;
+        text-decoration: none;
+        color: #4f46e5;
+        font-weight: 500;
+    }
+
+    .stat-link:hover {
+        text-decoration: underline;
+    }
+
+    /* Chart Container */
+    .chart-card {
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 1rem;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        border: 1px solid #eaeaea;
+        height: 100%;
+        color: #222;
+    }
+
+    /* ==== DARK MODE ==== */
+    body.dark-mode {
+        background-color: #121212;
+        color: #e0e0e0;
+    }
+
+    body.dark-mode .welcome-banner {
+        background: linear-gradient(135deg, #1e1e1e, #2c2c2c);
+        border: 1px solid #444;
+        box-shadow: 0 4px 12px rgba(255,255,255,0.05);
+        color: #ddd;
+        border-right: 1px solid #555;
+    }
+
+    body.dark-mode .role-badge {
+        background-color: #33384d;
+        color: #a8b0ff;
+    }
+
+    body.dark-mode .quick-links-section h3 {
+        color: #a0aaff;
+    }
+
+    body.dark-mode .quick-actions a {
+        background: none;
+        color: #a0aaff;
+    }
+
+    body.dark-mode .quick-actions a:hover {
+        color: #c0c0ff;
+        text-decoration: none;
+    }
+
+    body.dark-mode .stat-card,
+    body.dark-mode .chart-card {
+        background: #1f1f1f;
+        border: 1px solid #444;
+        box-shadow: 0 2px 6px rgba(255,255,255,0.1);
+        color: #ccc;
+    }
+
+    body.dark-mode .stat-title {
+        color: #999;
+    }
+
+    body.dark-mode .stat-link {
+        color: #a0aaff;
+    }
+
+    body.dark-mode .stat-link:hover {
+        text-decoration: underline;
+        color: #c0c0ff;
+    }
+
+    /* Responsive: stack welcome content and quick links vertically on smaller screens */
+    @media (max-width: 768px) {
+        .welcome-banner {
+            flex-direction: column;
+        }
+
+        .welcome-content,
+        .quick-links-section {
+            flex: 1 1 100%;
+            min-width: auto;
+        }
+
+        .quick-links-section {
+            margin-top: 1.5rem;
+        }
+    }
+
+    /* Responsive adjustments for very small screens */
+    @media (max-width: 480px) {
+        .quick-actions {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .quick-actions a {
+            font-size: 1.1rem;
         }
     }
 </style>
-<style>
-    /* Dashboard card hover effect */
-    .dashboard-card {
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        position: relative;
-    }
-    .dashboard-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-    }
-    /* Top-right icon */
-    .dashboard-icon {
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        font-size: 2rem;
-        opacity: 0.15;
-    }
-</style>
 
-<div class="container mt-5">
+<div class="dashboard-container">
 
-    <!-- Welcome Banner -->
-    <div class="text-center mb-5 fade-in-up">
-        <div class="shadow-sm p-4 rounded bg-light bg-gradient dark-mode-gradient">
-            <h2 class="fw-bold mb-3" style="font-size: 2rem; color: #0a3d62;">
-                Welcome Back, {{ current_user.username }} ({{ current_user.role_names | map('capitalize') | join(', ') }})
-            </h2>
-            <p class="text-muted" style="font-size: 1.1rem;">
-                Monitor borrower activity, track collections, and manage loan data effectively.
-            </p>
-            <small class="text-muted">Last Update: {{ last_update }}</small>
+<!-- Welcome Banner -->
+<div class="welcome-banner">
+    <div class="welcome-content">
+        <h2>Welcome back, {{ current_user.username }}</h2>
+        <div>
+            {% for role in current_user.role_names %}
+                <span class="role-badge">{{ role|capitalize }}</span>
+            {% endfor %}
         </div>
+        <p class="text-muted mt-2">Monitor borrower activity, track collections, and manage loan data effectively.</p>
+        <small class="text-muted">Last update: {{ last_update }}</small>
     </div>
 
-    <!-- Dashboard Boxes -->
-<div class="row">
-    <!-- Left Column: Summary Cards (2x2 Grid) -->
-    <div class="col-lg-6 col-12 mb-4">
-        <div class="row g-4">
-            
-            <!-- Total Borrowers -->
-            <div class="col-md-6">
-                <div class="dashboard-card p-3 rounded shadow-sm border h-100" style="background-color: #e8f4ff;">
-                    <div class="fw-bold">Total Borrowers: <span>{{ total_borrowers }}</span></div>
-                    <small class="text-muted">
-                        This Month: {{ borrowers_month }} | This Year: {{ borrowers_year }}
-                    </small>
-                    <i class="fa fa-user dashboard-icon text-primary"></i>
-                    <a href="{{ url_for('borrowers.view_borrowers') }}" 
-                       class="mt-auto bg-primary text-white text-center py-2 d-block rounded text-decoration-none">
-                        Borrowers <i class="fa fa-arrow-right ms-1"></i>
-                    </a>
-                </div>
-            </div>
+    <div class="quick-links-section">
+        <h3>Quick Links</h3>
+        <div class="quick-actions">
+            <a href="{{ url_for('borrowers.add_borrower') }}">➕ Add Borrower</a>
+            <a href="{{ url_for('loan.add_loan') }}">➕ Add Loan</a>
+            <a href="{{ url_for('borrowers.send_sms') }}">📤 Send SMS</a>
+            <a href="{{ url_for('expenses.add_expense') }}">➕ Add Expense</a>
+        </div>
+    </div>
+</div>
 
-            <!-- Total Disbursed -->
-            <div class="col-md-6">
-                <div class="dashboard-card p-3 rounded shadow-sm border h-100" style="background-color: #fff5e6;">
-                    <div class="fw-bold">Total Disbursed: <span class="count" data-target="{{ total_disbursed }}">0</span></div>
-                    <small class="text-muted">
-                        This Month: {{ borrowers_month }} | This Year: {{ borrowers_year }}
-                    </small>
-                    <i class="fa fa-files-o dashboard-icon text-warning"></i>
-                    <a href="{{ url_for('loan.view_loans') }}" 
-                       class="mt-auto bg-warning text-dark text-center py-2 d-block rounded text-decoration-none">
-                        Principal Released <i class="fa fa-arrow-right ms-1"></i>
-                    </a>
-                </div>
+    <!-- Stat Cards -->
+    <div class="row mt-4 g-4">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-title">Total Borrowers</div>
+                <div class="stat-value">{{ total_borrowers }}</div>
+                <a href="{{ url_for('borrowers.view_borrowers') }}" class="stat-link">View Borrowers →</a>
             </div>
-
-            <!-- Total Repaid -->
-            <div class="col-md-6">
-                <div class="dashboard-card p-3 rounded shadow-sm border h-100" style="background-color: #e9fbe9;">
-                    <div class="fw-bold">Total Repaid: <span class="count" data-target="{{ total_repaid }}">0</span></div>
-                    <i class="fa fa-dollar dashboard-icon text-success"></i>
-                    <a href="{{ url_for('repayments.all_repayments') }}" 
-                       class="mt-auto bg-success text-white text-center py-2 d-block rounded text-decoration-none">
-                        Collections <i class="fa fa-arrow-right ms-1"></i>
-                    </a>
-                </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-title">Total Disbursed</div>
+                <div class="stat-value">{{ total_disbursed }}</div>
+                <a href="{{ url_for('loan.view_loans') }}" class="stat-link">View Loans →</a>
             </div>
-
-            <!-- Overdue Loans -->
-            <div class="col-md-6">
-                <div class="dashboard-card p-3 rounded shadow-sm border h-100" style="background-color: #ffeaea;">
-                    <div class="fw-bold text-danger">Overdue Loans: <span>{{ overdue_loans|length }}</span></div>
-                    <i class="fa fa-exclamation-triangle dashboard-icon text-danger"></i>
-                    <a href="{{ url_for('loan.loans_in_arrears') }}" 
-                       class="mt-auto bg-danger text-white text-center py-2 d-block rounded text-decoration-none">
-                        View Overdue <i class="fa fa-arrow-right ms-1"></i>
-                    </a>
-                </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-title">Total Repaid</div>
+                <div class="stat-value">{{ total_repaid }}</div>
+                <a href="{{ url_for('repayments.all_repayments') }}" class="stat-link">View Collections →</a>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-title text-danger">Overdue Loans</div>
+                <div class="stat-value text-danger">{{ overdue_loans|length }}</div>
+                <a href="{{ url_for('loan.loans_in_arrears') }}" class="stat-link text-danger">View Overdue →</a>
             </div>
         </div>
     </div>
 
-    <!-- Right Column: Charts -->
-    <div class="col-lg-6 col-12">
-        <!-- Bar Chart -->
-        <div class="card shadow-sm p-3 fade-in-up mb-4" style="height: 350px;">
-            <h5 class="text-center mb-3">Monthly Borrowed vs Paid (Bar Chart)</h5>
-            <canvas id="barChart" style="width: 100%; height: 100%;"></canvas>
+    <!-- Charts -->
+    <div class="row mt-4 g-4">
+        <div class="col-md-6">
+            <div class="chart-card">
+                <h6 class="mb-3">Monthly Borrowed vs Paid</h6>
+                <canvas id="barChart"></canvas>
+            </div>
         </div>
-
-        <!-- Pie Chart -->
-        <div class="card shadow-sm p-3 fade-in-up mb-4" style="height: 350px;">
-            <h5 class="text-center mb-3">Overall Loan Status (Pie Chart)</h5>
-            <canvas id="pieChart" style="width: 100%; height: 100px;"></canvas>
+        <div class="col-md-6">
+            <div class="chart-card">
+                <h6 class="mb-3">Overall Loan Status</h6>
+                <canvas id="pieChart"></canvas>
+            </div>
         </div>
-
-        <!-- Line Chart -->
-        <div class="card shadow-sm p-3 fade-in-up" style="height: 350px;">
-            <h5 class="text-center mb-3">Loan Trends Over Time (Line Chart)</h5>
-            <canvas id="lineChart" style="width: 100%; height: 100%;"></canvas>
+        <div class="col-12">
+            <div class="chart-card mt-4">
+                <h6 class="mb-3">Loan Trends Over Time</h6>
+                <canvas id="lineChart"></canvas>
+            </div>
         </div>
     </div>
 </div>
