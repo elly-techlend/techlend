@@ -5,7 +5,7 @@
 <style>
     /* General Layout */
     .dashboard-container {
-        max-width: 1400px;
+        max-width: 100%;
         margin: auto;
         padding: 1rem;
     }
@@ -16,8 +16,8 @@
         justify-content: space-between;
         align-items: flex-start;
         background: linear-gradient(135deg, #f8f9fa, #ffffff);
-        border: 1px solid #eaeaea;
-        border-radius: 12px;
+        border: 2px solid #eaeaea;
+        border-radius: 8px;
         padding: 2rem;
         box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         color: #222; /* default text color */
@@ -27,7 +27,7 @@
 
     .welcome-content {
         flex: 1 1 60%;
-        min-width: 250px;
+        min-width: 300px;
         padding-right: 2rem; /* spacing between content and border */
         border-right: 2px solid #ddd; /* subtle dividing line */
     }
@@ -242,7 +242,7 @@
 </div>
 
     <!-- Stat Cards -->
-    <div class="row mt-4 g-4">
+    <div class="row mt-2 g-2">
         <div class="col-md-3">
             <div class="stat-card">
                 <div class="stat-title">Total Borrowers</div>
@@ -274,7 +274,7 @@
     </div>
 
     <!-- Charts -->
-    <div class="row mt-4 g-4">
+    <div class="row mt-2 g-2">
         <div class="col-md-6">
             <div class="chart-card">
                 <h6 class="mb-3">Monthly Borrowed vs Paid</h6>
