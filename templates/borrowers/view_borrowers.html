@@ -1,99 +1,88 @@
-{% extends 'base.html' %}
-
+{% extends "base.html" %}
 {% block content %}
-<div class="container mt-4">
-    <div class="card shadow rounded-3 p-4">
-        <h4 class="card-title mb-4 text-center">Borrowers List</h4>
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="mb-0">👥 Borrowers</h3>
 
-        <!-- 🔍 Search + Filters (One Row, Responsive) -->
-        <form method="GET" action="{{ url_for('borrowers.view_borrowers') }}" class="row g-2 mb-4">
-            <div class="col-md-4 col-sm-12">
-                <input type="text" name="search" class="form-control form-control-sm" placeholder="Search by name or phone"
-                    value="{{ request.args.get('search', '') }}">
-            </div>
+        <div class="dropdown">
+            <button class="btn btn-light dropdown-toggle btn-sm" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-three-dots-vertical"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
+                <li>
+                    <a class="dropdown-item text-primary" href="#" data-bs-toggle="modal" data-bs-target="#searchModal">
+                        <i class="bi bi-search me-2"></i> Search
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item text-success" href="#" data-bs-toggle="modal" data-bs-target="#filterModal">
+                        <i class="bi bi-funnel me-2"></i> Filter
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
 
-            <div class="col-md-2 col-sm-6">
-                <select name="month" class="form-select form-select-sm">
-                    <option value="">Filter by Month</option>
-                    {% for m in range(1, 13) %}
-                        <option value="{{ m }}" {% if request.args.get('month', type=int) == m %}selected{% endif %}>{{ m }}</option>
-                    {% endfor %}
-                </select>
-            </div>
+    <div class="card-body">
+        {% if request.args.get('search') or request.args.get('month') or request.args.get('year') %}
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <small class="text-muted">
+                {% if request.args.get('search') %}
+                    🔍 <strong>Search:</strong> {{ request.args.get('search') }}
+                {% endif %}
+                {% if request.args.get('month') %}
+                    | 📆 <strong>Month:</strong> {{ request.args.get('month') }}
+                {% endif %}
+                {% if request.args.get('year') %}
+                    | 🗓 <strong>Year:</strong> {{ request.args.get('year') }}
+                {% endif %}
+            </small>
+            <a href="{{ url_for('borrowers.view_borrowers') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-x-circle"></i> Clear Filters
+            </a>
+        </div>
+        {% endif %}
 
-            <div class="col-md-2 col-sm-6">
-                <select name="year" class="form-select form-select-sm">
-                    <option value="">Filter by Year</option>
-                    {% for y in range(2022, 2035) %}
-                        <option value="{{ y }}" {% if request.args.get('year', type=int) == y %}selected{% endif %}>{{ y }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="col-md-2 col-sm-12">
-                <button type="submit" class="btn btn-outline-primary btn-sm w-100">
-                    <i class="bi bi-funnel-fill me-1"></i>Apply
-                </button>
-            </div>
-        </form>
-
-        <!-- 📋 Borrowers Table -->
+        <!-- Borrowers Table -->
         <div class="table-responsive">
-            <table class="table table-bordered table-hover align-middle">
-                <thead class="table-light sticky-top">
+            <table class="table table-bordered table-striped table-hover align-middle">
+                <thead class="table-light">
                     <tr>
-                        <th>View</th>
+                        <th>view</th>
                         <th>Borrower ID</th>
                         <th>Full Name</th>
                         <th>Mobile</th>
                         <th>Total Paid</th>
-                        <th>Open Loan Balance</th>
+                        <th>Date Added</th>
+                        <th>Open Loan Due</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for borrower in borrowers %}
+                {% for borrower in borrowers %}
                     <tr>
-                        <td>
-                            <a href="{{ url_for('loan.view_by_borrower', borrower_id=borrower.id) }}" class="btn btn-outline-info btn-sm mb-1">
-                                <i class="fas fa-credit-card"></i>
-                            </a>
-                            <a href="{{ url_for('savings.view_by_borrower', borrower_id=borrower.id) }}" class="btn btn-outline-success btn-sm mb-1">
-                                <i class="fas fa-piggy-bank"></i>
-                            </a>
-                        </td>
+                        <td><a href="{{ url_for('loan.view_by_borrower', borrower_id=borrower.id) }}" class="btn btn-outline-info btn-sm mb-1"> <i class="fas fa-credit-card"></i> </a> <a href="{{ url_for('savings.view_by_borrower', borrower_id=borrower.id) }}" class="btn btn-outline-success btn-sm mb-1"> <i class="fas fa-piggy-bank"></i> </a></td>
                         <td>{{ borrower.borrower_id }}</td>
                         <td>{{ borrower.name }}</td>
                         <td>{{ borrower.phone }}</td>
                         <td>{{ borrower.total_paid or 0 }}</td>
+                        <td>{{ borrower.created_at.strftime('%Y-%m-%d') }}</td>
                         <td>{{ borrower.open_balance or 0 }}</td>
                         <td>
-                            <a href="{{ url_for('borrowers.edit_borrower', borrower_id=borrower.id) }}" class="btn btn-warning btn-sm">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                            <a href="{{ url_for('borrowers.delete_borrower', borrower_id=borrower.id) }}" class="btn btn-danger btn-sm"
-                               onclick="return confirm('Are you sure you want to delete this borrower?');">
-                                <i class="fas fa-trash-alt"></i>
-                            </a>
-                            <a href="{{ url_for('borrowers.borrower_details', borrower_id=borrower.id) }}" class="btn btn-info btn-sm">
-                                <i class="fas fa-eye"></i>
-                            </a>
-                        </td>
+                        <a href="{{ url_for('borrowers.edit_borrower', borrower_id=borrower.id) }}" class="btn btn-warning btn-sm"> <i class="fas fa-edit"></i> </a> <a href="{{ url_for('borrowers.delete_borrower', borrower_id=borrower.id) }}" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this borrower?');"> <i class="fas fa-trash-alt"></i> </a> <a href="{{ url_for('borrowers.borrower_details', borrower_id=borrower.id) }}" class="btn btn-info btn-sm"> <i class="fas fa-eye"></i> </a> </td> </tr> {% else %} <tr><td colspan="7" class="text-center">No borrowers found.</td>
                     </tr>
-                    {% else %}
-                    <tr><td colspan="7" class="text-center">No borrowers found.</td></tr>
-                    {% endfor %}
+                {% endfor %}
                 </tbody>
             </table>
         </div>
 
-        <!-- 📄 Pagination -->
+        <!-- Pagination -->
         {% if pagination.pages > 1 %}
         <nav aria-label="Pagination">
             <ul class="pagination justify-content-center mt-3">
                 {% if pagination.has_prev %}
                 <li class="page-item">
-                    <a class="page-link" href="{{ url_for('borrowers.view_borrowers', page=pagination.prev_num, search=request.args.get('search', ''), year=request.args.get('year'), month=request.args.get('month')) }}">Previous</a>
+                    <a class="page-link" href="{{ url_for('borrowers.view_borrowers', page=pagination.prev_num, search=request.args.get('search', ''), month=request.args.get('month', ''), year=request.args.get('year', '')) }}">Previous</a>
                 </li>
                 {% else %}
                 <li class="page-item disabled"><span class="page-link">Previous</span></li>
@@ -105,17 +94,17 @@
                             <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
                         {% else %}
                             <li class="page-item">
-                                <a class="page-link" href="{{ url_for('borrowers.view_borrowers', page=page_num, search=request.args.get('search', ''), year=request.args.get('year'), month=request.args.get('month')) }}">{{ page_num }}</a>
+                                <a class="page-link" href="{{ url_for('borrowers.view_borrowers', page=page_num, search=request.args.get('search', ''), month=request.args.get('month', ''), year=request.args.get('year', '')) }}">{{ page_num }}</a>
                             </li>
                         {% endif %}
-                    {% else %}
+                    {% else %} 
                         <li class="page-item disabled"><span class="page-link">…</span></li>
                     {% endif %}
                 {% endfor %}
 
                 {% if pagination.has_next %}
                 <li class="page-item">
-                    <a class="page-link" href="{{ url_for('borrowers.view_borrowers', page=pagination.next_num, search=request.args.get('search', ''), year=request.args.get('year'), month=request.args.get('month')) }}">Next</a>
+                    <a class="page-link" href="{{ url_for('borrowers.view_borrowers', page=pagination.next_num, search=request.args.get('search', ''), month=request.args.get('month', ''), year=request.args.get('year', '')) }}">Next</a>
                 </li>
                 {% else %}
                 <li class="page-item disabled"><span class="page-link">Next</span></li>
@@ -124,5 +113,60 @@
         </nav>
         {% endif %}
     </div>
+</div>
+
+<!-- Search Modal -->
+<div class="modal fade" id="searchModal" tabindex="-1" aria-labelledby="searchModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <form method="GET" action="{{ url_for('borrowers.view_borrowers') }}" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="searchModalLabel">Search Borrowers</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <input type="text" name="search" value="{{ request.args.get('search', '') }}"
+               class="form-control" placeholder="Name or Phone Number">
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary btn-sm">Search</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Filter Modal -->
+<div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <form method="GET" action="{{ url_for('borrowers.view_borrowers') }}" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="filterModalLabel">Filter Borrowers</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body d-flex flex-column gap-3">
+        <select name="month" class="form-select">
+          <option value="">Select Month</option>
+          {% for m in range(1, 13) %}
+              <option value="{{ '%02d' % m }}" {% if request.args.get('month') == '%02d' % m %}selected{% endif %}>
+                  {{ '%02d' % m }}
+              </option>
+          {% endfor %}
+        </select>
+
+        <select name="year" class="form-select">
+          <option value="">Select Year</option>
+          {% for y in range(2024, 2035) %}
+              <option value="{{ y }}" {% if request.args.get('year') == y|string %}selected{% endif %}>
+                  {{ y }}
+              </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-success btn-sm">Apply</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </form>
+  </div>
 </div>
 {% endblock %}

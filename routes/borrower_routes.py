@@ -24,8 +24,10 @@ def view_borrowers():
     branch_id = session.get('active_branch_id')
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '').strip()
-    year = request.args.get('year', type=int)
-    month = request.args.get('month', type=int)
+
+    # ✅ Do casting in Python, not in Jinja
+    year = request.args.get('year', default=None, type=int)
+    month = request.args.get('month', default=None, type=int)
 
     borrowers_query = Borrower.query.filter_by(company_id=current_user.company_id)
 
@@ -55,7 +57,15 @@ def view_borrowers():
         _ = borrower.total_paid
         _ = borrower.open_balance
 
-    return render_template('borrowers/view_borrowers.html', borrowers=borrowers, pagination=pagination)
+    # ✅ Pass year & month to template
+    return render_template(
+        'borrowers/view_borrowers.html',
+        borrowers=borrowers,
+        pagination=pagination,
+        year=year,
+        month=month,
+        search=search
+    )
 
 @borrower_bp.route('/borrowers/add', methods=['GET', 'POST'])
 @login_required
