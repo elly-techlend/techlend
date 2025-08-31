@@ -62,19 +62,20 @@
       </li>
     </ul>
   </div>
-
-  <div class="dropdown">
+ 
+<div class="dropdown">
     <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="exportMenu" data-bs-toggle="dropdown" aria-expanded="false">
       More
     </button>
     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="exportMenu">
       <li>
-        <a class="dropdown-item text-danger" href="{{ url_for('repayments.export_pdf') }}">
+        <a class="dropdown-item text-danger" href="{{ url_for('repayments.export_pdf', filter=filter, month=selected_month, year=selected_year) }}">
           <i class="fas fa-file-pdf me-2"></i> Export as PDF
         </a>
       </li>
     </ul>
-  </div>
+</div>
+
 </div>
 
 <!-- Total Summary -->

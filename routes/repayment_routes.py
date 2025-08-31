@@ -31,38 +31,37 @@ def all_repayments():
     if branch_id:
         repayments_query = repayments_query.filter(Loan.branch_id == branch_id)
 
-    # Filter by period (day, month, year)
-    period = request.args.get('period')
-    date_str = request.args.get('date')
+    filter_type = request.args.get('filter')  # <-- read 'filter' parameter from template
+    today = datetime.today().date()
 
-    if date_str:
-        try:
-            filter_date = datetime.strptime(date_str, '%Y-%m-%d')
-        except ValueError:
-            flash('Invalid date format. Please use YYYY-MM-DD.', 'danger')
-            return render_template('repayments/view_repayments.html', repayments=[], total_collected=0)
-
-        if period == 'day':
-            repayments_query = repayments_query.filter(
-                func.date(LoanRepayment.date_paid) == filter_date.date()
-            )
-        elif period == 'month':
-            start_date = filter_date.replace(day=1)
-            # Get the first day of next month safely
-            month_days = calendar.monthrange(start_date.year, start_date.month)[1]
-            next_month = start_date + timedelta(days=month_days)
-            next_month = next_month.replace(day=1)
-            repayments_query = repayments_query.filter(
-                LoanRepayment.date_paid >= start_date,
-                LoanRepayment.date_paid < next_month
-            )
-        elif period == 'year':
-            start_date = datetime(filter_date.year, 1, 1)
-            end_date = datetime(filter_date.year, 12, 31, 23, 59, 59)
-            repayments_query = repayments_query.filter(
-                LoanRepayment.date_paid >= start_date,
-                LoanRepayment.date_paid <= end_date
-            )
+    if filter_type == 'today':
+        repayments_query = repayments_query.filter(func.date(LoanRepayment.date_paid) == today)
+    elif filter_type == 'weekly':
+        start_week = today - timedelta(days=today.weekday())  # Monday
+        end_week = start_week + timedelta(days=7)
+        repayments_query = repayments_query.filter(
+            LoanRepayment.date_paid >= start_week,
+            LoanRepayment.date_paid < end_week
+        )
+    elif filter_type == 'monthly':
+        month = int(request.args.get('month', today.month))
+        year = int(request.args.get('year', today.year))
+        start_date = datetime(year, month, 1)
+        month_days = calendar.monthrange(year, month)[1]
+        end_date = start_date + timedelta(days=month_days)
+        end_date = end_date.replace(day=1)  # first day of next month
+        repayments_query = repayments_query.filter(
+            LoanRepayment.date_paid >= start_date,
+            LoanRepayment.date_paid < end_date
+        )
+    elif filter_type == 'yearly':
+        year = int(request.args.get('year', today.year))
+        start_date = datetime(year, 1, 1)
+        end_date = datetime(year, 12, 31, 23, 59, 59)
+        repayments_query = repayments_query.filter(
+            LoanRepayment.date_paid >= start_date,
+            LoanRepayment.date_paid <= end_date
+        )
 
     repayments = repayments_query.order_by(LoanRepayment.date_paid.desc()).all()
     total_collected = sum(r.amount_paid for r in repayments)
@@ -70,7 +69,12 @@ def all_repayments():
     return render_template(
         'repayments/view_repayments.html',
         repayments=repayments,
-        total_collected=total_collected
+        total_collected=total_collected,
+        filter=filter_type,
+        months=[(i, calendar.month_name[i]) for i in range(1, 13)],
+        years=list(range(2020, today.year + 1)),
+        selected_month=int(request.args.get('month', today.month)),
+        selected_year=int(request.args.get('year', today.year))
     )
 
 @repayment_bp.route('/repayments/export/pdf')
@@ -78,19 +82,58 @@ def all_repayments():
 @roles_required('Admin', 'Accountant', 'Branch_Manager', 'Loans_Officer', 'Loans Supervisor', 'Cashier')
 def export_pdf():
     branch_id = session.get('active_branch_id')
+    filter_type = request.args.get('filter_type', 'all')  # default to all
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
 
-    # Query repayments with borrower name
-    repayments_query = LoanRepayment.query.options(joinedload(LoanRepayment.loan).joinedload(Loan.borrower)) \
+    # Base query
+    repayments_query = LoanRepayment.query.join(Loan).join(Borrower)\
+        .options(joinedload(LoanRepayment.loan).joinedload(Loan.borrower))\
         .filter(Loan.company_id == current_user.company_id)
 
+    # Filter by branch
     if branch_id:
         repayments_query = repayments_query.filter(Loan.branch_id == branch_id)
+
+    # Date filtering
+    today = datetime.today().date()
+    if filter_type == 'today':
+        repayments_query = repayments_query.filter(func.date(LoanRepayment.date_paid) == today)
+        filter_label = f"Today ({today.strftime('%Y-%m-%d')})"
+    elif filter_type == 'month':
+        repayments_query = repayments_query.filter(
+            extract('year', LoanRepayment.date_paid) == today.year,
+            extract('month', LoanRepayment.date_paid) == today.month
+        )
+        filter_label = f"This Month ({today.strftime('%B %Y')})"
+    elif filter_type == 'year':
+        repayments_query = repayments_query.filter(
+            extract('year', LoanRepayment.date_paid) == today.year
+        )
+        filter_label = f"This Year ({today.year})"
+    elif filter_type == 'custom' and start_date and end_date:
+        try:
+            start = datetime.strptime(start_date, '%Y-%m-%d').date()
+            end = datetime.strptime(end_date, '%Y-%m-%d').date()
+            repayments_query = repayments_query.filter(
+                func.date(LoanRepayment.date_paid).between(start, end)
+            )
+            filter_label = f"Custom Range ({start.strftime('%Y-%m-%d')} to {end.strftime('%Y-%m-%d')})"
+        except ValueError:
+            filter_label = "All"
+    else:
+        filter_label = "All"
 
     repayments = repayments_query.all()
     total_collected = sum(r.amount_paid for r in repayments)
 
-    # Render HTML template
-    html = render_template('repayments/pdf_template.html', repayments=repayments, total_collected=total_collected)
+    # Render HTML
+    html = render_template(
+        'repayments/pdf_template.html',
+        repayments=repayments,
+        total_collected=total_collected,
+        filter_label=filter_label
+    )
 
     # Convert to PDF
     pdf = BytesIO()
@@ -98,7 +141,7 @@ def export_pdf():
 
     response = make_response(pdf.getvalue())
     response.headers['Content-Type'] = 'application/pdf'
-    response.headers['Content-Disposition'] = f'attachment; filename=repayments_{datetime.now().date()}.pdf'
+    response.headers['Content-Disposition'] = f'attachment; filename=repayments_{today}.pdf'
 
     return response
 
