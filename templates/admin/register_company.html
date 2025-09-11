@@ -55,7 +55,12 @@
 
                 <div class="mb-3 form-check">
                     <input type="checkbox" class="form-check-input" name="terms" required>
-                    <label class="form-check-label" for="terms">I have read and agree to the <a href="#" class="text-decoration-none">Terms and Conditions</a>.</label>
+                    <label class="form-check-label" for="terms">
+                         I have read and agree to the 
+                      <a href="{{ url_for('public.terms') }}" target="_blank" class="text-decoration-none">Terms and Conditions</a>
+                         and 
+                      <a href="{{ url_for('public.privacy') }}" target="_blank" class="text-decoration-none">Privacy Policy</a>.
+                    </label>
                 </div>
 
                 <button type="submit" class="btn btn-primary btn-block">Register Company</button>

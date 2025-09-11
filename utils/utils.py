@@ -1,4 +1,4 @@
-# techlend/utils.py
+# techlend/utils/utils.py
 from datetime import datetime
 from functools import wraps
 from flask_login import current_user
@@ -6,6 +6,10 @@ from flask import abort
 from extensions import db
 from sqlalchemy import func
 from models import LoanRepayment 
+from PIL import Image
+from werkzeug.utils import secure_filename
+from PIL import Image
+import os
 
 def sum_paid(loan_id, field):
     return db.session.query(
@@ -55,3 +59,24 @@ def get_company_filter(model):
     if current_user.is_superuser:
         return model.query  # Superuser sees all
     return model.query.filter_by(company_id=current_user.company_id)
+
+# Allowed extensions for uploads
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+def allowed_file(filename: str) -> bool:
+    """
+    Check if the filename has an allowed extension.
+    """
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def validate_image(file_stream) -> bool:
+    """
+    Verify that the uploaded file is a valid image.
+    """
+    try:
+        img = Image.open(file_stream)
+        img.verify()  # Check for corruption/valid image
+        file_stream.seek(0)  # Reset stream pointer after verification
+        return True
+    except Exception:
+        return False

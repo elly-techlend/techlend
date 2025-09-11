@@ -79,6 +79,10 @@ class User(UserMixin, db.Model):
     def is_admin(self):
         return 'admin' in [role.name.lower() for role in self.roles]
 
+    @property
+    def is_company_admin(self):
+        return self.is_admin and self.company_id is not None
+
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
@@ -105,6 +109,12 @@ class Company(db.Model):
     logo_url = db.Column(db.String(255), nullable=True)
     is_active = db.Column(db.Boolean, default=True)
     expenses = db.relationship('Expense', back_populates='company')
+
+    drive_token = db.Column(db.String)
+    drive_refresh_token = db.Column(db.String)
+    drive_token_uri = db.Column(db.String)
+    drive_client_id = db.Column(db.String)
+    drive_client_secret = db.Column(db.String)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

@@ -334,9 +334,11 @@
        <li><a href="{{ url_for('settings.profile') }}"><i class="fas fa-user me-2"></i>User Profile</a></li>
        <li><a href="{{ url_for('settings.system_preferences') }}"><i class="fas fa-sliders-h me-2"></i>System Preferences</a></li>
        <li><a href="{{ url_for('settings.data_management') }}"><i class="fas fa-database me-2"></i>Data Management</a></li>
+       <li><a href="{{ url_for('public.terms') }}"><i class="fas fa-file-contract me-2"></i>Terms & Conditions</a></li>
+       <li><a href="{{ url_for('public.privacy') }}"><i class="fas fa-shield-alt me-2"></i>Privacy Policy</a></li>
     </ul>
 
-{% if current_user.is_authenticated and (current_user.is_superuser or current_user.has_role('Admin')) %}
+{% if current_user.is_authenticated and current_user.has_role('Admin') and current_user.company %}
   <div class="section d-flex align-items-center" onclick="toggleSubmenu('adminMenu')">
     <i class="fas fa-tools me-2"></i> Admin Panel
     <i class="fa fa-angle-left ms-auto"></i>
@@ -347,15 +349,14 @@
     <li>
       <form id="branchForm" action="{{ url_for('admin.set_active_branch') }}" method="post">
         {{ csrf_form.csrf_token }}
-       <label for="branch_id" class="form-label"><i class="fas fa-exchange-alt me-2"></i>Switch Branch</label>
-<select id="branch_id" name="branch_id" class="form-select w-80" onchange="document.getElementById('branchForm').submit()">
-  {% for branch in current_user.company.branches if not branch.deleted_at %}
-    <option value="{{ branch.id }}" {% if branch.id == session['active_branch_id'] %}selected{% endif %}>
-      {{ branch.name }}
-    </option>
-  {% endfor %}
-</select>
-
+        <label for="branch_id" class="form-label"><i class="fas fa-exchange-alt me-2"></i>Switch Branch</label>
+        <select id="branch_id" name="branch_id" class="form-select w-80" onchange="document.getElementById('branchForm').submit()">
+          {% for branch in current_user.company.branches if not branch.deleted_at %}
+            <option value="{{ branch.id }}" {% if branch.id == session['active_branch_id'] %}selected{% endif %}>
+              {{ branch.name }}
+            </option>
+          {% endfor %}
+        </select>
       </form>
     </li>
 
@@ -365,6 +366,11 @@
     <li><a href="{{ url_for('auth.register') }}"><i class="fas fa-user-plus me-2"></i>Register Staff</a></li>
     <li><a href="{{ url_for('admin.company_notifications') }}"><i class="fas fa-bell me-2"></i>Notifications</a></li>
     <li><a href="{{ url_for('settings.billing') }}"><i class="fas fa-credit-card me-2"></i>Billing</a></li>
+
+    <!-- Google Drive Buttons for company admins only -->
+    <li><a href="{{ url_for('drive.authorize') }}" class="btn btn-primary">Link Google Drive</a></li>
+    <li><a href="{{ url_for('drive.upload_backup') }}" class="btn btn-success">Backup to Google Drive</a></li>
+
   </ul>
 {% endif %}
 

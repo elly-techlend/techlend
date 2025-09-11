@@ -1,7 +1,18 @@
-instance/
-__pycache__/
-*.pyc
-.env
-*.swp
-*.save
-*\
+# Databases & Backups
+*.db
+backup_dbs/
+*.sqlite3
+*.bak
+*.txt
+
+# Credentials
+credentials.json
+
+# Test files
+*_test.py
+safe_upload_test.py
+
+# IDE / OS files
+.vscode/
+.idea/
+.DS_Store

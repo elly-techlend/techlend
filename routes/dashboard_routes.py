@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, jsonify
 from flask_login import login_required, current_user
 from extensions import db
-from models import Branch, Loan, LoanRepayment
+from models import Company, Branch, Loan, LoanRepayment
 from datetime import datetime, date
 from collections import defaultdict
 from flask import session
@@ -177,7 +177,8 @@ def index():
         interest_earned=interest_earned,
         overdue_loans=overdue_loans,
         last_update=last_update,
-        user=current_user
+        user=current_user,
+        company=current_user.company
     )
 
 @dashboard_bp.route('/loan_data')

@@ -13,9 +13,11 @@ import os, random, string
 from forms import AddBorrowerForm  # Your form
 from sqlalchemy import or_, extract
 from datetime import datetime
-borrower_bp = Blueprint('borrowers', __name__)
 from flask import request
 from sqlalchemy import or_, extract
+from utils.utils import allowed_file, validate_image 
+
+borrower_bp = Blueprint('borrowers', __name__)
 
 @borrower_bp.route('/borrowers')
 @login_required
@@ -71,8 +73,7 @@ def view_borrowers():
 @login_required
 @roles_required('Admin', 'Branch_manager', 'Loans_Supervisor')
 def add_borrower():
-    branch_id = session.get('active_branch_id')  # 👈 Get active branch from session
-
+    branch_id = session.get('active_branch_id')
     if not branch_id:
         flash("No active branch selected. Please select a branch first.", "warning")
         return redirect(url_for('dashboard.index'))
@@ -81,22 +82,31 @@ def add_borrower():
     borrower_number = f"{random.randint(100000, 999999)}{random.choice(string.ascii_uppercase)}"
 
     form = AddBorrowerForm()
-    form.branch_id.data = branch_id  # 👈 Set the active branch as hidden input
+    form.branch_id.data = branch_id  # set active branch as hidden input
 
     if form.validate_on_submit():
-        # Handle photo upload
+        # Handle photo upload securely
         photo_filename = None
         if form.photo.data:
             photo_file = form.photo.data
-            photo_filename = secure_filename(photo_file.filename)
-            photo_path = os.path.join('static/uploads', photo_filename)
-            photo_file.save(photo_path)
+            if allowed_file(photo_file.filename) and validate_image(photo_file.stream):
+                # sanitize filename
+                photo_filename = secure_filename(photo_file.filename)
+                # save file
+                upload_folder = os.path.join('static/uploads/logos')
+                os.makedirs(upload_folder, exist_ok=True)  # ensure folder exists
+                photo_path = os.path.join(upload_folder, photo_filename)
+                photo_file.save(photo_path)
+            else:
+                flash("Invalid image file!", "danger")
+                return redirect(url_for('borrowers.add_borrower'))
 
         # Combine title and name
         title = form.title.data or ''
         raw_name = form.name.data.strip()
         display_name = f"{title} {raw_name}".strip()
 
+        # Create borrower record
         new_borrower = Borrower(
             borrower_id=borrower_number,
             name=display_name,
@@ -112,7 +122,7 @@ def add_borrower():
             spouse_name=form.spouse_name.data,
             number_of_children=form.number_of_children.data,
             education=form.education_level.data,
-            branch_id=branch_id,  # 👈 Use the active branch directly
+            branch_id=branch_id,
             next_of_kin=form.next_of_kin.data,
             photo=photo_filename,
             company_id=current_user.company_id
@@ -121,14 +131,14 @@ def add_borrower():
         db.session.add(new_borrower)
         db.session.commit()
 
+        # Create savings account if not exists
         account_number = f"SAV-{new_borrower.id:05d}"
         existing_account = SavingAccount.query.filter_by(borrower_id=new_borrower.id).first()
-
         if not existing_account:
             savings_account = SavingAccount(
                 borrower_id=new_borrower.id,
                 company_id=new_borrower.company_id,
-                branch_id=branch_id,  # ✅ Use the same branch
+                branch_id=branch_id,
                 account_number=account_number,
                 balance=0.0,
                 date_opened=datetime.utcnow()

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TechLend System</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;font-family:'Inter',sans-serif;background:#f4f7fa;color:#222}
+
+    /* HERO (unique class to avoid global overrides) */
+    .hero {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(135deg,#4e73df,#1c74e3);
+      color: #fff;
+      display:flex;
+      flex-direction:column;
+      align-items:flex-start;     /* left align buttons/text */
+      justify-content:center;
+      text-align:left;
+      padding: 28px 20px;         /* slimmer padding */
+      height: auto;
+      max-height: 360px;          /* cap the height so it won't grow too tall */
+      transition: max-height .3s ease;
+      /* add a small top/bottom pad for very small screens */
+    }
+
+    /* Force override if some other stylesheet is stubborn (use only for testing) */
+    /* .hero { padding: 24px 20px !important; max-height: 360px !important; } */
+
+    .hero-inner {
+      max-width: 1100px;
+      width: 100%;
+      margin: 0 auto;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+
+    .hero h1{margin:0;font-size:2.1rem;line-height:1.05;font-weight:700;max-width:820px}
+    .hero p{margin:6px 0 0;font-size:1.05rem;max-width:640px;color:rgba(255,255,255,0.95)}
+
+    .cta-buttons {
+      margin-top:14px;
+      display:flex;
+      gap:12px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .btn {
+      display:inline-block;
+      padding:10px 22px;
+      border-radius:6px;
+      font-weight:600;
+      text-decoration:none;
+      cursor:pointer;
+    }
+    .btn-login { background:#155a8a; color:#fff; border:0 }
+    .btn-signup { background:#ff9800; color:#fff; border:0 }
+    .btn-demo { background:transparent; color:#fff; border:2px solid rgba(255,255,255,0.85) }
+
+    /* Slim animation — contained and subtle */
+    .hero::before{
+      content:'';
+      position:absolute;
+      top:0;
+      left:0;
+      width:100%;
+      height:50%; /* slim height */
+      background: radial-gradient(circle at 40% 20%, rgba(255,255,255,0.10) 0%, transparent 60%);
+      animation: spinSlow 14s linear infinite;
+      pointer-events:none;
+    }
+    @keyframes spinSlow {
+      from{ transform: rotate(0deg) }
+      to{ transform: rotate(360deg) }
+    }
+
+    /* Features area that slightly overlaps hero but not too far */
+    .features{
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:center;
+      margin: 40px 20px 50px 20px; /* small overlap; adjust if needed */
+      gap:18px;
+    }
+    .feature{
+      background:#fff;padding:22px;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,0.08);
+      text-align:center;flex:1 1 250px;max-width:300px;
+      transition:transform .25s,box-shadow .25s;
+    }
+    .feature:hover{ transform:translateY(-6px); box-shadow:0 10px 30px rgba(0,0,0,0.12) }
+    .feature h3{ margin:0 0 10px;color:#1c74e3;font-size:1.15rem }
+    .feature p{ margin:0;font-size:0.98rem;line-height:1.5 }
+
+    footer{ text-align:center;padding:18px;background:#2c3e50;color:#fff;font-size:0.95rem }
+    footer a{ color:#ff9800; text-decoration:none }
+
+    /* Responsive tweaks */
+    @media (max-width:900px){
+      .hero{ max-height: 420px }          /* allow a bit more on tablets if content wraps */
+      .hero h1{ font-size:1.8rem }
+      .hero p{ font-size:1rem }
+    }
+    @media (max-width:600px){
+      .hero{ padding:20px 16px; max-height:none } /* small screens we let content wrap naturally */
+      .hero h1{ font-size:1.4rem }
+      .hero p{ font-size:0.95rem }
+      .features{ margin-top:14px; margin-left:6px; margin-right:6px }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero" role="banner">
+    <div class="hero-inner">
+      <h1>Welcome to TechLend</h1>
+      <p>Effortless loan and finance management for companies, teams, and staff — secure, scalable, and simple.</p>
+
+      <div class="cta-buttons">
+        <a class="btn btn-login" href="/login">Login</a>
+        <a class="btn btn-signup" href="/signup">Sign Up</a>
+        <a class="btn btn-demo" href="/demo-request">Request Demo</a>
+      </div>
+    </div>
+  </header>
+
+  <section class="features" aria-label="Key features">
+    <div class="feature">
+      <h3>Easy Borrower Management</h3>
+      <p>Add borrowers, track repayment history, and view account activity in real time.</p>
+    </div>
+    <div class="feature">
+      <h3>Loan Tracking</h3>
+      <p>Monitor loan statuses, repayments, and outstanding balances automatically.</p>
+    </div>
+    <div class="feature">
+      <h3>Comprehensive Reporting</h3>
+      <p>Generate monthly reports, arrears summaries, and cash flow insights with ease.</p>
+    </div>
+    <div class="feature">
+      <h3>Secure Data & Access Control</h3>
+      <p>Role-based permissions and encrypted storage protect your data and users.</p>
+    </div>
+    <div class="feature">
+      <h3>Automated Notifications</h3>
+      <p>Automate reminders to borrowers and notifications to officers to reduce defaults.</p>
+    </div>
+    <div class="feature">
+      <h3>Mobile-Friendly Dashboard</h3>
+      <p>Full functionality on any device — manage loans from the office or the field.</p>
+    </div>
+  </section>
+
+  <footer>
+    &copy; 2025 TechLend System | <a href="/privacy">Privacy Policy</a> | <a href="/terms">Terms</a>
+  </footer>
+</body>
+</html>
