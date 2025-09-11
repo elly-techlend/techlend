@@ -16,3 +16,4 @@ safe_upload_test.py
 .vscode/
 .idea/
 .DS_Store
+.env
