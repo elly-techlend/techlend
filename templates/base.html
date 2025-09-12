@@ -366,11 +366,8 @@
     <li><a href="{{ url_for('auth.register') }}"><i class="fas fa-user-plus me-2"></i>Register Staff</a></li>
     <li><a href="{{ url_for('admin.company_notifications') }}"><i class="fas fa-bell me-2"></i>Notifications</a></li>
     <li><a href="{{ url_for('settings.billing') }}"><i class="fas fa-credit-card me-2"></i>Billing</a></li>
-
-    <!-- Google Drive Buttons for company admins only -->
-    <li><a href="{{ url_for('drive.authorize') }}" class="btn btn-primary">Link Google Drive</a></li>
-    <li><a href="{{ url_for('drive.upload_backup') }}" class="btn btn-success">Backup to Google Drive</a></li>
-
+    <li><a href="{{ url_for('drive.authorize') }}"><i class="fab fa-google-drive me-2"></i>Link Google Drive</a></li>
+    <li><a href="{{ url_for('drive.upload_backup') }}"><i class="fas fa-cloud-upload-alt me-2"></i>Backup to Google Drive</a></li>
   </ul>
 {% endif %}
 

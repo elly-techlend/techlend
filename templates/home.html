@@ -235,7 +235,8 @@
         <div class="quick-actions">
             <a href="{{ url_for('borrowers.add_borrower') }}">➕ Add Borrower</a>
             <a href="{{ url_for('loan.add_loan') }}">➕ Add Loan</a>
-            <a href="{{ url_for('borrowers.send_sms') }}">📤 Send SMS</a>
+            <a href="{{ url_for('borrowers.send_email_to_borrowers') }}">📤 Send email</a>
+            <a href="{{ url_for('borrowers.send_sms') }}">📤 Send sms</a>
             <a href="{{ url_for('expenses.add_expense') }}">➕ Add Expense</a>
         </div>
     </div>

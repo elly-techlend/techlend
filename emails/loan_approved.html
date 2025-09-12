@@ -1,0 +1,10 @@
+{% extends "emails/base_email.html" %}
+
+{% block content %}
+
+<p>Hello {{ user.username }},</p>
+<p>Your loan with ID <strong>{{ loan.id }}</strong> for amount <strong>${{ loan.amount_borrowed }}</strong> has been approved!</p>
+<p>Disbursement Date: {{ loan.date.strftime('%Y-%m-%d') }}</p>
+<br>
+<p>Thanks,<br>TechLend Team</p>
+{% endblock %}

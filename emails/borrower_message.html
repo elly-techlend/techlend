@@ -1,0 +1,8 @@
+{% extends "emails/base_email.html" %}
+
+{% block content %}
+<p>Hello {{ borrower.name or borrower.username }},</p>
+<p>{{ message_body|safe }}</p>
+<br>
+<p>Thanks,<br>TechLend Team</p>
+{% endblock %}

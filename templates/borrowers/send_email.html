@@ -1,5 +1,22 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% block content %}
-<h2>Add Borrower</h2>
-<p>Form will go here.</p>
+<div class="card">
+  <div class="card-body">
+    <h3>📤 Send Email to Borrowers</h3>
+    <form method="POST">
+      {{ form.hidden_tag() }}
+      <div class="form-group">
+        {{ form.subject.label }}  
+        {{ form.subject(class="form-control") }}
+      </div>
+      <div class="form-group">
+        {{ form.message.label }}
+        {{ form.message(class="form-control", rows=5) }}
+      </div>
+      <div class="form-group">
+        {{ form.submit(class="btn btn-primary") }}
+      </div>
+    </form>
+  </div>
+</div>
 {% endblock %}

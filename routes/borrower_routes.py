@@ -10,14 +10,38 @@ import uuid
 from models import Borrower, SavingAccount, Loan, LoanRepayment, Branch  # assuming these models exist
 from werkzeug.utils import secure_filename
 import os, random, string
-from forms import AddBorrowerForm  # Your form
+from forms import AddBorrowerForm, BorrowerEmailForm
 from sqlalchemy import or_, extract
 from datetime import datetime
 from flask import request
 from sqlalchemy import or_, extract
 from utils.utils import allowed_file, validate_image 
+from email_utils import send_bulk_borrower_email, send_borrower_email
 
 borrower_bp = Blueprint('borrowers', __name__)
+
+@borrower_bp.route('/send_email', methods=['GET', 'POST'])
+@login_required
+def send_email_to_borrowers():
+    form = BorrowerEmailForm()
+
+    if form.validate_on_submit():
+        subject = form.subject.data
+        message_body = form.message.data
+
+        # If you want to send to all borrowers
+        borrowers = Borrower.query.all()
+
+        results = send_bulk_borrower_email(
+            borrowers,
+            subject=subject,
+            message_body=message_body
+        )
+
+        flash(f"Emails sent: {len(results['success'])}, Failed: {len(results['failed'])}", "info")
+        return redirect(url_for('borrowers.view_borrowers'))
+
+    return render_template("borrowers/send_email.html", form=form)
 
 @borrower_bp.route('/borrowers')
 @login_required

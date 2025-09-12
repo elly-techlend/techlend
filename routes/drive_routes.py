@@ -9,10 +9,11 @@ import google.oauth2.credentials
 from models import db, Company
 from flask_login import current_user, login_required
 from functools import wraps
+import json  # ✅ needed for parsing env variable
 
 drive_bp = Blueprint("drive", __name__)
 
-CLIENT_SECRETS_FILE = "credentials.json"
+# ✅ No need for credentials.json anymore
 SCOPES = ["https://www.googleapis.com/auth/drive.file"]
 
 # -------------------- Role Check -------------------- #
@@ -25,6 +26,7 @@ def company_admin_required(f):
         return f(*args, **kwargs)
     return wrapper
 
+
 # -------------------- Authorize -------------------- #
 @drive_bp.route("/drive/authorize")
 @login_required
@@ -35,16 +37,28 @@ def authorize():
         flash("Company not found.", "danger")
         return redirect(url_for("dashboard.index"))
 
-    flow = Flow.from_client_secrets_file(
-        CLIENT_SECRETS_FILE,
+    # ✅ Load Google credentials from environment
+    GOOGLE_CREDENTIALS = json.loads(os.environ["GOOGLE_CREDENTIALS"])
+
+    flow = Flow.from_client_config(
+        GOOGLE_CREDENTIALS,
         scopes=SCOPES,
         redirect_uri=url_for("drive.callback", _external=True),
     )
+
     auth_url, state = flow.authorization_url(
-        access_type="offline", include_granted_scopes="true", prompt="consent"
+        access_type="offline",
+        include_granted_scopes="true",
+        prompt="consent"
     )
     session["state"] = state
     return redirect(auth_url)
+
+# -------------------- Test Environment Variable -------------------- #
+@drive_bp.route("/test-env")
+def test_env():
+    from flask import jsonify
+    return jsonify({"GOOGLE_CREDENTIALS": os.environ.get("GOOGLE_CREDENTIALS")})
 
 # -------------------- Callback -------------------- #
 @drive_bp.route("/drive/callback")
@@ -55,8 +69,11 @@ def callback():
         flash("Session expired. Please try linking again.", "danger")
         return redirect(url_for("dashboard.index"))
 
-    flow = Flow.from_client_secrets_file(
-        CLIENT_SECRETS_FILE,
+    # ✅ Load Google credentials from environment
+    GOOGLE_CREDENTIALS = json.loads(os.environ["GOOGLE_CREDENTIALS"])
+
+    flow = Flow.from_client_config(
+        GOOGLE_CREDENTIALS,
         scopes=SCOPES,
         redirect_uri=url_for("drive.callback", _external=True),
     )
@@ -74,6 +91,7 @@ def callback():
         flash("Company not found.", "danger")
         return redirect(url_for("dashboard.index"))
 
+    # ✅ Save tokens & secrets in DB
     company.drive_token = credentials.token
     company.drive_refresh_token = credentials.refresh_token
     company.drive_token_uri = credentials.token_uri
@@ -84,6 +102,7 @@ def callback():
     session.pop("state", None)
     flash("Google Drive linked successfully!", "success")
     return redirect(url_for("dashboard.index"))
+
 
 # -------------------- Upload Backup -------------------- #
 @drive_bp.route("/drive/upload")

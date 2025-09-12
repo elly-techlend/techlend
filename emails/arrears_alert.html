@@ -1,0 +1,12 @@
+{% extends "emails/base_email.html" %}
+
+{% block content %}
+
+<p>Hello {{ user.username }},</p>
+<p>Your loan with ID <strong>{{ loan.id }}</strong> is now in arrears.</p>
+<p>Total Due (including penalties): <strong>${{ loan.remaining_balance }}</strong></p>
+<p>Days past due: <strong>{{ loan.days_overdue }}</strong></p>
+<p>Please contact your branch immediately to settle the payment.</p>
+<br>
+<p>Thanks,<br>TechLend Team</p>
+{% endblock %}

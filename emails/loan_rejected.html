@@ -1,0 +1,10 @@
+{% extends "emails/base_email.html" %}
+
+{% block content %}
+
+<p>Hello {{ user.username }},</p>
+<p>We regret to inform you that your loan with ID <strong>{{ loan.id }}</strong> for amount <strong>${{ loan.amount_borrowed }}</strong> has been rejected.</p>
+<p>For more details, please contact your branch.</p>
+<br>
+<p>Thanks,<br>TechLend Team</p>
+{% endblock %}

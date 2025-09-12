@@ -1,0 +1,10 @@
+{% extends "emails/base_email.html" %}
+
+{% block content %}
+
+<p>Hello {{ user.username }},</p>
+<p>This is a friendly reminder that your repayment for loan ID <strong>{{ loan.id }}</strong> of amount <strong>${{ loan.remaining_balance }}</strong> is due on <strong>{{ loan.due_date.strftime('%Y-%m-%d') }}</strong>.</p>
+<p>Please ensure timely payment to avoid penalties.</p>
+<br>
+<p>Thanks,<br>TechLend Team</p>
+{% endblock %}

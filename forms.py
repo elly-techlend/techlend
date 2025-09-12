@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import (StringField, SelectField, DateField, IntegerField, FileField, SubmitField, BooleanField)
+from wtforms import (StringField, TextAreaField, SelectField, DateField, IntegerField, FileField, SubmitField, BooleanField)
 from wtforms.validators import DataRequired, Email, Optional, EqualTo, Length
 from wtforms import StringField, PasswordField, SubmitField, SelectField, DecimalField, DateField
 from models import Company
@@ -74,3 +74,8 @@ class ChangePasswordForm(FlaskForm):
         DataRequired(), EqualTo('new_password', message='Passwords must match.')
     ])
     submit = SubmitField('Update Password')
+
+class BorrowerEmailForm(FlaskForm):
+    subject = StringField("Subject", validators=[DataRequired()])
+    message = TextAreaField("Message", validators=[DataRequired()])
+    submit = SubmitField("Send Email")
