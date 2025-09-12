@@ -3,10 +3,10 @@
 backup_dbs/
 *.sqlite3
 *.bak
-*.txt
 
 # Credentials
 credentials.json
+.env
 
 # Test files
 *_test.py
@@ -16,5 +16,9 @@ safe_upload_test.py
 .vscode/
 .idea/
 .DS_Store
-.env
-.env
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
