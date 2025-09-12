@@ -1,9 +1,13 @@
+from flask import session
 from flask_wtf import FlaskForm
-from wtforms import (StringField, TextAreaField, SelectField, DateField, IntegerField, FileField, SubmitField, BooleanField)
+from wtforms import (StringField, TextAreaField, SelectField, DateField, IntegerField, FileField, SubmitField, BooleanField, SelectMultipleField)
 from wtforms.validators import DataRequired, Email, Optional, EqualTo, Length
 from wtforms import StringField, PasswordField, SubmitField, SelectField, DecimalField, DateField
-from models import Company
+from models import Company, Borrower
 from wtforms import HiddenField
+from flask_wtf import FlaskForm
+from flask_login import current_user
+from wtforms.widgets import ListWidget, CheckboxInput
 
 class CSRFOnlyForm(FlaskForm):
     pass
@@ -75,7 +79,27 @@ class ChangePasswordForm(FlaskForm):
     ])
     submit = SubmitField('Update Password')
 
+# ---------------- Multi-checkbox Field ----------------
+class MultiCheckboxField(SelectMultipleField):
+    widget = ListWidget(prefix_label=False)
+    option_widget = CheckboxInput()
+
+# ---------------- Borrower Email Form ----------------
 class BorrowerEmailForm(FlaskForm):
     subject = StringField("Subject", validators=[DataRequired()])
     message = TextAreaField("Message", validators=[DataRequired()])
+    borrowers = MultiCheckboxField("Select Borrowers", coerce=int)
     submit = SubmitField("Send Email")
+
+    def set_borrowers_choices(self):
+        """Populate borrowers dynamically based on current user's company and branch"""
+        branch_id = session.get('active_branch_id')
+        company_id = current_user.company_id
+
+        borrowers = Borrower.query.filter_by(
+            company_id=company_id,
+            branch_id=branch_id
+        ).all()
+
+        # Update choices for the multi-checkbox field
+        self.borrowers.choices = [(b.id, b.name) for b in borrowers]

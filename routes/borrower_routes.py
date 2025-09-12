@@ -16,22 +16,40 @@ from datetime import datetime
 from flask import request
 from sqlalchemy import or_, extract
 from utils.utils import allowed_file, validate_image 
-from email_utils import send_bulk_borrower_email, send_borrower_email
+from email_utils import send_bulk_borrower_email
 
 borrower_bp = Blueprint('borrowers', __name__)
 
 @borrower_bp.route('/send_email', methods=['GET', 'POST'])
 @login_required
+@roles_required('Superuser', 'Admin', 'Branch_Manager', 'Loans_Supervisor')
 def send_email_to_borrowers():
     form = BorrowerEmailForm()
+    form.set_borrowers_choices()  # ✅ Populate borrower choices based on branch/company
 
     if form.validate_on_submit():
         subject = form.subject.data
         message_body = form.message.data
+        selected_ids = form.borrowers.data  # list of ints
 
-        # If you want to send to all borrowers
-        borrowers = Borrower.query.all()
+        if not selected_ids:
+            flash("Please select at least one borrower.", "warning")
+            return redirect(url_for('borrowers.send_email_to_borrowers'))
 
+        # Fetch selected borrowers with branch/company restriction
+        active_branch_id = session.get('active_branch_id')
+        active_company_id = current_user.company_id
+        borrowers = Borrower.query.filter(
+            Borrower.id.in_(selected_ids),
+            Borrower.branch_id == active_branch_id,
+            Borrower.company_id == active_company_id
+        ).all()
+
+        if not borrowers:
+            flash("No borrowers found for the selected branch/company.", "warning")
+            return redirect(url_for('borrowers.send_email_to_borrowers'))
+
+        # Send emails via unified email system
         results = send_bulk_borrower_email(
             borrowers,
             subject=subject,

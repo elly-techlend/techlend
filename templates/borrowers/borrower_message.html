@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{ subject }}</title>
+</head>
+<body>
+    <p>Hello {{ borrower.name }},</p>
+
+    <div>
+        {{ message_body | safe }}
+    </div>
+
+    <p>Best regards,<br>
+    TechLend Team</p>
+</body>
+</html>

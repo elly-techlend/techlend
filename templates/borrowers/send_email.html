@@ -1,22 +1,133 @@
 {% extends "base.html" %}
+{% block title %}Send Email to Borrowers{% endblock %}
+
 {% block content %}
-<div class="card">
-  <div class="card-body">
-    <h3>📤 Send Email to Borrowers</h3>
-    <form method="POST">
-      {{ form.hidden_tag() }}
-      <div class="form-group">
-        {{ form.subject.label }}  
-        {{ form.subject(class="form-control") }}
+<div class="container mt-5">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h4>Send Email to Borrowers</h4>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                {{ form.hidden_tag() }}
+
+                <!-- Subject -->
+                <div class="mb-3">
+                    {{ form.subject.label(class="form-label") }}
+                    {{ form.subject(class="form-control", placeholder="Enter email subject") }}
+                </div>
+
+                <!-- Message -->
+                <div class="mb-3">
+                    {{ form.message.label(class="form-label") }}
+                    {{ form.message(class="form-control", rows="5", placeholder="Type your message here...") }}
+                </div>
+
+                <!-- Search & Select All -->
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="form-check-label">
+                            <input type="checkbox" id="select-all" class="form-check-input"> <strong>Select All</strong>
+                        </label>
+                        <input type="text" id="borrower-search" class="form-control w-50" placeholder="Search borrowers...">
+                    </div>
+
+                    <div id="borrowers-list" class="p-2" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px;">
+                        {% for subfield in form.borrowers %}
+                        <div class="form-check mb-1 borrower-item">
+                            {{ subfield(class="form-check-input") }}
+                            <label class="form-check-label">{{ subfield.label.text }}</label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Buttons -->
+                <div class="mb-3">
+                    {{ form.submit(class="btn btn-success") }}
+                    <button type="button" class="btn btn-info" id="preview-btn">Preview</button>
+                    <a href="{{ url_for('borrowers.view_borrowers') }}" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-info text-white">
+        <h5 class="modal-title" id="previewModalLabel">Email Preview</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="form-group">
-        {{ form.message.label }}
-        {{ form.message(class="form-control", rows=5) }}
+      <div class="modal-body">
+        <p><strong>Subject:</strong> <span id="preview-subject"></span></p>
+        <p><strong>Message:</strong></p>
+        <div id="preview-message" style="border:1px solid #ddd; padding:10px; border-radius:5px; background:#f8f9fa;"></div>
+        <p><strong>Recipients:</strong></p>
+        <ul id="preview-recipients"></ul>
       </div>
-      <div class="form-group">
-        {{ form.submit(class="btn btn-primary") }}
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
       </div>
-    </form>
+    </div>
   </div>
 </div>
+
+<!-- Scripts -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Select All functionality
+    const selectAll = document.getElementById('select-all');
+    const checkboxes = document.querySelectorAll('input[name="{{ form.borrowers.name }}"]');
+
+    selectAll.addEventListener('change', function() {
+        checkboxes.forEach(cb => cb.checked = this.checked);
+    });
+
+    // Search + highlight
+    const searchInput = document.getElementById('borrower-search');
+    const borrowerItems = document.querySelectorAll('.borrower-item');
+
+    searchInput.addEventListener('keyup', function() {
+        const filter = this.value.toLowerCase();
+        borrowerItems.forEach(item => {
+            const label = item.querySelector('label');
+            const text = label.textContent.toLowerCase();
+            if(filter && text.includes(filter)) {
+                item.style.display = '';
+                const regex = new RegExp(`(${filter})`, 'gi');
+                label.innerHTML = label.textContent.replace(regex, '<span class="bg-warning">$1</span>');
+            } else if(filter) {
+                item.style.display = 'none';
+            } else {
+                item.style.display = '';
+                label.innerHTML = label.textContent;
+            }
+        });
+    });
+
+    // Preview functionality
+    const previewBtn = document.getElementById('preview-btn');
+    const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+    const previewSubject = document.getElementById('preview-subject');
+    const previewMessage = document.getElementById('preview-message');
+    const previewRecipients = document.getElementById('preview-recipients');
+
+    previewBtn.addEventListener('click', function() {
+        previewSubject.textContent = document.getElementById("{{ form.subject.id }}").value;
+        previewMessage.innerHTML = document.getElementById("{{ form.message.id }}").value;
+        previewRecipients.innerHTML = '';
+        document.querySelectorAll('input[name="{{ form.borrowers.name }}"]:checked').forEach(cb => {
+            const label = cb.nextElementSibling.textContent;
+            const li = document.createElement('li');
+            li.textContent = label;
+            previewRecipients.appendChild(li);
+        });
+        previewModal.show();
+    });
+});
+</script>
+
 {% endblock %}

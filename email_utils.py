@@ -1,19 +1,21 @@
+# emails.py
 import os
+from datetime import datetime
+from flask import render_template
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
-from flask import url_for, render_template
-from datetime import datetime
 
 # ---------------- Centralized Send Function ----------------
-def send_email(to_email, subject, html_content, from_email=None):
+def send_email(to_email, subject, template=None, from_email=None, **context):
     """
     Sends an email using SendGrid.
 
     Parameters:
         to_email (str): Recipient's email address.
         subject (str): Email subject line.
-        html_content (str): HTML content of the email.
+        template (str, optional): Path to Jinja email template (e.g., 'emails/reset_password.html').
         from_email (str, optional): Sender's email. Defaults to environment variable FROM_EMAIL.
+        **context: Any template variables required for rendering.
     """
     from_email = from_email or os.environ.get("FROM_EMAIL")
     sendgrid_api_key = os.environ.get("SENDGRID_API_KEY")
@@ -22,6 +24,13 @@ def send_email(to_email, subject, html_content, from_email=None):
         raise ValueError("FROM_EMAIL is not set in environment variables")
     if not sendgrid_api_key:
         raise ValueError("SENDGRID_API_KEY is not set in environment variables")
+
+    if template:
+        html_content = render_template(template, **context)
+    elif "html_content" in context:
+        html_content = context["html_content"]
+    else:
+        raise ValueError("Either template or html_content must be provided")
 
     message = Mail(
         from_email=from_email,
@@ -40,79 +49,80 @@ def send_email(to_email, subject, html_content, from_email=None):
         return False
 
 # ---------------- Password Reset Email ----------------
-def send_reset_email(user, token):
-    reset_link = url_for('auth.reset_password_token', token=token, _external=True)
-    subject = "Password Reset Request - TechLend"
-    html_content = render_template("emails/reset_password.html", user=user, reset_link=reset_link)
-    return send_email(user.email, subject, html_content,year=datetime.now().year)
+def send_reset_email(to_email, token):
+    reset_url = f"https://your-domain.com/reset-password/{token}"
+    return send_email(
+        to_email,
+        subject="Password Reset Request - TechLend",
+        template="emails/reset_password.html",
+        reset_url=reset_url,
+        year=datetime.utcnow().year
+    )
+
+# ---------------- Bulk Borrower Email ----------------
+def send_bulk_borrower_email(borrowers, subject, message_body):
+    success = []
+    failed = []
+
+    for borrower in borrowers:
+        if not borrower.email:
+            failed.append(borrower.name)
+            continue
+
+        result = send_email(
+            to_email=borrower.email,
+            subject=subject,
+            html_content=message_body,
+            year=datetime.utcnow().year
+        )
+
+        if result:
+            success.append(borrower.name)
+        else:
+            failed.append(borrower.name)
+
+    return {"success": success, "failed": failed}
 
 # ---------------- Loan Approved Email ----------------
 def send_loan_approval_email(user, loan):
-    subject = f"Loan Approved - TechLend"
-    html_content = render_template("emails/loan_approved.html", user=user, loan=loan)
-    return send_email(user.email, subject, html_content,year=datetime.now().year)
+    return send_email(
+        user.email,
+        subject="Loan Approved - TechLend",
+        template="emails/loan_approved.html",
+        user=user,
+        loan=loan,
+        year=datetime.utcnow().year
+    )
 
 # ---------------- Loan Rejected Email ----------------
 def send_loan_rejection_email(user, loan):
-    subject = f"Loan Rejected - TechLend"
-    html_content = render_template("emails/loan_rejected.html", user=user, loan=loan)
-    return send_email(user.email, subject, html_content,year=datetime.now().year)
+    return send_email(
+        user.email,
+        subject="Loan Rejected - TechLend",
+        template="emails/loan_rejected.html",
+        user=user,
+        loan=loan,
+        year=datetime.utcnow().year
+    )
 
 # ---------------- Repayment Reminder Email ----------------
 def send_repayment_reminder_email(user, loan):
-    subject = "Repayment Reminder - TechLend"
-    html_content = render_template("emails/repayment_reminder.html", user=user, loan=loan)
-    return send_email(user.email, subject, html_content,year=datetime.now().year)
+    return send_email(
+        user.email,
+        subject="Repayment Reminder - TechLend",
+        template="emails/repayment_reminder.html",
+        user=user,
+        loan=loan,
+        year=datetime.utcnow().year
+    )
 
 # ---------------- Arrears Alert Email ----------------
 def send_arrears_alert_email(user, loan):
-    subject = "Arrears Alert - TechLend"
-    html_content = render_template("emails/arrears_alert.html", user=user, loan=loan)
-    return send_email(user.email, subject, html_content,year=datetime.now().year)
-
-def send_borrower_email(borrower, subject, message_body):
-    """
-    Send a custom email to a single borrower.
-    """
-    html_content = render_template(
-        "emails/borrower_message.html",
-        borrower=borrower,
-        message_body=message_body,
-        year=datetime.now().year
+    return send_email(
+        user.email,
+        subject="Arrears Alert - TechLend",
+        template="emails/arrears_alert.html",
+        user=user,
+        loan=loan,
+        year=datetime.utcnow().year
     )
-    return send_email(borrower.email, subject, html_content)
-
-
-def send_bulk_borrower_email(borrowers, subject, message_body):
-    """
-    Send a custom email to multiple borrowers.
-
-    Parameters:
-        borrowers (list): List of borrower objects (must have .email and .name/.username).
-        subject (str): Subject of the email.
-        message_body (str): Custom message text/HTML.
-
-    Returns:
-        dict: Summary with counts of successes and failures.
-    """
-    results = {"success": [], "failed": []}
-
-    for borrower in borrowers:
-        try:
-            html_content = render_template(
-                "emails/borrower_message.html",
-                borrower=borrower,
-                message_body=message_body,
-                year=datetime.now().year
-            )
-            success = send_email(borrower.email, subject, html_content)
-            if success:
-                results["success"].append(borrower.email)
-            else:
-                results["failed"].append(borrower.email)
-        except Exception as e:
-            print(f"[✗] Error sending to {borrower.email}: {str(e)}")
-            results["failed"].append(borrower.email)
-
-    print(f"[✓] Bulk email complete — {len(results['success'])} sent, {len(results['failed'])} failed.")
-    return results

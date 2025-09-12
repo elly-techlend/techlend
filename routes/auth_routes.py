@@ -276,8 +276,14 @@ def forgot_password():
         user = User.query.filter_by(email=email).first()
         if user:
             token = generate_reset_token(email)
-            send_reset_email(user, token)
-        flash('If an account with that email exists, a reset link has been sent.', 'info')
+
+            # ✅ Use the unified send_reset_email
+            send_reset_email(user.email, token)
+
+        flash(
+            'If an account with that email exists, a reset link has been sent.',
+            'info'
+        )
         return redirect(url_for('auth.login'))
 
     return render_template('auth/forgot_password.html')
