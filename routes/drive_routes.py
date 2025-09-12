@@ -33,6 +33,7 @@ def test_env():
     return jsonify({"GOOGLE_CREDENTIALS": os.environ.get("GOOGLE_CREDENTIALS")})
 
 # -------------------- Authorize -------------------- #
+# -------------------- Authorize -------------------- #
 @drive_bp.route("/drive/authorize")
 @login_required
 @company_admin_required
@@ -42,7 +43,7 @@ def authorize():
         flash("Company not found.", "danger")
         return redirect(url_for("dashboard.index"))
 
-    # ✅ Safe load of environment variable
+    # ✅ Load Google credentials safely
     raw = os.environ.get("GOOGLE_CREDENTIALS")
     if not raw:
         flash("Google credentials not set. Contact admin.", "danger")
@@ -54,10 +55,11 @@ def authorize():
 
     try:
         GOOGLE_CREDENTIALS = json.loads(raw)
-    except Exception as e:
+    except json.JSONDecodeError as e:
         flash(f"Error parsing Google credentials: {str(e)}", "danger")
         return redirect(url_for("dashboard.index"))
 
+    # Create the OAuth2 flow
     flow = Flow.from_client_config(
         GOOGLE_CREDENTIALS,
         scopes=SCOPES,
@@ -82,7 +84,7 @@ def callback():
         flash("Session expired. Please try linking again.", "danger")
         return redirect(url_for("dashboard.index"))
 
-    # ✅ Safe load of environment variable
+    # ✅ Load Google credentials safely
     raw = os.environ.get("GOOGLE_CREDENTIALS")
     if not raw:
         flash("Google credentials not set. Contact admin.", "danger")
@@ -93,7 +95,7 @@ def callback():
 
     try:
         GOOGLE_CREDENTIALS = json.loads(raw)
-    except Exception as e:
+    except json.JSONDecodeError as e:
         flash(f"Error parsing Google credentials: {str(e)}", "danger")
         return redirect(url_for("dashboard.index"))
 
