@@ -26,6 +26,11 @@ def company_admin_required(f):
         return f(*args, **kwargs)
     return wrapper
 
+# -------------------- Test Environment Variable -------------------- #
+@drive_bp.route("/test-env")
+def test_env():
+    from flask import jsonify
+    return jsonify({"GOOGLE_CREDENTIALS": os.environ.get("GOOGLE_CREDENTIALS")})
 
 # -------------------- Authorize -------------------- #
 @drive_bp.route("/drive/authorize")
@@ -37,8 +42,21 @@ def authorize():
         flash("Company not found.", "danger")
         return redirect(url_for("dashboard.index"))
 
-    # ✅ Load Google credentials from environment
-    GOOGLE_CREDENTIALS = json.loads(os.environ["GOOGLE_CREDENTIALS"])
+    # ✅ Safe load of environment variable
+    raw = os.environ.get("GOOGLE_CREDENTIALS")
+    if not raw:
+        flash("Google credentials not set. Contact admin.", "danger")
+        return redirect(url_for("dashboard.index"))
+
+    # Handle Render wrapping quotes / escaped JSON
+    if raw.startswith('"') and raw.endswith('"'):
+        raw = raw[1:-1].replace('\\"', '"')
+
+    try:
+        GOOGLE_CREDENTIALS = json.loads(raw)
+    except Exception as e:
+        flash(f"Error parsing Google credentials: {str(e)}", "danger")
+        return redirect(url_for("dashboard.index"))
 
     flow = Flow.from_client_config(
         GOOGLE_CREDENTIALS,
@@ -54,11 +72,6 @@ def authorize():
     session["state"] = state
     return redirect(auth_url)
 
-# -------------------- Test Environment Variable -------------------- #
-@drive_bp.route("/test-env")
-def test_env():
-    from flask import jsonify
-    return jsonify({"GOOGLE_CREDENTIALS": os.environ.get("GOOGLE_CREDENTIALS")})
 
 # -------------------- Callback -------------------- #
 @drive_bp.route("/drive/callback")
@@ -69,8 +82,20 @@ def callback():
         flash("Session expired. Please try linking again.", "danger")
         return redirect(url_for("dashboard.index"))
 
-    # ✅ Load Google credentials from environment
-    GOOGLE_CREDENTIALS = json.loads(os.environ["GOOGLE_CREDENTIALS"])
+    # ✅ Safe load of environment variable
+    raw = os.environ.get("GOOGLE_CREDENTIALS")
+    if not raw:
+        flash("Google credentials not set. Contact admin.", "danger")
+        return redirect(url_for("dashboard.index"))
+
+    if raw.startswith('"') and raw.endswith('"'):
+        raw = raw[1:-1].replace('\\"', '"')
+
+    try:
+        GOOGLE_CREDENTIALS = json.loads(raw)
+    except Exception as e:
+        flash(f"Error parsing Google credentials: {str(e)}", "danger")
+        return redirect(url_for("dashboard.index"))
 
     flow = Flow.from_client_config(
         GOOGLE_CREDENTIALS,
@@ -102,7 +127,6 @@ def callback():
     session.pop("state", None)
     flash("Google Drive linked successfully!", "success")
     return redirect(url_for("dashboard.index"))
-
 
 # -------------------- Upload Backup -------------------- #
 @drive_bp.route("/drive/upload")
