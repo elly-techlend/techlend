@@ -16,6 +16,20 @@
                     <p><strong>Principal:</strong> {{ "{:,.2f}".format(loan.amount_borrowed or 0) }}</p>
                     <p><strong>Interest Rate:</strong> {{ loan.interest_rate }}%</p>
                     <p><strong>Date of Loan:</strong> {{ loan.date.strftime('%b %d, %Y') if loan.date else '' }}</p>
+<p>
+    <strong>Due Date:</strong>
+    {% if loan.due_date %}
+        {% if loan.due_date < now() and loan.remaining_balance > 0 %}
+            <span class="text-danger fw-bold">{{ loan.due_date.strftime('%b %d, %Y') }}</span>
+            <small class="text-danger">(Overdue)</small>
+        {% else %}
+            <span class="text-success">{{ loan.due_date.strftime('%b %d, %Y') }}</span>
+        {% endif %}
+    {% else %}
+        <span class="text-muted">N/A</span>
+    {% endif %}
+</p>
+
                 </div>
                 <div class="col-md-4 text-md-end">
                     <p><strong>Total Due:</strong> {{ "{:,.2f}".format(loan.total_due or 0) }}</p>

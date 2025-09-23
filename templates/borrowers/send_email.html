@@ -2,6 +2,7 @@
 {% block title %}Send Email to Borrowers{% endblock %}
 
 {% block content %}
+
 <div class="container mt-5">
     <div class="card shadow-sm">
         <div class="card-header bg-primary text-white">
@@ -78,7 +79,6 @@
 <!-- Scripts -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Select All functionality
     const selectAll = document.getElementById('select-all');
     const checkboxes = document.querySelectorAll('input[name="{{ form.borrowers.name }}"]');
 
@@ -86,7 +86,6 @@ document.addEventListener('DOMContentLoaded', function() {
         checkboxes.forEach(cb => cb.checked = this.checked);
     });
 
-    // Search + highlight
     const searchInput = document.getElementById('borrower-search');
     const borrowerItems = document.querySelectorAll('.borrower-item');
 
@@ -108,7 +107,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Preview functionality
     const previewBtn = document.getElementById('preview-btn');
     const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
     const previewSubject = document.getElementById('preview-subject');

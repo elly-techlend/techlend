@@ -8,6 +8,7 @@ from wtforms import HiddenField
 from flask_wtf import FlaskForm
 from flask_login import current_user
 from wtforms.widgets import ListWidget, CheckboxInput
+from flask_wtf.file import FileField, FileAllowed
 
 class CSRFOnlyForm(FlaskForm):
     pass
@@ -68,6 +69,9 @@ class AddBorrowerForm(FlaskForm):
     occupation       = StringField('Occupation',            validators=[Optional()])
     branch_id        = HiddenField('Branch',                validators=[DataRequired()])
     next_of_kin      = StringField('Next of Kin',           validators=[Optional()])
+
+    document = FileField('Upload Document', validators=[FileAllowed(['pdf', 'jpg', 'jpeg', 'png', 'docx'])])
+    description = StringField('Description')  # e.g., Agreement, ID, etc.
 
     submit           = SubmitField('Add Borrower')
 

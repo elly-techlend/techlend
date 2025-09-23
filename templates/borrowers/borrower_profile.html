@@ -117,6 +117,42 @@
                     <p>No savings accounts found for this borrower.</p>
                 {% endif %}
             </div>
+
+            <!-- Documents Section -->
+            <div class="col-12">
+                <h3 class="mt-4">Documents</h3>
+
+                <!-- Upload form -->
+                <form method="POST" action="{{ url_for('borrowers.upload_borrower_document', borrower_id=borrower.id) }}" enctype="multipart/form-data" class="mb-3">
+                    <div class="row g-2">
+                        <div class="col-md-5">
+                            <input type="file" name="document" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <input type="text" name="description" class="form-control" placeholder="Description (optional)">
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-primary w-100">Upload</button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Document list -->
+                {% if borrower.documents %}
+                    <ul class="list-group">
+                        {% for doc in borrower.documents %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <a href="{{ url_for('static', filename='uploads/borrower_docs/' ~ doc.filename) }}" target="_blank">
+                                    {{ doc.description or doc.filename }}
+                                </a>
+                                <small class="text-muted">Uploaded {{ doc.uploaded_at.strftime('%Y-%m-%d') }}</small>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted">No documents uploaded.</p>
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>

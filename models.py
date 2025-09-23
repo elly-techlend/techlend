@@ -187,6 +187,8 @@ class Borrower(db.Model):
     photo = db.Column(db.String(200))
     company_id = db.Column(db.Integer)  # For multi-tenancy
 
+    documents = db.relationship('BorrowerDocument', back_populates='borrower', cascade='all, delete-orphan', lazy='dynamic')
+
     # Relationships
     loans = db.relationship('Loan', back_populates='borrower', lazy='dynamic', cascade='all, delete-orphan')
     savings_accounts = db.relationship('SavingAccount', back_populates='borrower', lazy='dynamic', cascade='all, delete-orphan')
@@ -203,6 +205,17 @@ class Borrower(db.Model):
     @property
     def open_balance(self):
         return sum(loan.remaining_balance for loan in self.loans)
+
+class BorrowerDocument(db.Model):
+    __tablename__ = 'borrower_documents'
+
+    id = db.Column(db.Integer, primary_key=True)
+    borrower_id = db.Column(db.Integer, db.ForeignKey('borrowers.id'), nullable=False)
+    filename = db.Column(db.String(200), nullable=False)
+    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+    description = db.Column(db.String(200))  # optional: e.g., "Agreement", "ID Card"
+
+    borrower = db.relationship('Borrower', back_populates='documents')
 
 class Loan(db.Model):
     __tablename__ = 'loans'

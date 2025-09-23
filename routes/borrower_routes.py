@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, make_response, abort, url_for, request, flash, redirect, Response
+from flask import Blueprint, render_template, make_response, abort, url_for, request, flash, redirect, Response, current_app
 from extensions import db
 from flask_login import login_required, current_user
 from utils.decorators import roles_required
@@ -7,7 +7,7 @@ from utils.logging import log_company_action, log_system_action, log_action
 from xhtml2pdf import pisa
 import io
 import uuid
-from models import Borrower, SavingAccount, Loan, LoanRepayment, Branch  # assuming these models exist
+from models import Borrower, SavingAccount, Loan, LoanRepayment, Branch, BorrowerDocument
 from werkzeug.utils import secure_filename
 import os, random, string
 from forms import AddBorrowerForm, BorrowerEmailForm
@@ -17,6 +17,7 @@ from flask import request
 from sqlalchemy import or_, extract
 from utils.utils import allowed_file, validate_image 
 from email_utils import send_bulk_borrower_email
+from extensions import csrf
 
 borrower_bp = Blueprint('borrowers', __name__)
 
@@ -135,7 +136,7 @@ def add_borrower():
                 # sanitize filename
                 photo_filename = secure_filename(photo_file.filename)
                 # save file
-                upload_folder = os.path.join('static/uploads/logos')
+                upload_folder = os.path.join('static/uploads/borrowers')
                 os.makedirs(upload_folder, exist_ok=True)  # ensure folder exists
                 photo_path = os.path.join(upload_folder, photo_filename)
                 photo_file.save(photo_path)
@@ -202,6 +203,32 @@ def add_borrower():
         borrower_number=borrower_number,
         active_branch_name=active_branch_name
     )
+
+@csrf.exempt
+@borrower_bp.route('/borrowers/<int:borrower_id>/upload_doc', methods=['POST'])
+@login_required
+@roles_required('Superuser', 'Admin', 'Branch_Manager', 'Loans_Supervisor')
+def upload_borrower_document(borrower_id):
+    borrower = Borrower.query.get_or_404(borrower_id)
+    
+    file = request.files.get('document')
+    description = request.form.get('description', '')
+
+    if file:
+        filename = secure_filename(f"{borrower.borrower_id}_{file.filename}")
+        upload_folder = os.path.join(current_app.root_path, 'static/uploads/borrower_docs')
+        os.makedirs(upload_folder, exist_ok=True)
+        file_path = os.path.join(upload_folder, filename)
+        file.save(file_path)
+
+        doc = BorrowerDocument(borrower_id=borrower.id, filename=filename, description=description)
+        db.session.add(doc)
+        db.session.commit()
+        flash('Document uploaded successfully!', 'success')
+    else:
+        flash('No file selected', 'warning')
+
+    return redirect(url_for('borrowers.borrower_details', borrower_id=borrower.id))
 
 @borrower_bp.route('/borrowers/<int:borrower_id>')
 @login_required

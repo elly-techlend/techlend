@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TechLend Loan Agreement</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Georgia', serif;
+      background-color: #f8f9fa;
+      padding-top: 40px;
+      background-color: #f5f5f5 /* Light gray */
+    }
+
+    .container {
+      max-width: 900px;
+      background-color: #fff;
+      padding: 40px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .logo img {
+      width: 120px;
+    }
+
+    h2 {
+      text-align: center;
+      text-transform: uppercase;
+      font-size: 24px;
+      margin-bottom: 30px;
+    }
+
+    .section-title {
+      font-weight: bold;
+      margin-top: 30px;
+      border-bottom: 2px solid #ccc;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+    }
+
+    .submit-btn {
+      display: block;
+      width: 100%;
+      margin-top: 30px;
+      padding: 12px;
+      background-color: #2196F3;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    input[type="file"] {
+      background-color: #f8f9fa;
+    }
+  </style>
+</head>
+<body class="ivory">
+<div id="formToDownload">
+   <div id="formContainer">
+  <!-- all your form content including signature images -->
+<div class="container my-4">
+  <div class="card shadow rounded-4">
+    <div class="card-body text-center">
+      <div class="logo mb-3">
+        <img src="techlend.png" alt="TechLend Logo" style="max-height: 80px;">
+      </div>
+      <h2 class="fw-bold text-primary">TechLend Loan Agreement</h2>
+      <p class="fst-italic text-secondary">"Powering your vision."</p>
+
+      <div class="row justify-content-center mt-4">
+        <div class="col-md-6">
+          <p class="mb-1">📬 <strong>P. O BOX 24321 Kampala (U)</strong></p>
+          <p>📞 <strong>0758876716</strong> / <strong>0784071048</strong></p>
+        </div>
+        <div class="col-md-6">
+          <p class="mb-1">📧 <a href="mailto:techlendfinance@info.co.ug">techlendfinance@info.co.ug</a></p>
+          <p>🌐 <a href="http://www.techlend.co.ug" target="_blank">www.techlend.co.ug</a></p>
+        </div>
+      </div>
+     </div>
+
+  <div class="header text-center fw-bold text-white" style="background-color: #343a40;">
+    Borrower Details
+  </div>
+  <div class="body bg-white">
+    <div class="row mb-3">
+      <div class="col-md-6">
+        <label class="form-label">Full Name</label>
+        <input type="text" name="borrower_name" class="form-control" placeholder="Enter full name" required>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Loan Amount</label>
+        <input type="number" name="loan_amount" class="form-control" placeholder="Enter loan amount" required>
+      </div>
+    </div>
+    
+    <div class="row mb-3">
+      <div class="col-md-6">
+        <label class="form-label">Date</label>
+        <input type="date" name="loan_date" class="form-control" required>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Upload Signature</label>
+        <input type="file" accept=".jpg,.jpeg,.png" class="form-control" onchange="previewSignature(event, 'signaturePreviewBorrower1')">
+        <img id="signaturePreviewBorrower1" src="" alt="Signature Preview" style="max-height: 50px; margin-top: 5px; display: none;" />
+      </div>
+    </div>
+  </div>
+ 
+  <form id="loanForm">
+   <div class="header text-center fw-bold text-white" style="background-color: #6610f2;">
+    Agreement Statement
+  </div>
+  <p class="legal-text">
+    THE LOAN AGREEMENT is made this day <input type="date" name="agreement_date" class="form-control d-inline w-auto" required> between <strong>TECHLEND INVESTMENTS CO. LTD</strong>, P. O BOX 110300 KAMPALA (U), Email: <a href="mailto:techlendfinance@info.co.ug">techlendfinance@info.co.ug</a> a limited liability company incorporated in Uganda and whose registered office is at Great Magi Building, Kisalosalo Road, Kampala. Hereinafter referred to as the creditor which expression shall include its successors in title and assignees on one part.<br><br>
+                                          AND<br><br>
+Mr/Mrs/Rev/Pr/Ms <input type="text" name="borrower_name" class="form-control d-inline w-auto" placeholder="Full Name" required> P.O BOX <input type="text" name="borrower_box" class="form-control d-inline w-auto" placeholder="e.g. 45678" required> (herein referred to as ‘the borrower’) which expression shall include his or her administration or successors in title and assignees ) on the other part.
+  </p>
+</form>
+
+        <div class="header bg-success text-white text-center">
+          ♻️ Top-up Clause
+        </div>
+        <div>
+          <p>The borrower may apply for a loan top-up after successful repayment of at least <strong>[50%]</strong> of the existing loan. Approval is subject to creditworthiness and TechLend’s internal policy.</p>
+        </div>
+
+      <!-- ⚠️ Default Consequences -->
+        <div class="header bg-danger text-white text-center">
+          ⚠️ Default Consequences
+        </div>
+        <div>
+          <p>Failure to repay the loan on time shall attract a daily penalty of <strong>0.5%</strong> and may lead to legal action, reporting to credit bureaus, and recovery through the provided guarantor(s) and collateral.</p>
+        </div>
+      
+      <!-- 📎 Document Checklist -->
+  <div class="header bg-info text-dark text-center">
+  📎 Document Checklist
+</div>
+  <div class="body">
+    <p>Please check all documents that have been submitted:</p>
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" id="docID">
+      <label class="form-check-label" for="docID">
+        National ID or Passport (Borrower & Guarantor)
+      </label>
+    </div>
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" id="docPhoto">
+      <label class="form-check-label" for="docPhoto">
+        Passport-size Photo (Borrower & Guarantor)
+      </label>
+    </div>
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" id="docAgreement">
+      <label class="form-check-label" for="docAgreement">
+        Signed Loan Agreement
+      </label>
+    </div>
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" id="docIncome">
+      <label class="form-check-label" for="docIncome">
+        Proof of Income / Employment Letter
+      </label>
+    </div>
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" id="docGuarantor">
+      <label class="form-check-label" for="docGuarantor">
+        Guarantor Consent Form
+      </label>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+
+  <form id="loanForm">
+  <div class="header text-center fw-bold text-white" style="background-color: #6f42c1;">
+  📎 Loan Agreement
+</div>
+  <p class="legal-text">
+  
+<strong>NOW THIS AGREEMENT WITNESS AS FOLLOWS;</strong>
+<p>1. The loan facility
+The creditor hereby agrees to advance to the borrower the principal loan sum of UGX  <input type="number" name ="Principal Amount" class="form-control d-inline w-auto" placeholder="Principal Amount" required>(Uganda Shillings <input type="text" name="amount" class="form-control d-inline w-auto" placeholder="Amount in words" required>) which shall be used exclusively for the purposed set out therein, and deviation there from without the creditor’s written approval shall constitute an event of default.</p>
+
+<strong>2. Interest and other charges</strong>
+<p>2.1 In consideration of the creditor advancing the principal loan amount, the borrower shall pay it an interest of <input type="number" name="interest rate" class="form-control d-inline w-auto" placeholder="interest rate" required> per month (<input type="text" name="borrower_name" class="form-control d-inline w-auto" placeholder="Percentage in Words" required> only percent per month) in the manner prescribed by the repayment scheduled which is an integral part of this agreement and it is hereby agreed that the said rate of interest shall accrue daily and may be adjusted by the creditor from time to time , but the creditor shall be under no obligation to advise the borrower of the ruling interest rate.</p>
+
+<p>2.2 The borrower hereby agrees that before the principal sum is disbursed, the creditor shall deduct from there <input type="number" name="processing" class="form-control d-inline w-auto" placeholder="processing fee" required>  % as application fees which is percentages / amounts may change from time to time as per its policies and procedures and without further written notification to the borrower.</p>
+<p>2.3 To pay all other legal charges, registration fees, stamp duty and other expenses incurred in preparing, perfecting and registering any documents and securities related here to. </p>
+
+<strong>3.0 Disbursement of the loan</strong>
+<p>The creditor will disburse the loan sum directly to the borrower’s functional account held with creditor, but should it be subjected to any insurance charges then, the insurance premium will be deducted by the creditor and paid directly to the insurer.</p>
+
+<strong>4.0 Purpose of the loan</strong>
+<p>The monies disbursed by the creditor shall be exclusively used by the borrower for Business Loan and other deviation from the said purpose or application of the loan to other activities without the creditor’s written consent thereto shallamount to an event of default.</p>
+
+<strong>5.0 Repayment.</strong>
+<p>The borrower shall repay both the principal loan amount and interest chargeable there on in 1 months installment of UGX <input type="number" name="total amount" class="form-control d-inline w-auto" placeholder="Total Amount" required> (Uganda Shilling <input type="text" name="total in words" class="form-control d-inline w-auto" placeholder="Total Amount in  words" required>  Only) which repayment shall commence one calender month from date of the loan or any part thereof is disbursed, in the case being the <input type="date" name="agreement_date" class="form-control d-inline w-auto" required> (or on such later date that the creditor may agree to in writing)</p>
+
+<strong>6.0 Early Repayment</strong>
+<p>The borrower may repay the whole or any part of the loan provided that he or she , upon prepayment, also pay to the creditor all interest already paid and shall not be entitled to any reduction in the interest.</p>
+
+<strong.7.0 Securities</strong>
+<p>7.1. The creditor’s disbursement of the loan shall be subject to the borrower fulfilling all the security requirements specified in his or her loan application form and any other documents related hereto, failing where upon this agreement will lapse immediately and the creditor will no longer be obligated to advance the loan applied for.</p>
+
+<p>7.2 The borrower hereby pledges the following securities to the creditor as securities for the repayment of the entire loan sum provided that the creditor may in addition to the securities as the circumstances may deem fit and the creditor shall at liberty to lodge, and registered charges over any such property, chattel or asset as security of the loan.</p>
+<p>Description; <input type="text" name="borrower_name" class="form-control d-inline w-auto" placeholder="Description" required>
+Estimated Value (UGX) <input type="number" name="estimate value" class="form-control d-inline w-auto" placeholder="UGX" required> 
+Location of property: <input type="text" name="borrower_name" class="form-control d-inline w-auto" placeholder="Location" required>
+Owner of the item; <input type="text" name="borrower_name" class="form-control d-inline w-auto" placeholder="Owner Name" required></p>
+
+<strong>8.0 Penalty Interest</strong>
+<p>In the event that the borrower defaults in paying any installment of the loan in time or any part thereof, the creditor shall charge him or her a penalty fee at the rate of 0.5% per day on any amount in arrears and this rate may change from time to time.</p>
+
+<strong>9.0 The borrower covenants with the creditor as follows;</strong>
+<p>a) Not suffer any execution or distress to be levied on the chattels/assets/properties so pledged as security and to give the creditor immediate written notice of such event.</p>
+
+<p>b) Not to sell, pledge, charge, assign let, hire or part with possession of the chattels/asset/properties herein described as security primary, collateral or otherwise, or permit any alien, legal or equitable interest to be created therein without the creditors prior written consent, provided that this clause shall not affect the letting or hiring of any chattels/assets/properties as part of the borrowers ordinary business principally if the same is in the borrower’s source of funds for servicing the loan advanced hereunder.</p>
+
+<p>c) To carry out and execute the project/business for which the loan has been granted with the due diligence and efficiency and in accordance with sound financial and management standards.</p>
+
+<p>d) To maintain proper records of books of accounts for the business as would be reasonably adequate to reflect the borrower’s operation and financial situation.e) To permit the creditor, its managers, agents, officers, inspect the project/business and purse and investigate any other relevant records related to the loan or the security thereof.</p>
+
+<strong>10. Creditor’s Rights and Remedies.</strong>
+<p>It is hereby agreed that the creditors may at its discretion with or without notice to the borrower’s exercise the following rights and / or remedies.</p>
+
+<p>a) To suspend or recall the loan in the borrower misapplies the loan to the loan to the purpose not expressly permitted by the creditor or commits any other event of default including delayed or nonpayment of the monthly installments as per the loan repayment schedule.</P>
+
+<p>b) To declare in its absolute discretion due and payable with immediate effect the entire outstanding principal and interest, upon the borrower’s default in payment of any installment, as it falls due.</p>
+
+<p>c) To demand immediate repayment of the borrower for any whatsoever deemed by the creditor as an event of
+default and/or to exercise any/all of the rights under the mortgage, debenture,guarantee agreement or any
+other instrument executed as security for the loan or law applicable, especially the right to take possession of the pledged security and to sale it by private treaty without recourse to count or any third party or other authority, non withstanding any clause herein to the contrary.</p>
+
+<p>d) To exercise the right to set off or combine any of the borrower’s accounts in credit with one debit in order to discharge the borrower’s indebtedness hereunder.</P>
+
+<P>e) To institute or continue legal action against the borrower upon the occurrence of any event of the default in the borrower’s and /or charger’s performance of its contractual obligations, including but not limited to where the borrower’s default on paying any installment of the loan and interest thereon or any other monies as per his/her schedule, or defaults in the performance of any other covenant or conditions of this agreement and such default continues before or once the creditor served the borrower with notice to rectify the same.</p>
+
+<p>f) To non-exercise or delayed exercise of any of the creditors rights of privileges under this agreement shall not be constructed as waiver of such or any other rights nor shall any partial exercise of such right or privilege preclude any other or further exercise thereof.</p>
+
+<p>g) The borrower hereby agrees to pay the fees, charges, and costs incidental to recovery or collection of any or all of the outstanding or unpaid amounts of the loan and interest thereon and the creditor shall at all times be at liberty to debit the borrower’s account accordingly.</p>
+
+<P>11. Any notice or communications required to be given under this agreement shall be in the writing and shall be deemed duly given by either party when it shall be delivered to the last known place of business of either party or sent to the registered to debit the borrower’s account accordingly.</p>
+
+<p>12. The borrower shall not be released from performance of his /her obligations in accordance with this agreement whether or not such delay or failure is due to circumstance within or beyond his/her control and any change or amendment in the applicable law or regulation or in the application or interpretation thereof by any governmental authority charged with the administration thereof or if there be or arises any official requirement or request (not having the force of law) which shall make it impracticable or impossible for either party to perform his/her/their obligations in accordance with the provisions of this agreement, unless the borrower notifies the creditor of such occurrence within reasonable time and the creditor reschedules or otherwise restructures the borrower’s performance off his/her obligations.</p>
+
+<p>13. This agreement shall continue in force until borrower’s obligations to <strong>TECHLEND INVESTMENTS CO. LTD </strong> have been discharged.<strong>IN THE WITNESS WHEREOF</strong> the parties hereto have set their respective hands on the agreement, the day, month and year above written.</p>
+
+  <div>
+  <!-- Borrower -->
+  <div>
+    <p><strong>Borrower</strong></p>
+    <div class="mb-2">
+      <input type="text" name="borrower_name" class="form-control" placeholder="Full Name" required>
+    </div>
+<div class="mb-3">
+  <label class="form-label">Upload Signature (Borrower - Agreement Section)</label>
+  <input type="file" accept=".jpg,.jpeg,.png" class="form-control" onchange="previewSignature(event, 'signaturePreviewBorrower2')">
+  <img id="signaturePreviewBorrower2" src="" alt="Signature Preview" style="max-height: 50px; margin-top: 5px; display: none;" />
+</div>
+  </div>
+
+  <!-- Witness -->
+  <div class="col-md-6">
+    <p><strong>Witness</strong></p>
+    <div class="mb-2">
+      <input type="text" name="witness_name" class="form-control mb-2" placeholder="Full Name">
+      <input type="text" name="witness_address" class="form-control mb-2" placeholder="Address">
+      <input type="text" name="witness_occupation" class="form-control" placeholder="Occupation">
+    </div>
+<div class="mb-3">
+  <label class="form-label">Upload Signature (Witness)</label>
+  <input type="file" accept=".jpg,.jpeg,.png" class="form-control" onchange="previewSignature(event, 'signaturePreview2')">
+  <img id="signaturePreview2" src="" alt="Signature Preview" style="max-height: 50px; margin-top: 5px; display: none;" />
+</div>
+  </div>
+
+<div class="row">
+  <!-- Branch Manager -->
+    <p><strong>Branch Manager (TechLend Investments Co. Ltd)</strong></p>
+    <div class="mb-2">
+      <input type="text" name="branch_manager" class="form-control" placeholder="Full Name" required>
+    </div>
+<div class="mb-3">
+  <label class="form-label">Upload Signature (TechLend Manager)</label>
+  <input type="file" accept=".jpg,.jpeg,.png" class="form-control" onchange="previewSignature(event, 'signaturePreview3')">
+  <img id="signaturePreview3" src="" alt="Signature Preview" style="max-height: 50px; margin-top: 5px; display: none;" />
+  
+</div>
+  </div>
+
+  <!-- Legal Assistant -->
+  <div class="col-md-6">
+    <p><strong>Legal Assistant</strong></p>
+    <div class="mb-2">
+      <input type="text" name="legal_assistant_name" class="form-control" placeholder="Full Name">
+    </div>
+<div class="mb-3">
+  <label class="form-label">Upload Signature (Legal Assistant)</label>
+  <input type="file" accept=".jpg,.jpeg,.png" class="form-control" onchange="previewSignature(event, 'signaturePreviewLegal')">
+  <img id="signaturePreviewLegal" src="" alt="Signature Preview" style="max-height: 50px; margin-top: 5px; display: none;" />
+</div>
+  </div>
+</div>
+  </p>
+</form>
+
+<h6>LOAN GUARANTEE AND UNDERTAKING </h6>
+      <!-- 🔐 Data & Guarantor Consent -->
+        <div class="header bg-dark text-white text-center">
+          🔐 Data & Guarantor Consent
+        </div>
+        <div>
+          <p>By signing this agreement, the borrower and guarantor consent to the collection, processing, and sharing of personal data with relevant authorities or credit reference bureaus as per TechLend’s data policy.</p>
+        </div>
+<form>
+     
+<p> I/WE: <input type="text" name="borrower_name" class="form-control d-inline w-auto" placeholder="Full Name" > P. O Box <input type="text" name="borrower_box" class="form-control d-inline w-auto" placeholder="e.g. 45678"> do hereby guarantee the loan advanced to <input type="text" name="borrower_name" class="form-control d-inline w-auto" placeholder="Full Name"> and expressly undertake to ensure the payment of the said loan on the terms and conditions herein and that in the event of any defaults in any or all installments not being paid up by the said borrower in spite of notice /reminder, i/we undertake to cause the payment of the outstanding including the lender having the right to use my personal assets any kind towards the recovery without recourse to the courts of law.
+</p>
+<div>
+
+<!-- Guarantor 1 -->
+  <div class="header bg-secondary text-white text-center">
+    🧾 Guarantor 1 Details
+  </div>
+  <div class="body">
+ <div class="mb-3">
+  <label class="form-label">Upload Signature (Guarantor 1)</label>
+  <input type="file" accept=".jpg,.jpeg,.png" class="form-control" onchange="previewSignature(event, 'signaturePreviewGuarantor1')">
+  <img id="signaturePreviewGuarantor1" src="" alt="Signature Preview" style="max-height: 50px; margin-top: 5px; display: none;" />
+</div>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label for="guarantor1Phone" class="form-label">Phone Number</label>
+        <input type="number" class="form-control" id="guarantor1Phone" name="guarantor1_phone" placeholder="Phone Number">
+      </div>
+
+      <div class="col-md-4">
+        <label for="guarantor1Name" class="form-label">Full Name</label>
+        <input type="text" class="form-control" id="guarantor1Name" name="guarantor1_name" placeholder="Full Name">
+      </div>
+
+      <div class="col-md-4">
+        <label for="guarantor1Address" class="form-label">Address</label>
+        <input type="text" class="form-control" id="guarantor1Address" name="guarantor1_address" placeholder="Address">
+      </div>
+    </div>
+  </div>
+
+<!-- Guarantor 2 -->
+  <div class="header bg-secondary text-white text-center">
+    🧾 Guarantor 2 Details
+  </div>
+  <div class="body">
+<!-- Guarantor 2 Signature -->
+<div class="mb-3">
+  <label class="form-label">Upload Signature (Guarantor 2)</label>
+  <input type="file" accept=".jpg,.jpeg,.png" class="form-control" onchange="previewSignature(event, 'signaturePreviewGuarantor2')">
+  <img id="signaturePreviewGuarantor2" src="" alt="Signature Preview" style="max-height: 50px; margin-top: 5px; display: none;" />
+</div>
+
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label for="guarantor2Phone" class="form-label">Phone Number</label>
+        <input type="number" class="form-control" id="guarantor2Phone" name="guarantor2_phone" placeholder="Phone Number">
+      </div>
+
+      <div class="col-md-4">
+        <label for="guarantor2Name" class="form-label">Full Name</label>
+        <input type="text" class="form-control" id="guarantor2Name" name="guarantor2_name" placeholder="Full Name">
+      </div>
+
+      <div class="col-md-4">
+        <label for="guarantor2Address" class="form-label">Address</label>
+        <input type="text" class="form-control" id="guarantor2Address" name="guarantor2_address" placeholder="Address">
+      </div>
+    </div>
+  </div>
+</div>
+
+<form>      
+      <!-- ⚖️ Jurisdiction Clause -->
+        <div class="header bg-secondary text-white text-center">
+          ⚖️ Jurisdiction Clause
+        </div>
+        <div class="body">
+          <p>This agreement shall be governed by and construed in accordance with the laws of <strong>Uganda</strong>. Any disputes arising shall be subject to the jurisdiction of courts in <strong>Kampala</strong>.</p>
+          <p>For more details, visit our <a href="https://techlendfinance.co.ug" target="_blank">official website</a>.</p>
+
+<script>
+  function previewSignature(event, previewId) {
+    const input = event.target;
+    const preview = document.getElementById(previewId);
+
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+
+      reader.onload = function (e) {
+        preview.src = e.target.result;
+        preview.style.display = 'block';
+      };
+
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+</script>
+
+</div>
+      </div>
+<button onclick="downloadPDF()" class="btn btn-success mt-4">Download Filled Form as PDF</button>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+  async function downloadPDF() {
+    const element = document.getElementById('formToDownload');
+    const canvas = await html2canvas(element, {
+      scale: 2,
+      useCORS: true,
+    });
+
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
+    const imgProps = pdf.getImageProperties(imgData);
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    pdf.save('TechLend_Loan_Form.pdf');
+  }
+</script>
+</div>
+</body>
+</html>
+

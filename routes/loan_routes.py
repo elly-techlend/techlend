@@ -147,7 +147,8 @@ def loan_details(loan_id):
         loan=loan,
         repayments=repayments,
         ledger_entries=ledger_entries,
-        tab=tab
+        tab=tab,
+        now=datetime.utcnow  # ✅ pass current time to template
     )
 
 # edit repayment
