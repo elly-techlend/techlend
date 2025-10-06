@@ -151,6 +151,8 @@ def create_app():
     app.cli.add_command(create_superuser)
     app.cli.add_command(seed_roles)
 
+    from flask import jsonify
+    from sqlalchemy import text
     # ✅ Health check route for uptime monitoring
     @app.route('/health')
     def health_check():
