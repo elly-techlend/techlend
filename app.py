@@ -151,8 +151,16 @@ def create_app():
     app.cli.add_command(create_superuser)
     app.cli.add_command(seed_roles)
 
-    return app
+    # ✅ Health check route for uptime monitoring
+    @app.route('/health')
+    def health_check():
+        try:
+            db.session.execute('SELECT 1')
+            return {"status": "OK", "message": "TechLend is running and DB is healthy"}, 200
+        except Exception as e:
+            return {"status": "ERROR", "message": str(e)}, 500
 
+    return app
 
 # CLI Command to create a superuser
 @click.command("create-superuser")
