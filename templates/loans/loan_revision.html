@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <!-- Page Heading with Search Icon -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="fw-bold text-primary mb-0">
+                <i class="fa fa-tools me-2"></i> Loan Revision Tools
+            </h1>
+            <p class="text-muted mb-0">Select an option below to revise, reschedule, or manage loans.</p>
+        </div>
+        <div>
+            <!-- Button to trigger modal -->
+            <button class="btn btn-lg btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#loanSearchModal" title="Search Approved Loans">
+                <i class="fa fa-search"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Selected Loan Info -->
+    {% if selected_loan %}
+    <div class="alert alert-info mb-4 shadow-sm">
+        <i class="fa fa-info-circle me-2"></i>
+        Selected Loan: <b>{{ selected_loan.borrower.name }}</b> — Loan #{{ selected_loan.id }} 
+        <span class="badge bg-primary ms-2">Ksh {{ selected_loan.amount_borrowed }}</span>
+        <small class="text-muted ms-2">Due: {{ selected_loan.due_date.strftime("%Y-%m-%d") if selected_loan.due_date else "N/A" }}</small>
+    </div>
+    {% endif %}
+
+    <!-- Loan Revision Tool Cards -->
+    <div class="row" id="revisionCards">
+        {% for group in revision_groups %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-header bg-primary text-white fw-bold d-flex justify-content-between align-items-center">
+                    <span>
+                        {% if group.title == "Modifications" %}
+                            <i class="fa fa-pencil-alt me-2"></i>
+                        {% elif group.title == "Deletions" %}
+                            <i class="fa fa-trash-alt me-2"></i>
+                        {% elif group.title == "Loan refinance" %}
+                            <i class="fa fa-sync-alt me-2"></i>
+                        {% elif group.title == "Loan provision" %}
+                            <i class="fa fa-file-invoice-dollar me-2"></i>
+                        {% elif group.title == "Loan reschedule" %}
+                            <i class="fa fa-calendar-alt me-2"></i>
+                        {% elif group.title == "Other tools" %}
+                            <i class="fa fa-cogs me-2"></i>
+                        {% else %}
+                            <i class="fa fa-folder-open me-2"></i>
+                        {% endif %}
+                        {{ group.title }}
+                    </span>
+                    <span class="badge bg-light text-dark">{{ group['items']|length }}</span>
+                </div>
+                <ul class="list-group list-group-flush">
+                    {% for item in group['items'] %}
+                    <li class="list-group-item d-flex align-items-center">
+                        <i class="fa fa-angle-right text-primary me-2"></i>
+                        <a href="{{ url_for(item.endpoint, loan_id=selected_loan.id) if selected_loan and item.endpoint else '#' }}" 
+                           class="text-decoration-none flex-grow-1 text-dark">
+                            {{ item.name }}
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Loan Search Modal -->
+<div class="modal fade" id="loanSearchModal" tabindex="-1" aria-labelledby="loanSearchModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content shadow-lg">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold" id="loanSearchModalLabel"><i class="fa fa-search me-2"></i> Search Approved Loans</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Search Input -->
+        <div class="input-group mb-3">
+            <input type="text" class="form-control" id="loanSearchInput" placeholder="Enter loan ID, borrower name, or phone number">
+            <button class="btn btn-outline-primary" type="button" id="loanSearchBtn"><i class="fa fa-search"></i></button>
+        </div>
+        <!-- Search Results -->
+        <div id="loanSearchResults">
+          <p class="text-muted text-center">Start typing to search approved loans...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- JS for Modal Live Search -->
+<script>
+const input = document.getElementById('loanSearchInput');
+const resultsDiv = document.getElementById('loanSearchResults');
+let timeout = null;
+
+function performSearch(query) {
+    if (query.trim() === "") {
+        resultsDiv.innerHTML = "<p class='text-muted text-center'>Start typing to search approved loans...</p>";
+        return;
+    }
+
+    fetch(`/loans/search?q=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.length === 0) {
+                resultsDiv.innerHTML = "<p class='text-muted text-center'>No approved loans found.</p>";
+                return;
+            }
+
+            let listHTML = '<div class="list-group">';
+            data.forEach(loan => {
+                listHTML += `
+                    <a href="#" class="list-group-item list-group-item-action loan-select-item" 
+                       data-loan-id="${loan.id}">
+                        <i class="fa fa-user me-2"></i>
+                        <b>${loan.borrower}</b> — Loan #${loan.id}
+                        <span class="badge bg-primary ms-2">Ksh ${loan.amount}</span>
+                        <small class="text-muted ms-2">Due: ${loan.due_date}</small>
+                    </a>
+                `;
+            });
+            listHTML += '</div>';
+            resultsDiv.innerHTML = listHTML;
+
+            document.querySelectorAll('.loan-select-item').forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const loanId = this.dataset.loanId;
+
+                    const modalEl = document.getElementById('loanSearchModal');
+                    const modal = bootstrap.Modal.getInstance(modalEl);
+                    modal.hide();
+
+                    // Reload page with selected loan
+                    window.location.href = `/loans/revision?loan_id=${loanId}`;
+                });
+            });
+        })
+        .catch(error => {
+            console.error("Search error:", error);
+            resultsDiv.innerHTML = "<p class='text-danger text-center'>Something went wrong. Try again.</p>";
+        });
+}
+
+// Debounced live search
+input.addEventListener('keyup', function() {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => {
+        performSearch(input.value);
+    }, 400);
+});
+</script>
+{% endblock %}

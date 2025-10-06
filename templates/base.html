@@ -19,12 +19,6 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
   <style>
-    body {
-      margin: 0;
-      overflow-x: hidden;
-      padding-top: 0px;
-    }
-
     .navbar {
       background-color: #367588;
       height: 50px;
@@ -175,7 +169,7 @@
 
 </head>
 
-<body class="{% if theme == 'dark' %}dark-mode{% endif %}">
+<body class="main-body {% if theme == 'dark' %}dark-mode{% endif %}">
  <!-- ✅ Top Navbar -->
 <nav class="navbar navbar-expand-lg" id="topNavbar">
   <!-- Left Section (TechLend Logo + Menu Toggle) -->
@@ -264,6 +258,7 @@
         <a href="{{ url_for('loan.loans_in_arrears') }}"><i class="fa fa-circle-o"></i> Loans In Arrears</a>
         <a href="{{ url_for('loan.rejected_loans') }}"><i class="fa fa-circle-o"></i> Rejected Loans</a>
         <a href="{{ url_for('loan.archived_loans') }}"><i class="fa fa-circle-o"></i> Settled Loans</a>
+        <a href="{{ url_for('loan.loan_revision_hub') }}"><i class="fa fa-circle-o"></i> Loan Revision</a>
     </div>
 
 <div class="section d-flex align-items-center" onclick="toggleSubmenu('savingsMenu')">

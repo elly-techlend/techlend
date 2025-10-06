@@ -97,6 +97,37 @@ def view_loans():
 
     return render_template('loans/view_all_loans.html', loans=loans, totals=totals, pagination=pagination)
 
+@loan_bp.route('/loans/search', methods=['GET'])
+@login_required
+@roles_required('Admin', 'Branch_Manager', 'Loans Supervisor', 'Loans_Officer')
+def search_loans():
+    query = request.args.get('q', '').strip()
+    results = []
+
+    try:
+        if query:
+            # cast integer ID to string for ilike
+            results = Loan.query.join(Borrower).filter(
+                Loan.status == "Approved",
+                (db.cast(Loan.id, db.String).ilike(f"%{query}%")) |
+                (Borrower.name.ilike(f"%{query}%")) |
+                (Borrower.phone.ilike(f"%{query}%"))
+            ).all()
+    except Exception as e:
+        print("Loan search error:", e)
+        return jsonify([])  # return empty JSON to prevent JS crash
+
+    # return JSON
+    return jsonify([
+        {
+            "id": loan.id,
+            "borrower": loan.borrower.name,
+            "phone": loan.borrower.phone,
+            "amount": loan.amount_borrowed,
+            "due_date": loan.due_date.strftime("%Y-%m-%d") if loan.due_date else "N/A"
+        } for loan in results
+    ])
+
 @loan_bp.route('/loan/<int:loan_id>')
 @login_required
 @roles_required('Admin', 'Cashier', 'Loans Supervisor', 'Branch_Manager', 'Accountant', 'Loans_Officer')
@@ -653,6 +684,83 @@ def rejected_loans():
 
     loans = query.order_by(Loan.date.desc()).all()
     return render_template('loans/rejected_loans.html', loans=loans)
+
+@loan_bp.route('/loans/revision', methods=['GET'])
+@login_required
+@roles_required('Admin', 'Branch_Manager', 'Loans Supervisor')
+def loan_revision_hub():
+
+    loan_id = request.args.get('loan_id', type=int)
+    selected_loan = Loan.query.get(loan_id) if loan_id else None
+    # Fully defined list of revision groups
+    revision_groups = [
+        {
+            'title': 'Modifications',
+            'items': [
+                {'name': 'Modify loan application', 'url': '#'},
+                {'name': 'Push loan due dates forward', 'url': '#'},
+                {'name': 'Change loan installment interval', 'url': '#'},
+                {'name': 'Recreate loan schedule', 'url': '#'},
+                {'name': 'Pull loan due dates backwards', 'url': '#'},
+                {'name': 'Modify dues manually', 'url': '#'}
+            ]
+        },
+        {
+            'title': 'Deletions',
+            'items': [
+                {'name': 'Delete approval', 'url': '#'},
+                {'name': 'Delete disbursement', 'url': '#'},
+                {'name': 'Delete fees', 'url': '#'},
+                {'name': 'Delete all repayments of a day', 'url': '#'},
+                {'name': 'Delete penalties', 'url': '#'}
+            ]
+        },
+        {
+            'title': 'Loan Refinance',
+            'items': [
+                {'name': 'Loan restructuring and refinance (topup)', 'url': '#'}
+            ]
+        },
+        {
+            'title': 'Loan Provision',
+            'items': [
+                {'name': 'Writeoff loan', 'url': '#'},
+                {'name': 'Bulk writeoff', 'url': '#'},
+                {'name': 'Provision for a single', 'url': '#'}
+            ]
+        },
+        {
+            'title': 'Loan Reschedule',
+            'items': [
+                {'name': 'Reschedule loan', 'url': '#'}
+            ]
+        },
+        {
+            'title': 'Other Tools',
+            'items': [
+                {'name': 'Transfer portfolio to another loan/credit officer', 'url': '#'},
+                {'name': 'Move loan to another product', 'url': '#'}
+            ]
+        }
+    ]
+
+    # Debug sanity check (optional)
+    print(type(revision_groups))
+    for group in revision_groups:
+        print(group['title'], type(group['items']))
+
+    return render_template('loans/loan_revision.html', revision_groups=revision_groups)
+
+@loan_bp.route('/loans/revision/search', methods=['GET'])
+@login_required
+@roles_required('Admin', 'Branch_Manager', 'Loans Supervisor')
+def search_loan_for_revision():
+    query = request.args.get('query', '')
+    loans = Loan.query.filter(
+        (Loan.id.like(f'%{query}%')) |
+        (Loan.borrower_name.ilike(f'%{query}%'))
+    ).all()
+    return render_template('loans/search_results.html', loans=loans, query=query)
 
 from math import ceil
 

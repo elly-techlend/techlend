@@ -4,12 +4,19 @@
     padding: 0;
     box-sizing: border-box;
 }
+body.main-body {
+    background-color: #f4f6f9 !important;
+}
+
 body {
+    background-color: #eef2f7;
     font-family: Arial, sans-serif;
     overflow-x: hidden;
-    background-color: #f4f4f4;
     color: #333;
+    margin: 0;
+    padding-top: 0;
 }
+
 a {
     text-decoration: none;
     color: inherit;
@@ -143,7 +150,7 @@ body.dark-mode .sidebar .section:hover {
     margin-left: 250px;
     padding: 30px 20px 20px 20px;
     min-height: 100vh;
-    background-color: #fff;
+    background: linear-gradient(to right, #111827, #111827);
     transition: all 0.3s ease;
 }
 body.dark-mode .main-content {
@@ -156,9 +163,9 @@ body.dark-mode .main-content {
 .card {
     background: #fff;
     border: 1px solid #ccc;
-    border-radius: 6px;
-    padding: 15px;
-    margin-bottom: 20px;
+    border-radius: 3px;
+    padding: 5px;
+    margin-bottom: 10px;
 }
 body.dark-mode .container,
 body.dark-mode .card {
