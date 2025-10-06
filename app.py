@@ -157,7 +157,7 @@ def create_app():
     @app.route('/health')
     def health_check():
         try:
-            db.session.execute('SELECT 1')
+            db.session.execute(text('SELECT 1'))
             return {"status": "OK", "message": "TechLend is running and DB is healthy"}, 200
         except Exception as e:
             return {"status": "ERROR", "message": str(e)}, 500
