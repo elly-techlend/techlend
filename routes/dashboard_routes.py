@@ -9,7 +9,7 @@ import pytz
 from extensions import csrf
 from decimal import Decimal, InvalidOperation
 
-dashboard_bp = Blueprint('dashboard', __name__)
+dashboard_bp = Blueprint('dashboard', __name__, url_prefix='/dashboard')
 
 @dashboard_bp.before_app_request
 def set_active_branch_context():
@@ -76,7 +76,7 @@ def index():
     loans = loan_query.all()
 
     if not loans:
-        return render_template('home.html', message="No loans found for your company.")
+        return render_template('dashboard/home.html', message="No loans found for your company.")
 
     # Basic counts
     total_borrowers = len(set(l.borrower_name for l in loans))
@@ -157,7 +157,7 @@ def index():
         last_update = "No data"
 
     return render_template(
-        'home.html',
+        'dashboard/home.html',
         total_borrowers=total_borrowers,
         borrowers_year=borrowers_year,
         borrowers_month=borrowers_month,
@@ -181,7 +181,7 @@ def index():
         company=current_user.company
     )
 
-@dashboard_bp.route('/loan_data')
+@dashboard_bp.route('dashboard/loan_data')
 @login_required
 def loan_data():
     current_year = datetime.now().year

@@ -267,7 +267,7 @@ def after_login_redirect():
     elif any(role in role_names for role in ['branch_manager', 'loans_officer', 'cashier', 'accountant']):
         session['active_branch_id'] = current_user.branch_id
 
-    return redirect(url_for('dashboard'))
+    return redirect(url_for('dashboard.index'))
 
 @csrf.exempt
 @auth_bp.route('/forgot-password', methods=['GET', 'POST'])

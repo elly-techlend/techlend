@@ -432,7 +432,7 @@ document.addEventListener('click', function(event) {
 <!-- Chart Scripts -->
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-    fetch('/loan_data', { credentials: 'include' })
+    fetch('dashboard/loan_data', { credentials: 'include' })
         .then(response => response.json())
         .then(data => {
             // --- Bar Chart: Monthly Disbursed vs Repaid ---
