@@ -33,7 +33,6 @@
       color: #fff;
       overflow: hidden;
     }
-
     /* When expanded, increase height to fit login buttons */
     .navbar.expanded {
       height: 120px; /* adjust as needed */
@@ -92,15 +91,71 @@
     .sidebar {
       position: fixed;
       top: 50px;
+      bottom: 0; /* stretch to bottom */
       left: 0;
       width: 180px;
-      height: 100%;
+      height: calc(100vh - 50px); /* always match screen height */
       background-color: #36454F;
       color: white;
+      display: flex;
       padding-top: 10px;
-      overflow-y: auto;
+      flex-direction: column;
+      overflow-y: hidden;
       z-index: 1000;
       transition: transform 0.3s ease;
+      overflow: hidden;
+    }
+    
+    /* Scrollable menu content */
+    .sidebar-scroll {
+      flex: 1 1 auto; /* fills available space */
+      overflow-y: auto; /* scroll if too tall */
+      padding-top: 10px;
+      padding-bottom: 50px
+      scrollbar-width: thin; /* Firefox */
+      scrollbar-color: #2d3748 #36454F; /* thumb, track */
+      scroll-behavior: smoth;
+    }
+
+    /* Chrome/Edge/Safari scrollbar */
+    .sidebar-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .sidebar-scroll::-webkit-scrollbar-thumb {
+      background-color: #2d3748;
+      border-radius: 4px;
+    }
+
+    .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+      background-color: #4a5568;
+    }
+
+    .sidebar-scroll::-webkit-scrollbar-track {
+      background-color: #36454F;
+    }
+
+    /* Footer pinned at bottom */
+    .sidebar-footer {
+      flex: 0 0 40px;
+      background-color: #2d3748;
+      border-top: 1px solid #444;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      font-size: 12px;
+      color: #ccc;
+      box-sizing: border-box;
+    }
+
+    .sidebar-scroll {
+      padding-bottom: 10px; /* optional */
+    }
+
+    /* optional hover glow for touch of style */
+    .sidebar-footer:hover {
+      background-color: #3a4756;
     }
 
     .sidebar a,
@@ -115,6 +170,14 @@
     .submenu {
       display: none;
       padding-left: 20px;
+    }
+
+    /* Adjust for mobile if footer smaller */
+    @media (max-width: 768px) {
+      .sidebar.show {
+        transform: translateX(0);
+      }
+
     }
 
     .sidebar-branch-info {
@@ -139,6 +202,7 @@
     @media (max-width: 768px) {
       .sidebar {
         transform: translateX(-100%);
+        height: calc(100vh - 50px); /* full viewport minus navbar */
       }
 
       .sidebar.show {
@@ -146,10 +210,12 @@
       }
 
       .main-content {
-        margin-left: 0;
+        margin-left: 3px;
+        max-height: calc(100vh - 50px - 60px); /* leave space for footer */
       }
     }
   </style>
+
 <style>
 .flash-wrapper {
   position: fixed;
@@ -170,10 +236,10 @@
 </head>
 
 <body class="main-body {% if theme == 'dark' %}dark-mode{% endif %}">
- <!-- ✅ Top Navbar -->
+<!-- ✅ Top Navbar -->
 <nav class="navbar navbar-expand-lg" id="topNavbar">
   <!-- Left Section (TechLend Logo + Menu Toggle) -->
-  <div class="d-flex align-items-center navbar-left">
+ <div class="d-flex align-items-center navbar-left">
     <span class="menu-toggle me-2 d-lg-none" onclick="toggleSidebar()">☰</span>
     <img src="{{ url_for('static', filename='tec.jpeg') }}" width="40" height="40" class="rounded-circle" alt="TechLend Logo">
     <div class="vr-line ms-3 d-none d-lg-block"></div>
@@ -224,7 +290,9 @@
 {% endwith %}
 
   <!-- ✅ Sidebar -->
-  <div class="sidebar" id="sidebar">
+ <div class="sidebar" id="sidebar">
+  <div class="sidebar-scroll">
+   <div class="sidebar-content">
     {% if session.active_branch_name %}
     <div class="sidebar-branch-info">
       <i class="fas fa-map-marker-alt me-1"></i> <strong>Branch:</strong> {{ session.active_branch_name }}
@@ -243,8 +311,6 @@
       <a href="{{ url_for('borrowers.send_email_to_borrowers') }}">📤 Send email</a>
       <a href="{{ url_for('borrowers.invite_borrowers') }}">Invite Borrowers</a>
     </div>
-
-    <!-- Add other menus as you already have: loans, savings, etc. -->
     
 <div class="section d-flex align-items-center" onclick="toggleSubmenu('loansMenu')">
   <i class="fa fa-balance-scale me-2"></i> Loans
@@ -332,59 +398,15 @@
        <li><a href="{{ url_for('public.terms') }}"><i class="fas fa-file-contract me-2"></i>Terms & Conditions</a></li>
        <li><a href="{{ url_for('public.privacy') }}"><i class="fas fa-shield-alt me-2"></i>Privacy Policy</a></li>
     </ul>
-
-{% if current_user.is_authenticated and current_user.has_role('Admin') and current_user.company %}
-  <div class="section d-flex align-items-center" onclick="toggleSubmenu('adminMenu')">
-    <i class="fas fa-tools me-2"></i> Admin Panel
-    <i class="fa fa-angle-left ms-auto"></i>
   </div>
-  <ul id="adminMenu" class="submenu">
-
-    <!-- Branch Switcher -->
-    <li>
-      <form id="branchForm" action="{{ url_for('admin.set_active_branch') }}" method="post">
-        {{ csrf_form.csrf_token }}
-        <label for="branch_id" class="form-label"><i class="fas fa-exchange-alt me-2"></i>Switch Branch</label>
-        <select id="branch_id" name="branch_id" class="form-select w-80" onchange="document.getElementById('branchForm').submit()">
-          {% for branch in current_user.company.branches if not branch.deleted_at %}
-            <option value="{{ branch.id }}" {% if branch.id == session['active_branch_id'] %}selected{% endif %}>
-              {{ branch.name }}
-            </option>
-          {% endfor %}
-        </select>
-      </form>
-    </li>
-
-    <li><a href="{{ url_for('branches.list_branches') }}"><i class="fas fa-code-branch me-2"></i>View Branches</a></li>
-    <li><a href="{{ url_for('branches.add_branch') }}"><i class="fas fa-plus-circle me-2"></i>Add Branch</a></li>
-    <li><a href="{{ url_for('admin.manage_staff') }}"><i class="fas fa-users-cog me-2"></i>Manage Staff</a></li>
-    <li><a href="{{ url_for('auth.register') }}"><i class="fas fa-user-plus me-2"></i>Register Staff</a></li>
-    <li><a href="{{ url_for('admin.company_notifications') }}"><i class="fas fa-bell me-2"></i>Notifications</a></li>
-    <li><a href="{{ url_for('settings.billing') }}"><i class="fas fa-credit-card me-2"></i>Billing</a></li>
-    <li><a href="{{ url_for('drive.authorize') }}"><i class="fab fa-google-drive me-2"></i>Link Google Drive</a></li>
-    <li><a href="{{ url_for('drive.upload_backup') }}"><i class="fas fa-cloud-upload-alt me-2"></i>Backup to Google Drive</a></li>
-  </ul>
-{% endif %}
-
-{% if current_user.is_authenticated and current_user.is_superuser %}
-    <div class="section" onclick="toggleSubmenu('superadminMenu')">
-        <i class="fas fa-user-shield"></i> Super Admin <i class="fa fa-angle-left pull-right"></i>
-    </div>
-
-    <div id="superadminMenu" class="submenu">
-        <a href="{{ url_for('auth.register_company') }}"><i class="fas fa-building me-2"></i>Register Company</a>
-        <a href="{{ url_for('admin.register_admin') }}"><i class="fas fa-user-plus me-2"></i>Register Admin</a>
-        <a href="{{ url_for('admin.view_companies') }}"><i class="fas fa-eye me-2"></i>View Companies</a>
-        <a href="{{ url_for('settings.security_settings') }}"><i class="fas fa-shield-alt me-2"></i>Security Settings</a>
-        <a href="{{ url_for('admin.system_logs') }}"><i class="fas fa-file-alt me-2"></i>System Logs</a>
-        <a href="{{ url_for('admin.super_settings') }}"><i class="fas fa-sliders-h me-2"></i>Admin Settings</a>
-        <a href="{{ url_for('settings.integrations') }}"><i class="fas fa-plug me-2"></i>Integrations</a>
-        <a href="{{ url_for('settings.labs') }}"><i class="fas fa-flask me-2"></i>Labs</a></li>
-
-    </div>
-{% endif %}
-
   </div>
+
+<div class="sidebar-footer">
+  <span class="footer-left">© TechLend</span>
+  <span class="footer-right">All rights reserved</span>
+</div>
+
+ </div>
 
   <!-- ✅ Main Content -->
   <div class="main-content">
@@ -393,23 +415,6 @@
 
   <!-- ✅ Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    document.querySelectorAll('.search_options').forEach(option => {
-        option.addEventListener('click', function (e) {
-            e.preventDefault();
-            const selectedBranch = this.textContent.trim();
-
-            // Update the button text
-            document.getElementById('search_options').textContent = selectedBranch;
-
-            // You can now send this value to a backend or filter content on the page
-            console.log("Selected Branch:", selectedBranch);
-
-            // Example: Redirect to a filtered route
-            // window.location.href = /branches/filter/${selectedBranch};
-        });
-    });
-</script>
 
 <script>
   // Sidebar toggle
@@ -453,6 +458,35 @@
       setTimeout(() => alert.remove(), 500);
     });
   }, 4000);  // 4 seconds
+</script>
+
+<script>
+function toggleDrawer(id) {
+  const drawer = document.getElementById(id);
+  drawer.classList.toggle('show');
+}
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const sidebarContent = document.querySelector('.sidebar-content');
+    const fade = document.querySelector('.sidebar-fade');
+
+    if (sidebarContent && fade) {
+      sidebarContent.addEventListener('scroll', function() {
+        if (sidebarContent.scrollTop > 10) {
+          fade.classList.add('visible');
+        } else {
+          fade.classList.remove('visible');
+        }
+      });
+
+      // Initial check in case sidebar starts scrolled
+      if (sidebarContent.scrollTop > 10) {
+        fade.classList.add('visible');
+      }
+    }
+  });
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

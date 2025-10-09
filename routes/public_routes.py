@@ -11,7 +11,7 @@ public_bp = Blueprint('public', __name__)
 def root():
     if current_user.is_authenticated:
         # Redirect logged-in users to dashboard
-        return redirect(url_for('index'))
+        return redirect(url_for('dashboard.index'))
     else:
         # Public landing page for everyone else
         return redirect(url_for('public.landing'))
@@ -31,6 +31,6 @@ def privacy():
 @public_bp.route("/home")
 def home_redirect():
     if current_user.is_authenticated:
-        return redirect(url_for('index'))
+        return redirect(url_for('dashboard.index'))
     else:
         return redirect(url_for('public.landing'))

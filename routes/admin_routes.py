@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
-from models import User, Role, Company, Branch, Loan, CompanyLog
+from models import Company, Branch, User, user_roles, Borrower, Loan, LoanRepayment, SavingAccount, Collateral, CashbookEntry, CompanyLog
 from flask import flash
 from flask import url_for
 from werkzeug.security import generate_password_hash
@@ -10,7 +10,7 @@ from utils.decorators import superuser_required, roles_required, admin_or_superu
 from sqlalchemy import func
 from flask import session
 from utils.logging import log_company_action, log_system_action
-from extensions import csrf
+from extensions import db, csrf
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -321,7 +321,7 @@ def deactivate_company(company_id):
     flash(f"{company.name} has been suspended.", "warning")
     return redirect(url_for('admin.view_company_details', company_id=company.id))
 
-# Delete company
+# Delete company (superuser only)
 @csrf.exempt
 @admin_bp.route('/delete-company/<int:company_id>', methods=['GET', 'POST'])
 @login_required
@@ -332,28 +332,95 @@ def delete_company(company_id):
     if request.method == 'POST':
         password = request.form.get('password')
 
-        # ✅ Ensure superuser password is verified
+        # ✅ Verify superuser password
         if not current_user.check_password(password):
             flash("Incorrect password. Deletion aborted.", "danger")
             return redirect(url_for('admin.delete_company', company_id=company.id))
 
         try:
-            # ✅ Optional: use cascade delete if already defined in relationships
-            User.query.filter_by(company_id=company.id).delete()
-            Branch.query.filter_by(company_id=company.id).delete()
+            # ✅ Delete all related data in correct dependency order
 
+            # 1. Delete all user roles
+            db.session.execute(
+                user_roles.delete().where(
+                    user_roles.c.user_id.in_(
+                        db.session.query(User.id).filter_by(company_id=company.id)
+                    )
+                )
+            )
+
+            # 2. Delete all loan repayments
+            LoanRepayment.query.filter(
+                LoanRepayment.loan_id.in_(
+                    db.session.query(Loan.id).join(Borrower).join(Branch).filter(
+                        Branch.company_id == company.id
+                    )
+                )
+            ).delete(synchronize_session=False)
+
+            # 3. Delete all saving accounts
+            SavingAccount.query.filter(
+                SavingAccount.borrower_id.in_(
+                    db.session.query(Borrower.id).join(Branch).filter(
+                        Branch.company_id == company.id
+                    )
+                )
+            ).delete(synchronize_session=False)
+
+            # 4. Delete all collaterals
+            Collateral.query.filter(
+                Collateral.borrower_id.in_(
+                    db.session.query(Borrower.id).join(Branch).filter(
+                        Branch.company_id == company.id
+                    )
+                )
+            ).delete(synchronize_session=False)
+
+            # 5. Delete all loans
+            Loan.query.filter(
+                Loan.borrower_id.in_(
+                    db.session.query(Borrower.id).join(Branch).filter(
+                        Branch.company_id == company.id
+                    )
+                )
+            ).delete(synchronize_session=False)
+
+            # 6. Delete all borrowers
+            Borrower.query.filter(
+                Borrower.branch_id.in_(
+                    db.session.query(Branch.id).filter_by(company_id=company.id)
+                )
+            ).delete(synchronize_session=False)
+
+            # 7. Delete cashbook entries
+            CashbookEntry.query.filter(
+                CashbookEntry.branch_id.in_(
+                    db.session.query(Branch.id).filter_by(company_id=company.id)
+                )
+            ).delete(synchronize_session=False)
+
+            # 8. Delete company logs
+            CompanyLog.query.filter_by(company_id=company.id).delete(synchronize_session=False)
+
+            # 9. Delete users
+            User.query.filter_by(company_id=company.id).delete(synchronize_session=False)
+
+            # 10. Delete branches
+            Branch.query.filter_by(company_id=company.id).delete(synchronize_session=False)
+
+            # 11. Finally, delete the company
             db.session.delete(company)
             db.session.commit()
 
-            flash("Company and all related data deleted.", "success")
+            flash("✅ Company and all related data successfully deleted.", "success")
+            return redirect(url_for('admin.view_companies'))
+
         except Exception as e:
             db.session.rollback()
             flash(f"An error occurred during deletion: {str(e)}", "danger")
-
-        return redirect(url_for('admin.view_companies'))  # 👈 Ensure this route exists
+            return redirect(url_for('admin.delete_company', company_id=company.id))
 
     return render_template('admin/confirm_delete_company.html', company=company)
-
 
 @admin_bp.route('/notifications')
 @login_required

@@ -86,11 +86,11 @@ def create_app():
     from routes.drive_routes import drive_bp
 
     # Register blueprints in the app
+    app.register_blueprint(public_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(loan_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(admin_bp)
-    app.register_blueprint(public_bp)
     app.register_blueprint(borrower_bp)
     app.register_blueprint(repayment_bp)
     app.register_blueprint(savings_blueprint, url_prefix='/savings')
