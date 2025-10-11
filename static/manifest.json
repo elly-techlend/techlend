@@ -3,7 +3,7 @@
   "short_name": "TechLend",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#367588",
   "theme_color": "#0d6efd",
   "icons": [
     {
