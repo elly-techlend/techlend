@@ -196,7 +196,7 @@
     .main-content {
       margin-left: 160px;
       padding: 20px;
-      padding-top: 50px;
+      padding-top: 30px;
     }
 
     @media (max-width: 768px) {
@@ -267,7 +267,7 @@
   <!-- Right Section (User Info + Auth Buttons) -->
   <div class="navbar-right">
     {% if current_user.is_authenticated %}
-      <span class="me-2">Hi, {{ current_user.username }}</span>
+      <span class="me-2">Hi</span>
       <a href="{{ url_for('auth.logout') }}" class="btn btn-danger btn-sm">Logout</a>
     {% else %}
       <a href="{{ url_for('auth.login') }}" class="btn btn-light btn-sm me-2">Login</a>
@@ -299,6 +299,7 @@
     </div>
     {% endif %}
     <a href="{{ url_for('dashboard.index') }}"><i class="fas fa-home me-2"></i> Home</a>
+    <a href="{{ url_for('dashboard.dashboard') }}"><i class="bi bi-speedometer2 me-2"></i> Dashboard</a>
     <a href="{{ url_for('cashbook.view_cashbook') }}"><i class="fas fa-book me-2"></i> Cashbook</a>
 
     <div class="section" onclick="toggleSubmenu('borrowersMenu')">

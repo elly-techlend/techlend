@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 
 {% block content %}
 
@@ -23,6 +23,7 @@
         color: #222;
         gap: 2rem;
         flex-wrap: wrap;
+        z-index: 1100;
     }
 
     .welcome-content {
@@ -36,6 +37,12 @@
         font-weight: 600;
         font-size: 1.8rem;
         margin-bottom: 0.5rem;
+    }
+
+    .card-header {
+      background: linear-gradient(90deg, #36454F, #004aad );
+      color: #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
     }
 
     .role-badge {
@@ -79,41 +86,6 @@
     .quick-actions a:hover {
         color: #4338ca;
         text-decoration: none;
-    }
-
-    /* Stat Cards */
-    .stat-card,
-    .chart-card {
-        background: #ffffff; /* keep cards white so they stand out against fintech gray */
-        border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-        border: 1px solid #eaeaea;
-        height: 100%;
-        color: #222;
-    }
-
-    .stat-title {
-        font-size: 0.9rem;
-        color: #6b7280;
-    }
-
-    .stat-value {
-        font-size: 1.6rem;
-        font-weight: 600;
-        margin-top: 0.3rem;
-    }
-
-    .stat-link {
-        margin-top: 1rem;
-        font-size: 0.85rem;
-        text-decoration: none;
-        color: #4f46e5;
-        font-weight: 500;
-    }
-
-    .stat-link:hover {
-        text-decoration: underline;
     }
 
     /* ==== DARK MODE ==== */
@@ -177,81 +149,22 @@
             margin-top: 1.5rem;
         }
     }
-    .dockers-container {
-      position: fixed;
-      top: 55px;
-      right: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      z-index: 1050;
-    }
 
-    .docker {
-      background-color: #367588;
-      color: #fff;
-      padding: 6px 12px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 14px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-      transition: background 0.3s;
-    }
-    .docker:hover {
-      background-color: #285c6a;
-    }
-
-    .drawer {
-      position: fixed;
-      top: 55px;
-      right: -280px;
-      width: 260px;
-      max-height: calc(100vh - 70px);
-      overflow-y: auto;
-      background-color: #36454F;
-      color: #fff;
-      padding: 15px;
-      border-radius: 8px 0 0 8px;
-      box-shadow: -2px 0 8px rgba(0,0,0,0.3);
-      transition: right 0.4s ease;
-      z-index: 1050;
-    }
-    .drawer.show {
-      right: 10px;
-    }
-
-    .drawer ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-    .drawer ul li {
-      margin-bottom: 8px;
-    }
-    .drawer ul li a {
-      color: #fff;
+    .modal-body ul li a {
+      color: #367588;
       text-decoration: none;
-      font-size: 13px;
+      font-weight: 500;
     }
-    .drawer ul li a:hover {
+
+    .modal-body ul li a:hover {
       text-decoration: underline;
     }
 
-    /* Mobile responsiveness */
-    @media (max-width: 768px) {
-      .drawer {
-        width: 80%;
-        right: -85%;
-      }
-      .drawer.show {
-        right: 5%;
-      }
-    }
 
 </style>
 
-<div class="dashboard-container">
 
+<div class="container mt-3">
 <!-- Welcome Banner -->
 <div class="welcome-banner">
     <div class="welcome-content">
@@ -261,63 +174,17 @@
                 <span class="role-badge">{{ role|capitalize }}</span>
             {% endfor %}
         </div>
-  <!-- ✅ Floating Dockers (Right side) -->
-<div class="dockers-container">
-  {% if current_user.is_authenticated and current_user.has_role('Admin') and current_user.company %}
-    <div class="docker" onclick="toggleDrawer('adminDrawer')">
-      <i class="fas fa-tools me-1"></i> Admin Panel
-    </div>
+{% if current_user.has_role('Admin') %}
+  <button class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#adminModal">
+    <i class="fas fa-tools me-1"></i> Open Admin Panel
+  </button>
+{% endif %}
 
-    <div id="adminDrawer" class="drawer">
-      <ul>
-        <!-- Branch Switcher -->
-        <li>
-          <form id="branchForm" action="{{ url_for('admin.set_active_branch') }}" method="post">
-            {{ csrf_form.csrf_token }}
-            <label for="branch_id" class="form-label">
-              <i class="fas fa-exchange-alt me-2"></i> Switch Branch
-            </label>
-            <select id="branch_id" name="branch_id" class="form-select w-80"
-                    onchange="document.getElementById('branchForm').submit()">
-              {% for branch in current_user.company.branches if not branch.deleted_at %}
-                <option value="{{ branch.id }}" {% if branch.id == session['active_branch_id'] %}selected{% endif %}>
-                  {{ branch.name }}
-                </option>
-              {% endfor %}
-            </select>
-          </form>
-        </li>
-        <li><a href="{{ url_for('branches.list_branches') }}"><i class="fas fa-code-branch me-2"></i>View Branches</a></li>
-        <li><a href="{{ url_for('branches.add_branch') }}"><i class="fas fa-plus-circle me-2"></i>Add Branch</a></li>
-        <li><a href="{{ url_for('admin.manage_staff') }}"><i class="fas fa-users-cog me-2"></i>Manage Staff</a></li>
-        <li><a href="{{ url_for('auth.register') }}"><i class="fas fa-user-plus me-2"></i>Register Staff</a></li>
-        <li><a href="{{ url_for('admin.company_notifications') }}"><i class="fas fa-bell me-2"></i>Notifications</a></li>
-        <li><a href="{{ url_for('settings.billing') }}"><i class="fas fa-credit-card me-2"></i>Billing</a></li>
-        <li><a href="{{ url_for('drive.authorize') }}"><i class="fab fa-google-drive me-2"></i>Link Google Drive</a></li>
-        <li><a href="{{ url_for('drive.upload_backup') }}"><i class="fas fa-cloud-upload-alt me-2"></i>Backup to Google Drive</a></li>
-      </ul>
-    </div>
-  {% endif %}
-
-  {% if current_user.is_authenticated and current_user.is_superuser %}
-    <div class="docker" onclick="toggleDrawer('superDrawer')">
-      <i class="fas fa-user-shield me-1"></i> Super Admin
-    </div>
-
-    <div id="superDrawer" class="drawer">
-      <ul>
-        <li><a href="{{ url_for('auth.register_company') }}"><i class="fas fa-building me-2"></i>Register Company</a></li>
-        <li><a href="{{ url_for('admin.register_admin') }}"><i class="fas fa-user-plus me-2"></i>Register Admin</a></li>
-        <li><a href="{{ url_for('admin.view_companies') }}"><i class="fas fa-eye me-2"></i>View Companies</a></li>
-        <li><a href="{{ url_for('settings.security_settings') }}"><i class="fas fa-shield-alt me-2"></i>Security Settings</a></li>
-        <li><a href="{{ url_for('admin.system_logs') }}"><i class="fas fa-file-alt me-2"></i>System Logs</a></li>
-        <li><a href="{{ url_for('admin.super_settings') }}"><i class="fas fa-sliders-h me-2"></i>Admin Settings</a></li>
-        <li><a href="{{ url_for('settings.integrations') }}"><i class="fas fa-plug me-2"></i>Integrations</a></li>
-        <li><a href="{{ url_for('settings.labs') }}"><i class="fas fa-flask me-2"></i>Labs</a></li>
-      </ul>
-    </div>
-  {% endif %}
-</div>
+{% if current_user.is_superuser %}
+  <button class="btn btn-dark mt-3" data-bs-toggle="modal" data-bs-target="#superModal">
+    <i class="fas fa-user-shield me-1"></i> Superuser Panel
+  </button>
+{% endif %}
 
         <p class="text-muted mt-2">Monitor borrower activity, track collections, and manage loan data effectively.</p>
         <small class="text-muted">Last update: {{ last_update }}</small>
@@ -335,82 +202,122 @@
     </div>
 </div>
 
-    <!-- Stat Cards -->
-    <div class="row mt-2 g-2">
-        <div class="col-md-3">
-            <div class="stat-card">
-                <div class="stat-title">Total Borrowers</div>
-                <div class="stat-value">{{ total_borrowers }}</div>
-                <a href="{{ url_for('borrowers.view_borrowers') }}" class="stat-link">View Borrowers →</a>
-            </div>
+    <!-- Page Heading with Search Icon -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="fw-bold text-primary mb-0">
+                <i class="fa fa-tools me-2"></i> quick check Tools
+            </h1>
+            <p class="text-muted mb-0">Select an option below to monitor, or manage loans.</p>
         </div>
-        <div class="col-md-3">
-            <div class="stat-card">
-                <div class="stat-title">Total Disbursed</div>
-                <div class="stat-value">{{ total_disbursed }}</div>
-                <a href="{{ url_for('loan.view_loans') }}" class="stat-link">View Loans →</a>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stat-card">
-                <div class="stat-title">Total Repaid</div>
-                <div class="stat-value">{{ total_repaid }}</div>
-                <a href="{{ url_for('repayments.all_repayments') }}" class="stat-link">View Collections →</a>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stat-card">
-                <div class="stat-title text-danger">Overdue Loans</div>
-                <div class="stat-value text-danger">{{ overdue_loans|length }}</div>
-                <a href="{{ url_for('loan.loans_in_arrears') }}" class="stat-link text-danger">View Overdue →</a>
-            </div>
+        <div>
+            <!-- Button to trigger modal -->
+            <button class="btn btn-lg btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#loanSearchModal" title="Search Approved Loans">
+                <i class="fa fa-search"></i>
+            </button>
         </div>
     </div>
 
-    <!-- Charts -->
-    <div class="row mt-2 g-2">
-        <div class="col-md-6">
-            <div class="chart-card">
-                <h6 class="mb-3">Monthly Borrowed vs Paid</h6>
-                <canvas id="barChart"></canvas>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="chart-card">
-                <h6 class="mb-3">Overall Loan Status</h6>
-                <canvas id="pieChart"></canvas>
-            </div>
-        </div>
-        <div class="col-12">
-            <div class="chart-card mt-4">
-                <h6 class="mb-3">Loan Trends Over Time</h6>
-                <canvas id="lineChart"></canvas>
-            </div>
-        </div>
+    <!-- Selected Loan Info -->
+    {% if selected_loan %}
+    <div class="alert alert-info mb-4 shadow-sm">
+        <i class="fa fa-info-circle me-2"></i>
+        Selected Loan: <b>{{ selected_loan.borrower.name }}</b> — Loan #{{ selected_loan.id }} 
+        <span class="badge bg-primary ms-2">Ksh {{ selected_loan.amount_borrowed }}</span>
+        <small class="text-muted ms-2">Due: {{ selected_loan.due_date.strftime("%Y-%m-%d") if selected_loan.due_date else "N/A" }}</small>
     </div>
+    {% endif %}
+
+    <!-- Loan Revision Tool Cards -->
+    <div class="row" id="revisionCards">
+        {% for group in revision_groups %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-header bg-primary text-white fw-bold d-flex justify-content-between align-items-center">
+                    <span>
+                        {% if group.title == "Forex rates" %}
+                            <i class="fa fa-pencil-alt me-2"></i>
+                        {% elif group.title == "Generate reports" %}
+                            <i class="fa fa-trash-alt me-2"></i>
+                        {% elif group.title == "Loan due date options" %}
+                            <i class="fa fa-sync-alt me-2"></i>
+                        {% elif group.title == "Payment receipts" %}
+                            <i class="fa fa-file-invoice-dollar me-2"></i>
+                        {% elif group.title == "Repayments Center" %}
+                            <i class="fa fa-calendar-alt me-2"></i>
+                        {% elif group.title == "Other tools" %}
+                            <i class="fa fa-cogs me-2"></i>
+                        {% else %}
+                            <i class="fa fa-folder-open me-2"></i>
+                        {% endif %}
+                        {{ group.title }}
+                    </span>
+                    <span class="badge bg-light text-dark">{{ group['items']|length }}</span>
+                </div>
+                <ul class="list-group list-group-flush">
+                    {% for item in group['items'] %}
+                    <li class="list-group-item d-flex align-items-center">
+                        <i class="fa fa-angle-right text-primary me-2"></i>
+                        <a href="{{ url_for(item.endpoint, loan_id=selected_loan.id) if selected_loan and item.endpoint else '#' }}" 
+                           class="text-decoration-none flex-grow-1 text-dark">
+                            {{ item.name }}
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+<!-- 🔧 Admin Panel Modal -->
+<div class="modal" id="adminModal" tabindex="-1" aria-labelledby="adminModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="adminModalLabel"><i class="fas fa-tools me-2"></i> Admin Panel</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <ul class="list-group">
+          <li class="list-group-item"><a href="{{ url_for('branches.list_branches') }}">View Branches</a></li>
+          <li class="list-group-item"><a href="{{ url_for('branches.add_branch') }}">Add Branch</a></li>
+          <li class="list-group-item"><a href="{{ url_for('admin.manage_staff') }}">Manage Staff</a></li>
+          <li class="list-group-item"><a href="{{ url_for('auth.register') }}">Register Staff</a></li>
+          <li class="list-group-item"><a href="{{ url_for('admin.company_notifications') }}">Notifications</a></li>
+          <li class="list-group-item"><a href="{{ url_for('settings.billing') }}">Billing</a></li>
+          <li class="list-group-item"><a href="{{ url_for('drive.authorize') }}">Link Google Drive</a></li>
+          <li class="list-group-item"><a href="{{ url_for('drive.upload_backup') }}">Backup to Google Drive</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
 </div>
 
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- 🛡 Superuser Panel Modal -->
+<div class="modal" id="superModal" tabindex="-1" aria-labelledby="superModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title" id="superModalLabel"><i class="fas fa-user-shield me-2"></i> Superuser Panel</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <ul class="list-group">
+          <li class="list-group-item"><a href="{{ url_for('auth.register_company') }}">Register Company</a></li>
+          <li class="list-group-item"><a href="{{ url_for('admin.register_admin') }}">Register Admin</a></li>
+          <li class="list-group-item"><a href="{{ url_for('admin.view_companies') }}">View Companies</a></li>
+          <li class="list-group-item"><a href="{{ url_for('settings.security_settings') }}">Security Settings</a></li>
+          <li class="list-group-item"><a href="{{ url_for('admin.system_logs') }}">System Logs</a></li>
+          <li class="list-group-item"><a href="{{ url_for('admin.super_settings') }}">Admin Settings</a></li>
+          <li class="list-group-item"><a href="{{ url_for('settings.integrations') }}">Integrations</a></li>
+          <li class="list-group-item"><a href="{{ url_for('settings.labs') }}">Labs</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
 
-<script>
-function toggleDrawer(id) {
-  const drawer = document.getElementById(id);
-  if(drawer) {
-    drawer.classList.toggle('show');
-  }
-}
-
-// Optional: close drawer when clicking outside
-document.addEventListener('click', function(event) {
-  const drawers = document.querySelectorAll('.drawer');
-  drawers.forEach(d => {
-    if (!d.contains(event.target) && !event.target.classList.contains('docker')) {
-      d.classList.remove('show');
-    }
-  });
-});
-</script>
+</div>
 
 <script>
     document.querySelectorAll('.search_options').forEach(option => {
@@ -429,138 +336,27 @@ document.addEventListener('click', function(event) {
         });
     });
 </script>
-<!-- Chart Scripts -->
+
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-    fetch('dashboard/loan_data', { credentials: 'include' })
-        .then(response => response.json())
-        .then(data => {
-            // --- Bar Chart: Monthly Disbursed vs Repaid ---
-            new Chart(document.getElementById("barChart"), {
-                type: 'bar',
-                data: {
-                    labels: data.months,
-                    datasets: [
-                        {
-                            label: 'Borrowed',
-                            data: data.loans_disbursed,
-                            backgroundColor: '#007bff'
-                        },
-                        {
-                            label: 'Paid',
-                            data: data.loans_repaid,
-                            backgroundColor: '#28a745'
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { position: 'bottom' }
-                    },
-                    scales: {
-                        y: { beginAtZero: true }
-                    }
-                }
-            });
+function toggleDrawer(drawerId) {
+  const drawer = document.getElementById(drawerId);
+  drawer.classList.toggle('show');
+}
 
-            // --- Pie Chart: Overall Status ---
-            new Chart(document.getElementById("pieChart"), {
-                type: 'pie',
-                data: {
-                    labels: ["Total Borrowed", "Total Paid"],
-                    datasets: [{
-                        data: [data.total_borrowed, data.total_paid],
-                        backgroundColor: ['#007bff', '#28a745']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { position: 'bottom' }
-                    }
-                }
-            });
+// Close drawers when clicking outside the welcome banner
+document.addEventListener('click', function(event) {
+  const banner = document.querySelector('.welcome-banner');
+  const dockers = document.querySelectorAll('.docker');
+  const drawers = document.querySelectorAll('.drawer');
 
-            // --- Line Chart: Trend Over Time ---
-            const hasLineData = data.months && data.months.length &&
-                                data.loans_disbursed && data.loans_repaid;
+  // Check if click is inside the banner or one of the docker buttons
+  const clickInsideBanner = banner && banner.contains(event.target);
+  const clickOnDocker = Array.from(dockers).some(docker => docker.contains(event.target));
 
-            if (hasLineData) {
-                new Chart(document.getElementById("lineChart"), {
-                    type: 'line',
-                    data: {
-                        labels: data.months,
-                        datasets: [
-                            {
-                                label: 'Borrowed',
-                                data: data.loans_disbursed,
-                                borderColor: '#007bff',
-                                fill: false,
-                                tension: 0.4
-                            },
-                            {
-                                label: 'Paid',
-                                data: data.loans_repaid,
-                                borderColor: '#28a745',
-                                fill: false,
-                                tension: 0.4
-                            },
-                            {
-                                label: 'Remaining',
-                                data: data.remaining_balances,
-                                borderColor: '#dc3545',
-                                fill: false,
-                                tension: 0.4
-                            },
-                            {
-                                label: 'Interest Earned',
-                                data: data.interest_earned,
-                                borderColor: '#ffc107',
-                                fill: false,
-                                tension: 0.4
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: { position: 'bottom' }
-                        },
-                        scales: {
-                            y: { beginAtZero: true }
-                        }
-                    }
-                });
-            } else {
-                console.warn('Line chart data incomplete or missing.');
-            }
-        })
-        .catch(err => console.error('Error loading chart data:', err));
+  if (!clickInsideBanner && !clickOnDocker) {
+    drawers.forEach(drawer => drawer.classList.remove('show'));
+  }
 });
 </script>
 
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const counters = document.querySelectorAll('.count');
-        const speed = 200;
-
-        counters.forEach(counter => {
-            const updateCount = () => {
-                const target = +counter.getAttribute('data-target');
-                const count = +counter.innerText.replace(/,/g, '');
-                const increment = target / speed;
-
-                if (count < target) {
-                    counter.innerText = Math.ceil(count + increment).toLocaleString();
-                    setTimeout(updateCount, 10);
-                } else {
-                    counter.innerText = target.toLocaleString();
-                }
-            };
-
-            updateCount();
-        });
-    });
-</script>
 {% endblock %}

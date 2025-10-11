@@ -78,6 +78,70 @@ def index():
     if not loans:
         return render_template('dashboard/home.html', message="No loans found for your company.")
 
+    """Home page — serves the welcome dashboard."""
+    # Example revision groups (temporary placeholders)
+    revision_groups = [
+        {"title": "Forex Rates", "items": [
+            {"name": "USD", "endpoint": "#"},
+            {"name": "GBP", "endpoint": "#"},
+            {"name": "KSH", "endpoint": "#"},
+            {"name": "TZ", "endpoint": "#"},
+            {"name": "RWF", "endpoint": "#"}
+        ]},
+        {"title": "Generate Reports", "items": [
+            {"name": "Daily Reports", "endpoint": "#"},
+            {"name": "Weekly Reports", "endpoint": "#"},
+            {"name": "Monthly Report", "endpoint": "#"}
+        ]},
+        {"title": "Loan Due Date Options", "items": [
+            {"name": "Loans Due Today", "endpoint": "#"},
+            {"name": "Loans Due This Week", "endpoint": "#"},
+            {"name": "All Over Due Loans", "endpoint": "#"}
+        ]},
+        {"title": "Inventory Options", "items": [
+            {"name": "Mark as Provisioned", "endpoint": "#"},
+            {"name": "Make Payment Receipt", "endpoint": "#"},
+            {"name": "Generate Invoice", "endpoint": "#"}
+        ]},
+        {"title": "Loan reschedule", "items": [
+            {"name": "Reschedule Payment Plan", "endpoint": "#"},
+            {"name": "Revist Terms", "endpoint": "#"}
+        ]},
+        {"title": "Other tools", "items": [
+            {"name": "Cash Calculator", "endpoint": "#"},
+            {"name": "Send Demand notice", "endpoint": "#"},
+            {"name": "Export Data", "endpoint": "#"}
+        ]}
+    ]
+
+    # Last update example
+    last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Selected loan placeholder (can be None for now)
+    selected_loan = None
+
+    return render_template(
+        'dashboard/home.html',
+        current_user=current_user,
+        revision_groups=revision_groups,
+        selected_loan=selected_loan,
+        last_update=last_update
+    )
+
+@dashboard_bp.route('/dashboard')
+@login_required
+def dashboard():
+    active_branch_id = session.get('active_branch_id')
+
+    # Filter loans for this company (and branch if set)
+    loan_query = Loan.query.filter_by(company_id=current_user.company_id)
+    if active_branch_id:
+        loan_query = loan_query.filter_by(branch_id=active_branch_id)
+    loans = loan_query.all()
+
+    if not loans:
+        return render_template('dashboard/dashboard.html', message="No loans found for your company.")
+
     # Basic counts
     total_borrowers = len(set(l.borrower_name for l in loans))
     total_loans = len(loans)
@@ -157,7 +221,7 @@ def index():
         last_update = "No data"
 
     return render_template(
-        'dashboard/home.html',
+        'dashboard/dashboard.html',
         total_borrowers=total_borrowers,
         borrowers_year=borrowers_year,
         borrowers_month=borrowers_month,

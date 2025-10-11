@@ -1,0 +1,305 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<style>
+    /* General Layout */
+    .dashboard-container {
+        max-width: 100%;
+        margin: auto;
+        padding: 1rem;
+    }
+
+    /* Stat Cards */
+    .stat-card,
+    .chart-card {
+        background: #ffffff; /* keep cards white so they stand out against fintech gray */
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        border: 1px solid #eaeaea;
+        height: 100%;
+        color: #222;
+    }
+
+    .stat-title {
+        font-size: 0.9rem;
+        color: #6b7280;
+    }
+
+    .stat-value {
+        font-size: 1.6rem;
+        font-weight: 600;
+        margin-top: 0.3rem;
+    }
+
+    .stat-link {
+        margin-top: 1rem;
+        font-size: 0.85rem;
+        text-decoration: none;
+        color: #4f46e5;
+        font-weight: 500;
+    }
+
+    .stat-link:hover {
+        text-decoration: underline;
+    }
+
+    /* ==== DARK MODE ==== */
+    body.dark-mode {
+        background-color: #121212;
+        color: #e0e0e0;
+    }
+
+    body.dark-mode .welcome-banner {
+        background: linear-gradient(135deg, #1e1e1e, #2c2c2c);
+        border: 1px solid #444;
+        color: #ddd;
+    }
+
+    body.dark-mode .role-badge {
+        background-color: #33384d;
+        color: #a8b0ff;
+    }
+
+    body.dark-mode .quick-links-section h3 {
+        color: #a0aaff;
+    }
+
+    body.dark-mode .quick-actions a {
+        color: #a0aaff;
+    }
+
+    body.dark-mode .quick-actions a:hover {
+        color: #c0c0ff;
+    }
+
+    body.dark-mode .stat-card,
+    body.dark-mode .chart-card {
+        background: #1f1f1f;
+        border: 1px solid #444;
+        color: #ccc;
+    }
+
+    body.dark-mode .stat-title {
+        color: #999;
+    }
+
+    body.dark-mode .stat-link {
+        color: #a0aaff;
+    }
+
+    body.dark-mode .stat-link:hover {
+        color: #c0c0ff;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .welcome-banner {
+            flex-direction: column;
+        }
+        .welcome-content,
+        .quick-links-section {
+            flex: 1 1 100%;
+        }
+        .quick-links-section {
+            margin-top: 1.5rem;
+        }
+    }
+
+</style>
+
+<div class="dashboard-container">
+    <!-- Stat Cards -->
+    <div class="row mt-2 g-2">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-title">Total Borrowers</div>
+                <div class="stat-value">{{ total_borrowers }}</div>
+                <a href="{{ url_for('borrowers.view_borrowers') }}" class="stat-link">View Borrowers →</a>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-title">Total Disbursed</div>
+                <div class="stat-value">{{ total_disbursed }}</div>
+                <a href="{{ url_for('loan.view_loans') }}" class="stat-link">View Loans →</a>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-title">Total Repaid</div>
+                <div class="stat-value">{{ total_repaid }}</div>
+                <a href="{{ url_for('repayments.all_repayments') }}" class="stat-link">View Collections →</a>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-title text-danger">Overdue Loans</div>
+                <div class="stat-value text-danger">{{ overdue_loans|length }}</div>
+                <a href="{{ url_for('loan.loans_in_arrears') }}" class="stat-link text-danger">View Overdue →</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="row mt-2 g-2">
+        <div class="col-md-6">
+            <div class="chart-card">
+                <h6 class="mb-3">Monthly Borrowed vs Paid</h6>
+                <canvas id="barChart"></canvas>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-card">
+                <h6 class="mb-3">Overall Loan Status</h6>
+                <canvas id="pieChart"></canvas>
+            </div>
+        </div>
+        <div class="col-12">
+            <div class="chart-card mt-4">
+                <h6 class="mb-3">Loan Trends Over Time</h6>
+                <canvas id="lineChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Chart Scripts -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    fetch('dashboard/loan_data', { credentials: 'include' })
+        .then(response => response.json())
+        .then(data => {
+            // --- Bar Chart: Monthly Disbursed vs Repaid ---
+            new Chart(document.getElementById("barChart"), {
+                type: 'bar',
+                data: {
+                    labels: data.months,
+                    datasets: [
+                        {
+                            label: 'Borrowed',
+                            data: data.loans_disbursed,
+                            backgroundColor: '#007bff'
+                        },
+                        {
+                            label: 'Paid',
+                            data: data.loans_repaid,
+                            backgroundColor: '#28a745'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+
+            // --- Pie Chart: Overall Status ---
+            new Chart(document.getElementById("pieChart"), {
+                type: 'pie',
+                data: {
+                    labels: ["Total Borrowed", "Total Paid"],
+                    datasets: [{
+                        data: [data.total_borrowed, data.total_paid],
+                        backgroundColor: ['#007bff', '#28a745']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+
+            // --- Line Chart: Trend Over Time ---
+            const hasLineData = data.months && data.months.length &&
+                                data.loans_disbursed && data.loans_repaid;
+
+            if (hasLineData) {
+                new Chart(document.getElementById("lineChart"), {
+                    type: 'line',
+                    data: {
+                        labels: data.months,
+                        datasets: [
+                            {
+                                label: 'Borrowed',
+                                data: data.loans_disbursed,
+                                borderColor: '#007bff',
+                                fill: false,
+                                tension: 0.4
+                            },
+                            {
+                                label: 'Paid',
+                                data: data.loans_repaid,
+                                borderColor: '#28a745',
+                                fill: false,
+                                tension: 0.4
+                            },
+                            {
+                                label: 'Remaining',
+                                data: data.remaining_balances,
+                                borderColor: '#dc3545',
+                                fill: false,
+                                tension: 0.4
+                            },
+                            {
+                                label: 'Interest Earned',
+                                data: data.interest_earned,
+                                borderColor: '#ffc107',
+                                fill: false,
+                                tension: 0.4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { position: 'bottom' }
+                        },
+                        scales: {
+                            y: { beginAtZero: true }
+                        }
+                    }
+                });
+            } else {
+                console.warn('Line chart data incomplete or missing.');
+            }
+        })
+        .catch(err => console.error('Error loading chart data:', err));
+});
+</script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const counters = document.querySelectorAll('.count');
+        const speed = 200;
+
+        counters.forEach(counter => {
+            const updateCount = () => {
+                const target = +counter.getAttribute('data-target');
+                const count = +counter.innerText.replace(/,/g, '');
+                const increment = target / speed;
+
+                if (count < target) {
+                    counter.innerText = Math.ceil(count + increment).toLocaleString();
+                    setTimeout(updateCount, 10);
+                } else {
+                    counter.innerText = target.toLocaleString();
+                }
+            };
+
+            updateCount();
+        });
+    });
+</script>
+{% endblock %}

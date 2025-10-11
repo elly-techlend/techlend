@@ -6,6 +6,13 @@
 }
 body.main-body {
     background-color: #f4f6f9 !important;
+    background-attachment: fixed;
+    min-height: 100vh;
+}
+
+html {
+  height: 100%; /* ensure proper inheritance */
+  background-color: #eef2f7; /* fallback */
 }
 
 body {
@@ -16,6 +23,7 @@ body {
     margin: 0;
     padding-top: 0px;    
 }
+
 
 a {
     text-decoration: none;
