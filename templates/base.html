@@ -19,89 +19,65 @@
   <meta name="theme-color" content="#0d6efd">
 
   <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='icons/simple.png') }}">
+
+  <!-- iOS Safari support -->
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <!-- Modern browsers (Chrome, Android, etc.) -->
+  <meta name="mobile-web-app-capable" content="yes">
+
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
   <!-- Custom CSS -->
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
-  <style>
-    /* 🔝 Top Navigation */
-    :root {
-      --navbar-height: 50px;
-      --navbar-expanded-height: 120px;
-    }
-    .navbar {
-      background-color: #367588;
-      height: var(--navbar-height);
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 1040;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 15px;
-      color: #fff;
-      overflow: hidden;
-      transition: height 0.3s ease;
-    }
-    /* When expanded, increase height to fit login buttons */
-    .navbar.expanded {
-      height: var(--navbar-expanded-height);
-      flex-wrap: wrap;
-      align-items: flex-start;
-      padding-top: 10px;
-    }
+<style>
+/* 🔝 Root Variables */
+:root {
+    --navbar-height: 50px;
+    --navbar-expanded-height: 120px;
+}
 
-    .navbar-right {
-      margin-left: auto;
-    }
+/* ---------------------- Navbar ---------------------- */
+.navbar {
+    background-color: #367588;
+    height: var(--navbar-height);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1040;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 15px;
+    color: #fff;
+    overflow: hidden;
+    transition: height 0.3s ease;
+}
+.navbar.expanded {
+    height: var(--navbar-expanded-height);
+    flex-wrap: wrap;
+    align-items: flex-start;
+    padding-top: 10px;
+}
+.navbar-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+}
+.navbar-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+@media (max-width: 991.98px) {
+    .navbar .navbar-right { display: none; width: 100%; margin-top: 10px; justify-content: center; }
+    .navbar.expanded .navbar-right { display: flex; }
+    .navbar.expanded .navbar-center { width: 100%; order: 1; margin-bottom: 10px; }
+    .navbar-center { position: static; transform: none; margin: auto; }
+}
 
-    .navbar .navbar-right {
-      display: flex;
-      align-items: center;
-    }
-    .navbar-center {
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-    }
-    @media (max-width: 991.98px) {
-      .navbar .navbar-right {
-        display: none; /* hide right on mobile initially */
-        width: 100%;
-        margin-top: 10px;
-        justify-content: center;
-      }
-      /* Show right when navbar expanded */
-      .navbar.expanded .navbar-right {
-        display: flex;
-      }
-      .navbar.expanded .navbar-center {
-        width: 100%;
-        order: 1;
-        margin-bottom: 10px;
-      }
-    }
-    .vr-line {
-      width: 1px;
-      height: 30px;
-      background-color: #fff;
-      margin: 0 10px;
-    }
-
-    @media (max-width: 991.98px) {
-      .navbar-center {
-        position: static;
-        transform: none;
-        margin: auto;
-      }
-      .vr-line{
-        display:none;
-      }
-    }
+/* ---------------------- Sidebar ---------------------- */
     .sidebar {
       position: fixed;
       top: 50px;
@@ -119,7 +95,7 @@
       transition: transform 0.3s ease;
       overflow: hidden;
     }
-    
+
     /* Scrollable menu content */
     .sidebar-scroll {
       flex: 1 1 auto; /* fills available space */
@@ -192,6 +168,10 @@
         transform: translateX(0);
       }
 
+      .sidebar {
+        transform: translateX(-100%);
+        height: calc(100vh - 50px); /* full viewport minus navbar */
+      }
     }
 
     .sidebar-branch-info {
@@ -207,43 +187,38 @@
       margin-right: 10px;
     }
 
+/* ---------------------- Main Content ---------------------- */
+.main-content {
+    margin-left: 180px;
+    padding: 20px;
+    padding-top: calc(var(--navbar-height) + 20px);
+    min-height: 100vh;
+    background: linear-gradient(to right, #111827, #111827);
+    background-attachment: fixed;
+    transition: all 0.3s ease;
+}
+@media (max-width: 768px) {
     .main-content {
-      margin-left: 160px;
-      padding: 20px;
-      padding-top: calc(var(--navbar-height) + 20px);
+        margin-left: 0;
+        padding-top: calc(var(--navbar-height) + 20px);
+        min-height: calc(100vh - var(--navbar-height));
+        background: linear-gradient(to right, #111827, #111827);
     }
-
-    @media (max-width: 768px) {
-      .sidebar {
-        transform: translateX(-100%);
-        height: calc(100vh - 50px); /* full viewport minus navbar */
-      }
-
-      .sidebar.show {
-        transform: translateX(0);
-      }
-
-      .main-content {
-        margin-left: 3px;
-        max-height: calc(100vh - 50px - 60px); /* leave space for footer */
-      }
-    }
-  </style>
-
-<style>
-.flash-wrapper {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  width: auto;
-  max-width: 400px;
-  z-index: 9999;
 }
 
+/* ---------------------- Flash Messages ---------------------- */
+.flash-wrapper {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: auto;
+    max-width: 400px;
+    z-index: 9999;
+}
 .flash-wrapper .alert {
-  width: 100%;
-  margin-bottom: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    width: 100%;
+    margin-bottom: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 </style>
 

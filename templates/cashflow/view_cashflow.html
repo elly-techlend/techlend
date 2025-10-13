@@ -79,7 +79,7 @@
             <td>Other Income</td>
             <td>{{ item.description or '—' }}</td>
             <td>Inflow</td>
-            <td class="text-success">${{ "{:,.2f}".format(item.amount) }}</td>
+            <td class="text-success">UGX{{ "{:,.2f}".format(item.amount) }}</td>
           </tr>
           {% endfor %}
           {% if not cashbook and not income %}

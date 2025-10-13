@@ -164,7 +164,7 @@
 </style>
 
 
-<div class="container mt-4">
+<div class="container mt-3">
 <!-- Welcome Banner -->
 <div class="welcome-banner">
     <div class="welcome-content">
@@ -223,7 +223,7 @@
     <div class="alert alert-info mb-4 shadow-sm">
         <i class="fa fa-info-circle me-2"></i>
         Selected Loan: <b>{{ selected_loan.borrower.name }}</b> — Loan #{{ selected_loan.id }} 
-        <span class="badge bg-primary ms-2">Ksh {{ selected_loan.amount_borrowed }}</span>
+        <span class="badge bg-primary ms-2">Ush {{ selected_loan.amount_borrowed }}</span>
         <small class="text-muted ms-2">Due: {{ selected_loan.due_date.strftime("%Y-%m-%d") if selected_loan.due_date else "N/A" }}</small>
     </div>
     {% endif %}

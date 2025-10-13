@@ -47,6 +47,10 @@ def system_preferences():
 
         flash("Preferences saved successfully.", "success")
 
+        # ✅ Redirect user to dashboard after saving
+        return redirect(url_for('dashboard.index'))
+
+    # Only render preferences page when accessed directly
     return render_template(
         'settings/system_preferences.html',
         theme=current_user.theme or 'light',
