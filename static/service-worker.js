@@ -1,6 +1,9 @@
-const CACHE_NAME = 'techlend-dynamic-cache-v3';
+// TechLend Service Worker v4 — Optimized with Stale-While-Revalidate & Smart Caching
+
+const CACHE_NAME = 'techlend-dynamic-cache-v4';
+
 const STATIC_ASSETS = [
-  '/',
+  '/',                       // home route
   '/login',
   '/dashboard',
   '/offline.html',
@@ -11,17 +14,24 @@ const STATIC_ASSETS = [
   '/static/images/logo.png'
 ];
 
-// Install and cache essential assets
+// 🧱 Install — Cache essential assets safely
 self.addEventListener('install', event => {
   console.log('[ServiceWorker] Installing new version...');
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(STATIC_ASSETS))
+    caches.open(CACHE_NAME).then(cache => {
+      return Promise.all(
+        STATIC_ASSETS.map(asset =>
+          cache.add(asset).catch(err =>
+            console.warn('⚠️ Skipped asset (missing or failed):', asset, err)
+          )
+        )
+      );
+    })
   );
-  self.skipWaiting();
+  self.skipWaiting(); // Activate new version immediately
 });
 
-// Activate new version and remove old caches
+// ♻️ Activate — Clear old caches
 self.addEventListener('activate', event => {
   console.log('[ServiceWorker] Activating new version...');
   event.waitUntil(
@@ -36,32 +46,45 @@ self.addEventListener('activate', event => {
       )
     )
   );
-  self.clients.claim();
+  self.clients.claim(); // Start controlling all open pages
 });
 
-// Fetch logic with dynamic caching
+// 🌍 Fetch — Stale-While-Revalidate strategy
 self.addEventListener('fetch', event => {
-  if (event.request.method !== 'GET') return;
+  if (event.request.method !== 'GET') return; // Skip POST, PUT, etc.
+
   const url = new URL(event.request.url);
+
+  // Only handle requests from same origin
   if (url.origin !== location.origin) return;
+
+  // ⚠️ Skip caching API routes or admin endpoints
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/admin/')) {
+    return; // Let network handle these
+  }
 
   event.respondWith(
     caches.match(event.request).then(cachedResponse => {
-      if (cachedResponse) return cachedResponse;
+      const networkFetch = fetch(event.request)
+        .then(networkResponse => {
+          if (networkResponse && networkResponse.status === 200) {
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match('/offline.html')); // Offline fallback
 
-      return fetch(event.request).then(networkResponse => {
-        if (!networkResponse || networkResponse.status !== 200) return networkResponse;
-        const clone = networkResponse.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-        return networkResponse;
-      }).catch(() => caches.match('/offline.html'));
+      // Return cached first (instant load), then update silently
+      return cachedResponse || networkFetch;
     })
   );
 });
 
-// Message listener for SKIP_WAITING
+// 💬 Listen for SKIP_WAITING messages (for manual updates)
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('[ServiceWorker] Received SKIP_WAITING message');
     self.skipWaiting();
   }
 });
