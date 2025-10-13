@@ -26,9 +26,14 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
   <style>
+    /* 🔝 Top Navigation */
+    :root {
+      --navbar-height: 50px;
+      --navbar-expanded-height: 120px;
+    }
     .navbar {
       background-color: #367588;
-      height: 50px;
+      height: var(--navbar-height);
       position: fixed;
       top: 0;
       left: 0;
@@ -36,13 +41,15 @@
       z-index: 1040;
       display: flex;
       align-items: center;
+      justify-content: space-between;
       padding: 0 15px;
       color: #fff;
       overflow: hidden;
+      transition: height 0.3s ease;
     }
     /* When expanded, increase height to fit login buttons */
     .navbar.expanded {
-      height: 120px; /* adjust as needed */
+      height: var(--navbar-expanded-height);
       flex-wrap: wrap;
       align-items: flex-start;
       padding-top: 10px;
@@ -203,7 +210,7 @@
     .main-content {
       margin-left: 160px;
       padding: 20px;
-      padding-top: 30px;
+      padding-top: calc(var(--navbar-height) + 20px);
     }
 
     @media (max-width: 768px) {
@@ -425,9 +432,48 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/static/service-worker.js");
-  }
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/static/service-worker.js')
+    .then(reg => {
+      console.log('✅ Service Worker active:', reg.scope);
+
+      reg.onupdatefound = () => {
+        const newWorker = reg.installing;
+        newWorker.onstatechange = () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            showUpdatePrompt(newWorker);
+          }
+        };
+      };
+    })
+    .catch(err => console.error('❌ Service Worker failed:', err));
+}
+
+function showUpdatePrompt(worker) {
+  const banner = document.createElement('div');
+  banner.style.cssText = `
+    position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%);
+    background: #222; color: white; padding: 10px 20px;
+    border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    display: flex; align-items: center; gap: 10px; z-index: 9999;
+  `;
+  banner.innerHTML = `
+    <span>🔄 A new version of TechLend is available.</span>
+    <button id="updateBtn" style="background:#00a86b;color:white;border:none;padding:5px 10px;border-radius:5px;cursor:pointer;">
+      Refresh
+    </button>
+  `;
+  document.body.appendChild(banner);
+
+  document.getElementById('updateBtn').onclick = () => {
+    worker.postMessage({ type: 'SKIP_WAITING' });
+    worker.addEventListener('statechange', () => {
+      if (worker.state === 'activated') {
+        window.location.reload();
+      }
+    });
+  };
+}
 </script>
 
 <script>

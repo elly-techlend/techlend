@@ -217,35 +217,54 @@ def login():
         ).first()
 
         if user and user.is_active and check_password_hash(user.password_hash, password):
-            # 🚫 Company suspension check
+            # 🚫 Check if user's company is suspended
             if not user.is_superuser and user.company and not user.company.is_active:
                 flash("Your company account has been suspended. Please contact support.", "danger")
                 return redirect(url_for('auth.login'))
 
+            # ✅ Log the user in
             login_user(user)
 
-            # ✅ Branch session assignment logic
+            # 🔧 Branch assignment logic
+            session['active_branch_id'] = None
+            session['active_branch_name'] = None
+
             if not user.is_superuser:
+                # --- Admins & Staff ---
+                # Try using assigned branch if still active
+                active_branch = None
                 if user.branch_id:
-                    # Use user's assigned branch
-                    session['active_branch_id'] = user.branch_id
-                    session['active_branch_name'] = user.branch.name
+                    active_branch = Branch.query.filter_by(
+                        id=user.branch_id,
+                        company_id=user.company_id
+                    ).filter(Branch.deleted_at.is_(None)).first()
+
+                if not active_branch:
+                    # Fallback: first active branch in their company
+                    active_branch = Branch.query.filter_by(
+                        company_id=user.company_id
+                    ).filter(Branch.deleted_at.is_(None)).first()
+
+                if active_branch:
+                    session['active_branch_id'] = active_branch.id
+                    session['active_branch_name'] = active_branch.name
                 else:
-                    # Auto-assign if company has only one branch
-                    branches = Branch.query.filter_by(company_id=user.company_id).all()
-                    if len(branches) == 1:
-                        session['active_branch_id'] = branches[0].id
-                        session['active_branch_name'] = branches[0].name
-                    else:
-                        session['active_branch_id'] = None
-                        session['active_branch_name'] = None
+                    flash("No active branches found for your company. Please contact support.", "warning")
+
             else:
+                # --- Superuser ---
                 session['active_branch_id'] = None
                 session['active_branch_name'] = None
 
+            # ✅ Success feedback
             flash('Logged in successfully.', 'success')
+
+            # ✅ Redirect safely
             next_page = request.args.get('next')
-            return redirect(next_page) if next_page and is_safe_url(next_page) else redirect(url_for('dashboard.index'))
+            if next_page and is_safe_url(next_page):
+                return redirect(next_page)
+            return redirect(url_for('dashboard.index'))
+
         else:
             flash('Invalid username or password.', 'danger')
 
