@@ -67,65 +67,64 @@ def switch_branch(branch_id):
 @dashboard_bp.route('/')
 @login_required
 def index():
+    """Home page — serves the welcome dashboard with loans and tools."""
+    
+    # Get active branch if set
     active_branch_id = session.get('active_branch_id')
 
-    # Filter loans for this company (and branch if set)
-    loan_query = Loan.query.filter_by(company_id=current_user.company_id)
-    if active_branch_id:
-        loan_query = loan_query.filter_by(branch_id=active_branch_id)
-    loans = loan_query.all()
+    # Filter loans by company (and branch if active)
+    loans = Loan.query.filter_by(company_id=current_user.company_id)\
+                      .filter_by(branch_id=active_branch_id) if active_branch_id else \
+            Loan.query.filter_by(company_id=current_user.company_id)
+    loans = loans.all()
 
-    if not loans:
-        return render_template('dashboard/home.html', message="No loans found for your company.")
+    # Placeholder selected loan (optional)
+    selected_loan = None
 
-    """Home page — serves the welcome dashboard."""
-    # Example revision groups (temporary placeholders)
+    # Revision groups (tool cards)
     revision_groups = [
-        {"title": "Forex Rates", "items": [
-            {"name": "USD", "endpoint": "#"},
-            {"name": "GBP", "endpoint": "#"},
-            {"name": "KSH", "endpoint": "#"},
-            {"name": "TZ", "endpoint": "#"},
-            {"name": "RWF", "endpoint": "#"}
-        ]},
-        {"title": "Generate Reports", "items": [
-            {"name": "Daily Reports", "endpoint": "#"},
-            {"name": "Weekly Reports", "endpoint": "#"},
-            {"name": "Monthly Report", "endpoint": "#"}
-        ]},
-        {"title": "Loan Due Date Options", "items": [
-            {"name": "Loans Due Today", "endpoint": "#"},
-            {"name": "Loans Due This Week", "endpoint": "#"},
-            {"name": "All Over Due Loans", "endpoint": "#"}
-        ]},
-        {"title": "Inventory Options", "items": [
-            {"name": "Mark as Provisioned", "endpoint": "#"},
-            {"name": "Make Payment Receipt", "endpoint": "#"},
-            {"name": "Generate Invoice", "endpoint": "#"}
-        ]},
-        {"title": "Loan reschedule", "items": [
-            {"name": "Reschedule Payment Plan", "endpoint": "#"},
-            {"name": "Revist Terms", "endpoint": "#"}
-        ]},
-        {"title": "Other tools", "items": [
-            {"name": "Cash Calculator", "endpoint": "#"},
-            {"name": "Send Demand notice", "endpoint": "#"},
-            {"name": "Export Data", "endpoint": "#"}
-        ]}
+        {
+            "title": "Forex Rates",
+            "items": [
+                {"name": "USD", "endpoint": "#"},
+                {"name": "GBP", "endpoint": "#"},
+                {"name": "KES", "endpoint": "#"},
+                {"name": "TZS", "endpoint": "#"},
+                {"name": "RWF", "endpoint": "#"}
+            ]
+        },
+        {
+            "title": "Reports and Payments",
+            "items": [
+                {"name": "Daily Report", "endpoint": "#"},
+                {"name": "Weekly Report", "endpoint": "#"},
+                {"name": "Monthly Report", "endpoint": "#"},
+                {"name": "Make Payment Receipt", "endpoint": "#"},
+                {"name": "Generate Invoice", "endpoint": "#"}
+            ]
+        },
+        {
+            "title": "Other Tools",
+            "items": [
+                {"name": "Cash Calculator", "endpoint": "#"},
+                {"name": "Send Demand Notice", "endpoint": "#"},
+                {"name": "Export Data", "endpoint": "#"},
+                {"name": "Collateral for sale", "endpoint": "#"},
+                {"name": "Last activity", "endpoint": "#"}
+            ]
+        }
     ]
 
-    # Last update example
+    # Last update timestamp
     last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    # Selected loan placeholder (can be None for now)
-    selected_loan = None
 
     return render_template(
         'dashboard/home.html',
         current_user=current_user,
         revision_groups=revision_groups,
         selected_loan=selected_loan,
-        last_update=last_update
+        last_update=last_update,
+        loans=loans  # Optional: pass loans if needed elsewhere
     )
 
 @dashboard_bp.route('/dashboard')

@@ -3,7 +3,7 @@
 {% block content %}
 
 <h1>System Logs</h1>
-<div style="background:#111; color:#eee; padding:1em; height:400px; overflow-y:scroll; font-family: monospace;">
+<div style="background:#111; color:#eee; padding:1em; height:800px; overflow-y:scroll; font-family: monospace;">
     {% for log in logs %}
         <div><strong>{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</strong>: {{ log.message }}</div>
     {% else %}
