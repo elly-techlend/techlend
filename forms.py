@@ -3,12 +3,14 @@ from flask_wtf import FlaskForm
 from wtforms import (StringField, TextAreaField, SelectField, DateField, IntegerField, FileField, SubmitField, BooleanField, SelectMultipleField)
 from wtforms.validators import DataRequired, Email, Optional, EqualTo, Length
 from wtforms import StringField, PasswordField, SubmitField, SelectField, DecimalField, DateField
-from models import Company, Borrower
+from models import Loan, Borrower, Voucher, Company
 from wtforms import HiddenField
 from flask_wtf import FlaskForm
 from flask_login import current_user
 from wtforms.widgets import ListWidget, CheckboxInput
 from flask_wtf.file import FileField, FileAllowed
+from wtforms_sqlalchemy.fields import QuerySelectField
+from datetime import datetime, timedelta, date
 
 class CSRFOnlyForm(FlaskForm):
     pass
@@ -107,3 +109,17 @@ class BorrowerEmailForm(FlaskForm):
 
         # Update choices for the multi-checkbox field
         self.borrowers.choices = [(b.id, b.name) for b in borrowers]
+
+class VoucherForm(FlaskForm):
+    voucher_type = SelectField('Voucher Type', choices=[
+        ('income', 'Income Voucher'),
+        ('expense', 'Expense Voucher'),
+        ('loan_adjustment', 'Loan Adjustment')
+    ], validators=[DataRequired()])
+
+    borrower = QuerySelectField('Borrower (optional)', query_factory=lambda: Borrower.query.all(), allow_blank=True)
+    loan = QuerySelectField('Loan (optional)', query_factory=lambda: Loan.query.all(), allow_blank=True)
+    description = StringField('Description', validators=[DataRequired()])
+    amount = DecimalField('Amount', validators=[DataRequired()])
+    date = DateField('Date', default=datetime.utcnow)
+    submit = SubmitField('Save Voucher')

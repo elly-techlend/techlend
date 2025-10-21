@@ -175,7 +175,7 @@
             {% endfor %}
         </div>
 {% if current_user.has_role('Admin') %}
-  <button class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#adminModal">
+  <button class="btn btn-dark mt-3" data-bs-toggle="modal" data-bs-target="#adminModal">
     <i class="fas fa-tools me-1"></i> Open Admin Panel
   </button>
 {% endif %}
@@ -271,10 +271,15 @@
                                 {{ item.name }}
                             </a>
                         {% else %}
-                            <a href="{{ url_for(item.endpoint, loan_id=selected_loan.id) if selected_loan and item.endpoint else '#' }}"
+                            <a href="{% if item.endpoint and item.endpoint != '#' %}
+                                        {{ url_for(item.endpoint) }}
+                                     {% else %}
+                                        #
+                                     {% endif %}"
                                class="text-decoration-none flex-grow-1 text-dark">
                                 {{ item.name }}
                             </a>
+
                         {% endif %}
                     </li>
                     {% endfor %}
@@ -287,15 +292,37 @@
 </div>
 
 <!-- 🔧 Admin Panel Modal -->
-<div class="modal" id="adminModal" tabindex="-1" aria-labelledby="adminModalLabel" aria-hidden="true">
+<div class="modal fade" id="adminModal" tabindex="-1" aria-labelledby="adminModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
       <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title" id="adminModalLabel"><i class="fas fa-tools me-2"></i> Admin Panel</h5>
+        <h5 class="modal-title" id="adminModalLabel">
+          <i class="fas fa-tools me-2"></i> Admin Panel
+        </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
+
       <div class="modal-body">
         <ul class="list-group">
+          <!-- Branch Switcher -->
+          <li class="list-group-item">
+            <form id="branchForm" class="d-flex align-items-center gap-2">
+              <label for="branch_id" class="form-label mb-0">
+                <i class="fas fa-exchange-alt me-1"></i> Switch Branch:
+              </label>
+              <select id="branch_id" name="branch_id" class="form-select w-auto">
+                {% if current_user.company %}
+                  {% for branch in current_user.company.branches if not branch.deleted_at %}
+                    <option value="{{ branch.id }}" {% if branch.id == session.get('active_branch_id') %}selected{% endif %}>
+                      {{ branch.name }}
+                    </option>
+                  {% endfor %}
+                {% endif %}
+              </select>
+            </form>
+          </li>
+
+          <!-- Admin Links -->
           <li class="list-group-item"><a href="{{ url_for('branches.list_branches') }}">View Branches</a></li>
           <li class="list-group-item"><a href="{{ url_for('branches.add_branch') }}">Add Branch</a></li>
           <li class="list-group-item"><a href="{{ url_for('admin.manage_staff') }}">Manage Staff</a></li>
@@ -311,13 +338,16 @@
 </div>
 
 <!-- 🛡 Superuser Panel Modal -->
-<div class="modal" id="superModal" tabindex="-1" aria-labelledby="superModalLabel" aria-hidden="true">
+<div class="modal fade" id="superModal" tabindex="-1" aria-labelledby="superModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
       <div class="modal-header bg-dark text-white">
-        <h5 class="modal-title" id="superModalLabel"><i class="fas fa-user-shield me-2"></i> Superuser Panel</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <h5 class="modal-title" id="superModalLabel">
+          <i class="fas fa-user-shield me-2"></i> Superuser Panel
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
+
       <div class="modal-body">
         <ul class="list-group">
           <li class="list-group-item"><a href="{{ url_for('auth.register_company') }}">Register Company</a></li>
@@ -400,6 +430,38 @@
     });
 </script>
 
+<!-- 🔹 Branch Switcher AJAX -->
+<script>
+// Using Bootstrap 5 API
+const adminModal = new bootstrap.Modal(document.getElementById('adminModal'));
+document.getElementById('openAdminModalBtn').addEventListener('click', () => {
+    adminModal.show();
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+  const branchSelect = document.getElementById('branch_id');
+  branchSelect.addEventListener('change', function() {
+    const branchId = this.value;
+
+    fetch('{{ url_for("admin.set_active_branch") }}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_form.csrf_token._value() }}'
+      },
+      body: JSON.stringify({ branch_id: branchId })
+    })
+    .then(response => {
+      if (response.ok) {
+        Swal.fire({ icon: 'success', title: 'Branch switched!', timer: 1200, showConfirmButton: false });
+      } else {
+        Swal.fire({ icon: 'error', title: 'Failed to switch branch', timer: 1500, showConfirmButton: false });
+      }
+    });
+  });
+});
+</script>
+
 <script>
 document.addEventListener("DOMContentLoaded", () => {
     const denominations = [50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000];
@@ -466,8 +528,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const currencies = ['USD', 'GBP', 'KES', 'TZS', 'RWF']; // ✅ Correct ISO codes
+    const currencies = ['USD', 'GBP', 'KES', 'TZS', 'RWF'];
     const apiURL = 'https://open.er-api.com/v6/latest/USD';
+
+    // Keep previous rates outside the fetch function
     const previousRates = {};
 
     function fetchRates() {
@@ -485,33 +549,40 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (!span) return;
 
                     let rateValue = null;
-
                     if (curr === 'USD') {
-                        rateValue = usdToUgx; // 1 USD = X UGX
+                        rateValue = usdToUgx;
                     } else if (data.rates[curr]) {
-                        rateValue = usdToUgx / data.rates[curr]; // 1 curr = X UGX
+                        rateValue = usdToUgx / data.rates[curr];
                     }
 
                     if (rateValue) {
                         const formattedRate = rateValue.toFixed(2);
-                        let arrow = '';
+                        let arrow = '▶';
+                        let arrowColor = 'gray';
 
                         if (previousRates[curr] !== undefined) {
                             if (rateValue > previousRates[curr]) {
-                                arrow = ' <span style="color:limegreen;">▲</span>';
+                                arrow = '▲';
+                                arrowColor = 'limegreen';
                                 span.classList.add('rate-up');
+                                span.classList.remove('rate-down');
                             } else if (rateValue < previousRates[curr]) {
-                                arrow = ' <span style="color:red;">▼</span>';
+                                arrow = '▼';
+                                arrowColor = 'red';
                                 span.classList.add('rate-down');
+                                span.classList.remove('rate-up');
                             } else {
-                                arrow = ' <span style="color:gray;">▶</span>';
+                                arrow = '▶';
+                                arrowColor = 'gray';
+                                span.classList.remove('rate-up', 'rate-down');
                             }
-                        } else {
-                            arrow = ' <span style="color:gray;">▶</span>';
                         }
 
-                        span.innerHTML = `${formattedRate}${arrow}`;
-                        span.className = 'badge bg-info text-white px-3 py-2';
+                        span.innerHTML = `
+                            ${formattedRate}
+                            <span class="arrow" style="color:${arrowColor}; font-weight:bold;">${arrow}</span>
+                        `;
+                        span.classList.add('badge', 'bg-info', 'text-white', 'px-3', 'py-2');
                         previousRates[curr] = rateValue;
                     } else {
                         span.textContent = 'N/A';
@@ -531,18 +602,27 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     }
 
-    // Animate when rates change
+    // Flash animation styles
     const style = document.createElement('style');
     style.textContent = `
-      .rate-up { animation: flashGreen 0.6s ease; }
-      .rate-down { animation: flashRed 0.6s ease; }
-      @keyframes flashGreen { from { background-color: #28a745; } to { background-color: #0dcaf0; } }
-      @keyframes flashRed { from { background-color: #dc3545; } to { background-color: #0dcaf0; } }
+      .rate-up { animation: flashGreen 1s ease; }
+      .rate-down { animation: flashRed 1s ease; }
+
+      @keyframes flashGreen {
+        0% { background-color: #198754; }
+        100% { background-color: #0dcaf0; }
+      }
+
+      @keyframes flashRed {
+        0% { background-color: #dc3545; }
+        100% { background-color: #0dcaf0; }
+      }
     `;
     document.head.appendChild(style);
 
+    // Run immediately + refresh every 60 seconds
     fetchRates();
-    setInterval(fetchRates, 60000); // Refresh every 1 minute
+    setInterval(fetchRates, 60000);
 });
 </script>
 

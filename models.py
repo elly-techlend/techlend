@@ -471,6 +471,45 @@ class CashFlowSnapshot(db.Model):
     branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+class Voucher(db.Model):
+    __tablename__ = 'vouchers'
+
+    id = db.Column(db.Integer, primary_key=True)
+    voucher_number = db.Column(db.String(100), unique=True, nullable=True)
+    voucher_type = db.Column(db.String(50), nullable=False)
+    description = db.Column(db.String(255))
+    amount = db.Column(db.Float, nullable=False)
+    date = db.Column(db.Date, default=datetime.utcnow)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    
+    borrower_id = db.Column(db.Integer, db.ForeignKey('borrowers.id'), nullable=True)
+    loan_id = db.Column(db.Integer, db.ForeignKey('loans.id'), nullable=True)
+    company_id = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=False)
+    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
+    is_approved = db.Column(db.Boolean, default=False)
+
+    # Relationships
+    branch = db.relationship('Branch', backref=db.backref('vouchers', lazy='dynamic'))
+    borrower = db.relationship('Borrower', backref=db.backref('vouchers', lazy='dynamic'))
+    loan = db.relationship('Loan', backref=db.backref('vouchers', lazy='dynamic'))
+    creator = db.relationship('User', backref='vouchers_created', lazy=True)
+
+@listens_for(Voucher, 'before_insert')
+def generate_voucher_number(mapper, connect, target):
+    year = datetime.utcnow().year
+    last_voucher = connect.execute(
+        db.text("SELECT voucher_number FROM vouchers WHERE voucher_number LIKE :pattern ORDER BY id DESC LIMIT 1"),
+            {'pattern': f'VCH-{year}-%'}
+        ).fetchone()
+
+    if last_voucher:
+        last_num = int(last_voucher[0].split('-')[-1])
+    else:
+        last_num = 0
+
+    new_number = f"VCH-{year}-{last_num + 1:04d}"
+    target.voucher_number = new_number
+
 class CompanyLog(db.Model):
     __tablename__ = 'company_logs'
     id = db.Column(db.Integer, primary_key=True)

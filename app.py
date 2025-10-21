@@ -84,6 +84,7 @@ def create_app():
     from routes.bank_routes import bank_bp
     from routes.cashflow_routes import cashflow_bp
     from routes.drive_routes import drive_bp
+    from routes.voucher_routes import voucher_bp
 
     # Register blueprints in the app
     app.register_blueprint(public_bp)
@@ -103,6 +104,7 @@ def create_app():
     app.register_blueprint(bank_bp, url_prefix='/bank')
     app.register_blueprint(cashflow_bp)
     app.register_blueprint(drive_bp)
+    app.register_blueprint(voucher_bp)
 
     # Redirect users to dashboard if logged in
     @app.before_request

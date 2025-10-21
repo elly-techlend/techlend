@@ -99,7 +99,7 @@ def index():
                 {"name": "Daily Report", "endpoint": "#"},
                 {"name": "Weekly Report", "endpoint": "#"},
                 {"name": "Monthly Report", "endpoint": "#"},
-                {"name": "Make Payment Receipt", "endpoint": "#"},
+                {"name": "Make Payment Receipt", "endpoint": "voucher_bp.vouchers"},
                 {"name": "Generate Invoice", "endpoint": "#"}
             ]
         },

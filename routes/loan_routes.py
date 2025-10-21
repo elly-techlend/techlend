@@ -2,10 +2,10 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from utils.decorators import roles_required
-from forms import LoginForm
+from forms import VoucherForm
 from extensions import db
 from utils.logging import log_company_action, log_system_action, log_action
-from models import Loan, Borrower, LoanRepayment, Collateral, LedgerEntry, Company
+from models import Loan, Borrower, LoanRepayment, Collateral, LedgerEntry, Company, Voucher
 from flask import session
 from datetime import datetime, timedelta, date
 from utils import get_company_filter
@@ -1051,6 +1051,7 @@ def archived_loans():
 def repay_loan(loan_id):
     branch_id = session.get('active_branch_id')
 
+    # Get the loan, filtered by company and branch
     loan_query = get_company_filter(Loan)
     if branch_id:
         loan_query = loan_query.filter_by(branch_id=branch_id)
@@ -1068,93 +1069,117 @@ def repay_loan(loan_id):
         flash('Repayment amount must be greater than zero.', 'warning')
         return redirect(url_for('loan.loan_details', loan_id=loan.id))
 
-    # ---- Step 1: Allocate to cumulative interest ----
-    if loan.cumulative_interest is None:
-        loan.cumulative_interest = Decimal('0.00')
-
-    cumulative_interest_due = loan.cumulative_interest
-    cumulative_interest_payment = min(amount, cumulative_interest_due)
-    amount -= cumulative_interest_payment
-    loan.cumulative_interest -= cumulative_interest_payment
-
-    # ---- Step 2: Standard interest calculation ----
-    standard_interest_due = loan.total_interest
-    interest_paid_so_far = Decimal(db.session.query(
-        func.coalesce(func.sum(LoanRepayment.interest_paid), 0)
-    ).filter_by(loan_id=loan.id).scalar())
-
-    standard_interest_remaining = max(Decimal('0'), standard_interest_due - interest_paid_so_far)
-    interest_payment = min(amount, standard_interest_remaining)
-    amount -= interest_payment
-
-    # ---- Step 3: Principal ----
-    principal_payment = min(amount, loan.remaining_balance)
-    amount -= principal_payment
-
-    # ---- Final calculation ----
-    total_paid = cumulative_interest_payment + interest_payment + principal_payment
-
-    # Update loan payment status
-    loan.amount_paid += total_paid
-    loan.remaining_balance = max(Decimal('0.00'), loan.total_due - loan.amount_paid)
-    loan.status = 'Paid' if loan.remaining_balance <= 0 else 'Partially Paid'
-
-    # Create repayment record
+    # Step 0: Add new repayment record
     repayment = LoanRepayment(
         loan_id=loan.id,
         branch_id=branch_id,
-        amount_paid=total_paid,
-        cumulative_interest=cumulative_interest_payment,
-        interest_paid=interest_payment,
-        principal_paid=principal_payment,
+        amount_paid=amount,
         date_paid=repayment_date,
-        balance_after=loan.remaining_balance
+        principal_paid=Decimal('0.00'),
+        interest_paid=Decimal('0.00'),
+        cumulative_interest=Decimal('0.00'),
+        balance_after=Decimal('0.00')
     )
     db.session.add(repayment)
+    db.session.commit()  # commit now so we have it in DB for recalculation
 
-    # Update ledger
-    total_principal_paid = Decimal(db.session.query(
-        func.coalesce(func.sum(LoanRepayment.principal_paid), 0)
-    ).filter_by(loan_id=loan.id).scalar())
+    # --- Step 1: Recalculate all repayments in chronological order ---
+    all_repayments = LoanRepayment.query.filter_by(loan_id=loan.id)\
+                                        .order_by(LoanRepayment.date_paid.asc()).all()
 
-    total_interest_paid = Decimal(db.session.query(
-        func.coalesce(func.sum(LoanRepayment.interest_paid), 0)
-    ).filter_by(loan_id=loan.id).scalar())
+    remaining_principal = loan.amount_borrowed
+    cumulative_interest_due = loan.cumulative_interest or Decimal('0.00')
+
+    # Total standard interest for this loan
+    total_standard_interest = loan.total_interest
+
+    for rep in all_repayments:
+        remaining_amount = rep.amount_paid
+
+        # Allocate to cumulative interest first
+        cumulative_payment = min(remaining_amount, cumulative_interest_due)
+        remaining_amount -= cumulative_payment
+        cumulative_interest_due -= cumulative_payment
+
+        # Allocate to standard interest
+        interest_paid_so_far = Decimal(db.session.query(
+            func.coalesce(func.sum(LoanRepayment.interest_paid), 0)
+        ).filter(LoanRepayment.loan_id == loan.id, LoanRepayment.date_paid < rep.date_paid).scalar())
+
+        standard_interest_due = max(Decimal('0.00'), total_standard_interest - interest_paid_so_far)
+        standard_payment = min(remaining_amount, standard_interest_due)
+        remaining_amount -= standard_payment
+
+        # Allocate remaining to principal
+        principal_payment = remaining_amount
+        remaining_principal -= principal_payment
+
+        # Update repayment record
+        rep.cumulative_interest = cumulative_payment
+        rep.interest_paid = standard_payment
+        rep.principal_paid = principal_payment
+        rep.balance_after = remaining_principal
+
+        db.session.add(rep)
+
+    # --- Step 2: Update loan totals ---
+    total_paid = sum(r.amount_paid for r in all_repayments)
+    loan.amount_paid = total_paid
+    loan.remaining_balance = max(Decimal('0.00'), loan.total_due - total_paid)
+    loan.status = 'Paid' if loan.remaining_balance <= 0 else 'Partially Paid'
+
+    # --- Step 3: Update ledger entries for the last repayment ---
+    last_repayment = all_repayments[-1]
 
     ledger_entry = LedgerEntry(
         loan_id=loan.id,
-        date=repayment_date,
+        date=last_repayment.date_paid,
         particulars="Loan repayment",
-        principal=principal_payment,
-        interest=interest_payment,
-        cumulative_interest=cumulative_interest_payment,
-        principal_balance=max(Decimal('0.00'), loan.amount_borrowed - total_principal_paid),
-        interest_balance=max(Decimal('0.00'), standard_interest_due - total_interest_paid + loan.cumulative_interest),
-        cumulative_interest_balance=max(Decimal('0.00'), loan.cumulative_interest),
+        principal=last_repayment.principal_paid,
+        interest=last_repayment.interest_paid,
+        cumulative_interest=last_repayment.cumulative_interest,
+        principal_balance=max(Decimal('0.00'), loan.amount_borrowed - sum(r.principal_paid for r in all_repayments)),
+        interest_balance=max(Decimal('0.00'), total_standard_interest - sum(r.interest_paid for r in all_repayments) + cumulative_interest_due),
+        cumulative_interest_balance=cumulative_interest_due,
         running_balance=loan.remaining_balance
     )
     db.session.add(ledger_entry)
 
-    # Add cashbook entry
+    # --- Step 4: Add cashbook entry ---
     add_cashbook_entry(
-        date=repayment_date,
+        date=last_repayment.date_paid,
         particulars=f"Loan repayment by {loan.borrower_name}",
         debit=Decimal('0'),
-        credit=total_paid,
+        credit=last_repayment.amount_paid,
         company_id=current_user.company_id,
         branch_id=branch_id,
         created_by=current_user.id
     )
 
-    # Log action
+    # --- Step 5: Add automatic voucher ---
+    voucher = Voucher(
+        voucher_type='income',
+        description=f"Loan repayment by {loan.borrower_name} (Loan ID: {loan.id})",
+        amount=last_repayment.amount_paid,
+        date=last_repayment.date_paid,
+        borrower_id=loan.borrower_id,
+        loan_id=loan.id,
+        company_id=current_user.company_id,
+        branch_id=branch_id,
+        created_by=current_user.id
+    )
+    db.session.add(voucher)
+
+    # --- Step 6: Log action ---
     log_action(
-        f"{current_user.full_name} made a repayment of {total_paid} for loan {loan.id} "
-        f"(Borrower: {loan.borrower_name}) — Cumulative Interest: {cumulative_interest_payment}, "
-        f"Standard Interest: {interest_payment}, Principal: {principal_payment}"
+        f"{current_user.full_name} made a repayment of {last_repayment.amount_paid} for loan {loan.id} "
+        f"(Borrower: {loan.borrower_name}) — Cumulative Interest: {last_repayment.cumulative_interest}, "
+        f"Standard Interest: {last_repayment.interest_paid}, Principal: {last_repayment.principal_paid}"
     )
 
     db.session.commit()
-    flash('Repayment recorded successfully.', 'success')
+
+    flash('Repayment recorded successfully, and voucher generated.', 'success')
     return redirect(url_for('loan.loan_details', loan_id=loan.id))
 
 @loan_bp.route('/loan/<int:loan_id>/ledger')
