@@ -13,7 +13,7 @@ Flask-Paranoid==0.3.0
 WTForms==3.1.1
 WTForms-SQLAlchemy==0.4.2
 SQLAlchemy==2.0.39
-psycopg2-binary==2.9.8
+psycopg>=3.1.7
 gunicorn==23.0.0
 python-dotenv==1.1.0
 pytz==2025.1

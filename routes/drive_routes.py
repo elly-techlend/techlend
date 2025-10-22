@@ -1,6 +1,6 @@
 from flask import current_app
 import os
-import psycopg2
+import psycopg
 from flask import Blueprint, redirect, request, session, url_for, flash
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
@@ -143,12 +143,18 @@ def upload_backup():
         flash("Database URL not defined in config or environment.", "danger")
         return redirect(url_for("dashboard.index"))
 
-    # 🔧 psycopg2 needs postgresql://
+    # 🔧 psycopg v3 also needs postgresql://
     if db_url.startswith("postgres://"):
         db_url = db_url.replace("postgres://", "postgresql://", 1)
 
     try:
-        conn = psycopg2.connect(db_url)
+        # Use context manager to auto-close connection
+        with psycopg.connect(db_url) as conn:
+            # You can optionally get a cursor if needed
+            with conn.cursor() as cur:
+                # Example query (replace with your backup logic)
+                cur.execute("SELECT 1;")
+        flash("Database connection successful.", "success")
     except Exception as e:
         flash(f"Database connection error: {str(e)}", "danger")
         return redirect(url_for("dashboard.index"))
