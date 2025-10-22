@@ -1,11 +1,75 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<style>
+/* ===== Theme Adaptive Styling ===== */
+.theme-card {
+    background-color: var(--card-bg);
+    color: var(--card-text);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Default (Light Mode) */
+:root {
+    --card-bg: #f8f9fa;   /* light gray */
+    --card-text: #212529; /* dark text */
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --card-bg: #1e1e2e;   /* deep slate */
+        --card-text: #f1f1f1; /* light text */
+    }
+
+    .theme-card {
+        border-color: #3a82f7 !important;
+        box-shadow: 0 0 10px rgba(58,130,247,0.3);
+    }
+
+    table.table {
+        background-color: #222;
+        color: #eaeaea;
+    }
+
+    table.table th {
+        background-color: #2d2d2d;
+        color: #ccc;
+    }
+
+    table.table td {
+        border-color: #333;
+    }
+
+    input.form-control, select.form-control {
+        background-color: #2d2d2d;
+        color: #fff;
+        border: 1px solid #444;
+    }
+
+    .card {
+        background-color: #1b1b1b;
+        color: #eaeaea;
+    }
+
+    .modal-content {
+        background-color: #2b2b2b;
+        color: #fff;
+    }
+}
+    @media (prefers-color-scheme: dark) {
+    .btn-success:hover {
+        box-shadow: 0 0 8px rgba(40, 167, 69, 0.5);
+    }
+}
+
+</style>
+
 <div class="container mt-4">
     <div class="card shadow rounded-3 p-4">
 
         <!-- Loan Overview Header -->
-        <div class="card-body loan-overview border-start border-4 border-primary bg-light rounded mb-4">
+          <div class="card-body loan-overview border-start border-4 border-primary rounded mb-4 p-3 theme-card">
             <div class="row align-items-start">
                 <div class="col-md-4 text-md-start">
                     <h5 class="mb-1"><i class="fa fa-user text-primary me-2"></i>{{ loan.borrower_name }}</h5>
