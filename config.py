@@ -7,7 +7,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY") or "super-secret-key"
 
-    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "").replace("postgres://", "postgresql://", 1)
+    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "").replace("postgres://", "postgresql+psycopg://", 1)
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     WTF_CSRF_ENABLED = True
