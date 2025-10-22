@@ -7,7 +7,9 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY") or "super-secret-key"
 
+    # config.py
     SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "").replace("postgres://", "postgresql+psycopg://", 1)
+
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     WTF_CSRF_ENABLED = True
@@ -15,11 +17,11 @@ class Config:
     UPLOAD_FOLDER = os.path.join('static', 'uploads', 'logos')
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
     MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # 5MB
-   
-    # Flask-Mail (used for interface only; we'll override with SendGrid API)
+
+    # Flask-Mail (interface only; override with SendGrid API)
     MAIL_SERVER = 'smtp.sendgrid.net'
     MAIL_PORT = 587
     MAIL_USE_TLS = True
-    MAIL_USERNAME = 'apikey'  # This is the required SendGrid SMTP username
+    MAIL_USERNAME = 'apikey'
     MAIL_PASSWORD = os.environ.get('SENDGRID_API_KEY')
-    MAIL_DEFAULT_SENDER = 'noreply@yourdomain.com'  # Use a verified sender domain
+    MAIL_DEFAULT_SENDER = 'noreply@yourdomain.com'
