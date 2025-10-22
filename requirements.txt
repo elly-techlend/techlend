@@ -1,6 +1,3 @@
-# Force latest pip
-pip>=25.2
---upgrade
 
 # Flask and core extensions
 Flask==3.1.0
