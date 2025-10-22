@@ -7,8 +7,10 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY") or "super-secret-key"
 
-    # config.py
-    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "").replace("postgres://", "postgresql+psycopg://", 1)
+    # techlend/config.py
+    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "").replace(
+        "postgres://", "postgresql+psycopg://", 1
+    ) + "?sslmode=require"
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 

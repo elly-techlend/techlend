@@ -595,6 +595,14 @@ def add_loan():
 
     if request.method == 'POST':
         borrower_id = request.form.get('borrower_id')
+
+        # ✅ Ensure borrower_id is converted to integer
+        try:
+           borrower_id = int(borrower_id)
+        except (TypeError, ValueError):
+            flash("Invalid borrower selected.", "danger")
+            return redirect(url_for('loan.add_loan'))
+
         borrower = Borrower.query.filter_by(id=borrower_id, company_id=current_user.company_id).first()
 
         if borrower and branch_id and borrower.branch_id != branch_id:
