@@ -853,69 +853,86 @@ from math import ceil
 @loan_bp.route('/loans-in-arrears')
 @login_required
 def loans_in_arrears():
+    """
+    Display loans that are past due date and not yet fully paid.
+    Uses same logic as loan_details page (Overdue = due_date < today and remaining_balance > 0).
+    """
     branch_id = session.get('active_branch_id')
-    today = date.today()
+    today = datetime.utcnow().date()
 
+    # Base query
     query = Loan.query.filter(
         Loan.company_id == current_user.company_id,
-        Loan.status == 'Partially Paid',
-        Loan.due_date < datetime.combine(today, datetime.min.time()),
-        Loan.remaining_balance > 0
+        Loan.remaining_balance > 0,
+        Loan.due_date < datetime.combine(today, datetime.min.time())
     )
 
-    if branch_id:
+    # Apply branch restriction (if not superuser)
+    if branch_id and not current_user.is_superuser:
         query = query.filter_by(branch_id=branch_id)
 
+    # Fetch results
     loans = query.order_by(Loan.due_date.asc()).all()
-    enriched_loans = []
 
-    total_amount = Decimal('0')
-    total_original_balance = Decimal('0')
+    enriched_loans = []
+    total_amount_borrowed = Decimal('0')
+    total_balance = Decimal('0')
     total_penalty = Decimal('0')
-    total_total_arrears = Decimal('0')
+    total_arrears = Decimal('0')
 
     for loan in loans:
-        remaining_balance = Decimal(loan.remaining_balance or 0)
+        # Calculate penalty (same logic as your arrears route)
         penalty = Decimal(loan.cumulative_interest or 0)
-        original_balance = remaining_balance - penalty  # ❗ Key Line
+        remaining_balance = Decimal(loan.remaining_balance or 0)
+        total_arrear = remaining_balance + penalty
 
-        disbursed_amount = Decimal(loan.amount_borrowed or 0)
-        total_arrears = original_balance + penalty  # Or just remaining_balance
+        # Days overdue
+        days_overdue = (today - loan.due_date.date()).days if loan.due_date else 0
 
-        days_overdue = (today - loan.due_date.date()).days
-
-        last_repayment = db.session.query(LoanRepayment.date_paid)\
-            .filter_by(loan_id=loan.id)\
-            .order_by(LoanRepayment.date_paid.desc())\
+        # Last repayment date
+        last_repayment = (
+            db.session.query(LoanRepayment.date_paid)
+            .filter_by(loan_id=loan.id)
+            .order_by(LoanRepayment.date_paid.desc())
             .first()
+        )
+        last_repayment_date = last_repayment[0] if last_repayment else None
 
         enriched_loans.append({
-            'loan_id': loan.id,
             'loan_code': loan.loan_id,
             'name': loan.borrower_name,
-            'phone': loan.borrower.phone,
-            'amount_borrowed': disbursed_amount,
+            'phone': loan.borrower.phone if loan.borrower else 'N/A',
+            'amount_borrowed': loan.amount_borrowed,
             'disbursement_date': loan.date,
-            'balance': original_balance,  # This shows pre-penalty balance
+            'balance': remaining_balance,
             'penalty': penalty,
-            'total_arrears': total_arrears,
+            'total_arrears': total_arrear,
             'days': days_overdue,
-            'last_repayment': last_repayment[0] if last_repayment else None
+            'last_repayment': last_repayment_date,
+            'due_date': loan.due_date,
         })
 
-        total_amount += disbursed_amount
-        total_original_balance += original_balance
+        total_amount_borrowed += Decimal(loan.amount_borrowed or 0)
+        total_balance += remaining_balance
         total_penalty += penalty
-        total_total_arrears += total_arrears
+        total_arrears += total_arrear
+
+    # 🔽 Sort by fewest overdue days first
+    enriched_loans.sort(key=lambda x: x['days'])
 
     totals = {
-        'amount': total_amount,
-        'original_balance': total_original_balance,
+        'amount': total_amount_borrowed,
+        'original_balance': total_balance,
         'penalty': total_penalty,
-        'total_arrears': total_total_arrears
+        'total_arrears': total_arrears
     }
 
-    return render_template('loans/loans_in_arrears.html', loans=enriched_loans, totals=totals)
+    return render_template(
+        'loans/loans_in_arrears.html',
+        loans=enriched_loans,
+        totals=totals,
+        today=today
+    )
 
 @csrf.exempt
 @loan_bp.route('/loan/<int:loan_id>/approve', methods=['POST'])
