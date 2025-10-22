@@ -1,5 +1,3 @@
-
-# Flask and core extensions
 Flask==3.1.0
 Flask-WTF==1.2.2
 Flask-SQLAlchemy==3.1.1
@@ -12,20 +10,12 @@ Flask-SocketIO==5.5.1
 Flask-Principal==0.4.0
 Flask-Security-Too==5.6.2
 Flask-Paranoid==0.3.0
-
-# WTForms
 WTForms==3.1.1
 WTForms-SQLAlchemy==0.4.2
-
-# Database
 SQLAlchemy==2.0.39
+psycopg2-binary==2.9.8
 psycopg-binary==3.2.9
-psycopg==3.2.9
-
-# Gunicorn for deployment
 gunicorn==23.0.0
-
-# Standard libraries
 python-dotenv==1.1.0
 pytz==2025.1
 Werkzeug==3.1.3
@@ -34,21 +24,15 @@ MarkupSafe==3.0.2
 bcrypt==4.3.0
 greenlet==3.1.1
 typing-extensions==4.12.2
-
-# HTTP & requests
 requests==2.32.3
 urllib3==2.5.0
 idna==3.10
 charset-normalizer==3.4.2
-
-# Data & utilities
 numpy==2.2.3
 pandas==2.2.3
 num2words==0.5.14
 python-slugify==8.0.4
 packaging==25.0
-
-# PDF / reporting
 fpdf==1.7.2
 reportlab==4.3.1
 xhtml2pdf==0.2.17
@@ -57,8 +41,6 @@ svglib==1.5.1
 pyhanko==0.26.0
 pyhanko-certvalidator==0.26.8
 pydyf==0.11.0
-
-# Security & crypto
 cryptography==45.0.7
 pyotp==2.9.0
 PyNaCl==1.6.0
@@ -66,8 +48,6 @@ passlib==1.7.4
 rsa==4.9.1
 pyasn1==0.6.1
 pyasn1-modules==0.4.2
-
-# Misc
 qrcode==8.2
 arabic-reshaper==3.0.0
 python-bidi==0.6.6
@@ -81,8 +61,6 @@ mdurl==0.1.2
 more-itertools==10.8.0
 defusedxml==0.7.1
 dnspython==2.7.0
-
-# Optional / cloud
 boto3==1.40.37
 botocore==1.40.37
 azure-core==1.35.1
@@ -91,6 +69,4 @@ azure-mgmt-core==1.6.0
 azure-mgmt-rdbms==10.1.0
 azure-mgmt-resource==24.0.0
 azure-mgmt-subscription==3.1.1
-
-# Upgrade related
 setuptools==80.9.0
