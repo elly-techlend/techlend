@@ -69,3 +69,4 @@ azure-mgmt-rdbms==10.1.0
 azure-mgmt-resource==24.0.0
 azure-mgmt-subscription==3.1.1
 setuptools==80.9.0
+sendgrid==6.12.1
