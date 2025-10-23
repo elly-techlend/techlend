@@ -1,17 +1,20 @@
 # techlend/config.py
 
 import os
-
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY") or "super-secret-key"
 
-    # techlend/config.py
-    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "").replace(
-        "postgres://", "postgresql+psycopg://", 1
-    ) + "?sslmode=require"
+    # Correctly handle psycopg3 for PostgreSQL
+    db_url = os.environ.get("DATABASE_URL", "")
 
+    if db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql+psycopg://", 1)
+    elif db_url.startswith("postgresql://"):
+        db_url = db_url.replace("postgresql://", "postgresql+psycopg://", 1)
+
+    SQLALCHEMY_DATABASE_URI = db_url + "?sslmode=require"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     WTF_CSRF_ENABLED = True

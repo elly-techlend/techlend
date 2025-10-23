@@ -1,95 +1,209 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container mt-4">
-  <div class="card shadow rounded p-4">
-    <h3 class="mb-4 text-primary"><i class="fa fa-bar-chart me-2"></i> Cash Flow Overview</h3>
+<style>
+/* Cash Flow Cards Dark Mode Fix */
+.card.bg-body {
+    background-color: #2c2f33 !important;  /* Dark gray background */
+    color: #f8f9fa !important;             /* Light text for contrast */
+}
 
-    <!-- Filters -->
-    <form method="get" class="row g-3 mb-4">
-      <div class="col-md-5">
-        <label class="form-label">Start Date</label>
-        <input type="date" class="form-control" name="start_date" value="{{ request.args.get('start_date', '') }}">
-      </div>
-      <div class="col-md-5">
-        <label class="form-label">End Date</label>
-        <input type="date" class="form-control" name="end_date" value="{{ request.args.get('end_date', '') }}">
-      </div>
-      <div class="col-md-2 d-flex align-items-end">
-        <button type="submit" class="btn btn-primary w-100">Filter</button>
-      </div>
-    </form>
+.card.bg-body .text-success {
+    color: #28a745 !important;  /* Green */
+}
 
-    <!-- Summary Cards -->
-    <div class="row mb-4">
-      <div class="col-md-4">
-        <div class="card bg-light shadow-sm rounded">
-          <div class="card-body text-success">
-            <h5>Total Cash In</h5>
-            <h3>UGX{{ "{:,.2f}".format(total_in or 0) }}</h3>
+.card.bg-body .text-danger {
+    color: #dc3545 !important;  /* Red */
+}
+
+.card.bg-body .text-body {
+    color: #f8f9fa !important;  /* Light text */
+}
+
+.card.bg-body .text-muted {
+    color: #d1d3d4 !important;  /* Slightly muted for % change */
+}
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="text-primary fw-bold mb-0">
+    <i class="bi bi-bar-chart-line me-2"></i> Cash Flow
+  </h2>
+
+  <!-- Filter Dropdown -->
+  <div class="dropdown d-inline-block">
+    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="cashflowMenu" data-bs-toggle="dropdown" aria-expanded="false">
+      <i class="fas fa-filter me-1"></i> Filter
+    </button>
+    <ul class="dropdown-menu p-3" aria-labelledby="cashflowMenu" style="min-width: 250px;">
+      <li class="mb-2">
+        <a href="{{ url_for('cashflow.view_cash_flow') }}" class="dropdown-item {% if not filter_type %}active{% endif %}"><i class="fas fa-list-ul me-2"></i> All</a>
+      </li>
+      <li class="mb-2">
+        <a href="{{ url_for('cashflow.view_cash_flow', filter='daily') }}" class="dropdown-item {% if filter_type=='daily' %}active{% endif %}"><i class="fas fa-calendar-day me-2"></i> Today</a>
+      </li>
+      <li class="mb-2">
+        <a href="{{ url_for('cashflow.view_cash_flow', filter='weekly') }}" class="dropdown-item {% if filter_type=='weekly' %}active{% endif %}"><i class="fas fa-calendar-week me-2"></i> Weekly</a>
+      </li>
+
+      <!-- Monthly filter -->
+      <li>
+        <form method="get" action="{{ url_for('cashflow.view_cash_flow') }}" class="px-3 py-2">
+          <input type="hidden" name="filter" value="monthly">
+          <div class="mb-2">
+            <label class="form-label small mb-1">Month</label>
+            <select name="month" class="form-select form-select-sm">
+              {% for m_num, m_name in months %}
+                <option value="{{ m_num }}" {% if m_num == selected_month %}selected{% endif %}>{{ m_name }}</option>
+              {% endfor %}
+            </select>
           </div>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="card bg-light shadow-sm rounded">
-          <div class="card-body text-danger">
-            <h5>Total Cash Out</h5>
-            <h3>UGX{{ "{:,.2f}".format(total_out or 0) }}</h3>
+          <div class="mb-2">
+            <label class="form-label small mb-1">Year</label>
+            <select name="year" class="form-select form-select-sm">
+              {% for y in years %}
+                <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+              {% endfor %}
+            </select>
           </div>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="card bg-light shadow-sm rounded">
-          <div class="card-body text-dark">
-            <h5>Net Cash Flow</h5>
-            <h3 class="{{ 'text-success' if net_flow >= 0 else 'text-danger' }}">
-              UGX{{ "{:,.2f}".format(net_flow or 0) }}
-            </h3>
-          </div>
-        </div>
+          <button type="submit" class="btn btn-primary btn-sm w-100">Filter Monthly</button>
+        </form>
+      </li>
+
+      <li class="mt-3">
+        <a href="{{ url_for('cashflow.view_cash_flow', filter='yearly', year=selected_year) }}" class="dropdown-item {% if filter_type=='yearly' %}active{% endif %}"><i class="fas fa-calendar-alt me-2"></i> Yearly</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+  <div class="col-md-4">
+    <div class="card shadow-sm rounded bg-body">
+      <div class="card-body text-body">
+        <h5>Total Cash In</h5>
+        <h3 class="text-success">UGX{{ "{:,.2f}".format(total_in or 0) }}</h3>
       </div>
     </div>
+  </div>
 
-    <!-- Breakdown Table -->
-    <div class="table-responsive">
-      <table class="table table-striped table-bordered">
-        <thead class="table-light">
-          <tr>
-            <th>Date</th>
-            <th>Source</th>
-            <th>Description</th>
-            <th>Type</th>
-            <th>Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for entry in cashbook %}
-          <tr>
-            <td>{{ entry.date.strftime('%Y-%m-%d') }}</td>
-            <td>Cashbook</td>
-            <td>{{ entry.particulars or '—' }}</td>
-            <td>{{ 'Inflow' if entry.credit > 0 else 'Outflow' }}</td>
-            <td class="{{ 'text-success' if entry.credit > 0 else 'text-danger' }}">
-              UGX{{ "{:,.2f}".format(entry.credit if entry.credit > 0 else entry.debit) }}
-            </td>
-          </tr>
-          {% endfor %}
-          {% for item in income %}
-          <tr>
-            <td>{{ item.income_date.strftime('%Y-%m-%d') }}</td>
-            <td>Other Income</td>
-            <td>{{ item.description or '—' }}</td>
-            <td>Inflow</td>
-            <td class="text-success">UGX{{ "{:,.2f}".format(item.amount) }}</td>
-          </tr>
-          {% endfor %}
-          {% if not cashbook and not income %}
-          <tr>
-            <td colspan="5" class="text-center text-muted">No cash flow activity found for the selected period.</td>
-          </tr>
-          {% endif %}
-        </tbody>
-      </table>
+  <div class="col-md-4">
+    <div class="card shadow-sm rounded bg-body">
+      <div class="card-body text-body">
+        <h5>Total Cash Out</h5>
+        <h3 class="text-danger">UGX{{ "{:,.2f}".format(total_out or 0) }}</h3>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card shadow-sm rounded bg-body">
+      <div class="card-body text-body">
+        <h5>Net Cash Flow</h5>
+        <h3 class="{{ 'text-success' if net_flow >= 0 else 'text-danger' }}">UGX{{ "{:,.2f}".format(net_flow or 0) }}</h3>
+      </div>
     </div>
   </div>
 </div>
+
+<!-- Chart -->
+<canvas id="cashflowChart" height="100"></canvas>
+
+<!-- Cash Flow Table -->
+<div class="table-responsive mt-4">
+  <table class="table table-striped table-bordered">
+    <thead class="table-light">
+      <tr>
+        <th>Date</th>
+        <th>Description</th>
+        <th>Inflow</th>
+        <th>Outflow</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for entry in cashbook %}
+        <tr>
+          <td>{{ entry.date.strftime('%Y-%m-%d') }}</td>
+          <td>{{ entry.particulars or '—' }}</td>
+          <td class="text-success">{{ "UGX{:,.2f}".format(entry.credit) if entry.credit>0 else '—' }}</td>
+          <td class="text-danger">{{ "UGX{:,.2f}".format(entry.debit) if entry.debit>0 else '—' }}</td>
+        </tr>
+      {% endfor %}
+      {% for item in income %}
+        <tr>
+          <td>{{ item.income_date.strftime('%Y-%m-%d') }}</td>
+          <td>{{ item.description }} (Other Income)</td>
+          <td class="text-success">{{ "UGX{:,.2f}".format(item.amount) }}</td>
+          <td class="text-danger">—</td>
+        </tr>
+      {% endfor %}
+      {% if not cashbook and not income %}
+        <tr>
+          <td colspan="4" class="text-center text-muted">No cash flow activity found.</td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const ctx = document.getElementById('cashflowChart').getContext('2d');
+const cashflowChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: {{ chart_dates|tojson }},
+        datasets: [
+            { type:'bar', label:'Inflow', data: {{ chart_inflows|tojson }}, backgroundColor:'rgba(40,167,69,0.6)' },
+            { type:'bar', label:'Outflow', data: {{ chart_outflows|tojson }}, backgroundColor:'rgba(220,53,69,0.6)' },
+            { type:'line', label:'Net Flow', data: {{ chart_net|tojson }}, borderColor:'rgba(0,0,0,0.8)', fill:false, tension:0.3 }
+        ]
+    },
+    options: { responsive:true, scales:{y:{beginAtZero:true}}}
+});
+</script>
+
+<script>
+const ctx = document.getElementById('cashflowChart').getContext('2d');
+new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: {{ chart_dates|tojson }},
+        datasets: [
+            {
+                type: 'bar',
+                label: 'Inflow',
+                data: {{ chart_inflows|tojson }},
+                backgroundColor: 'rgba(40, 167, 69, 0.6)',
+                borderColor: 'rgba(40, 167, 69, 1)',
+                borderWidth: 1
+            },
+            {
+                type: 'bar',
+                label: 'Outflow',
+                data: {{ chart_outflows|tojson }},
+                backgroundColor: 'rgba(220, 53, 69, 0.6)',
+                borderColor: 'rgba(220, 53, 69, 1)',
+                borderWidth: 1
+            },
+            {
+                type: 'line',
+                label: 'Net Flow',
+                data: {{ chart_net|tojson }},
+                borderColor: 'rgba(0,0,0,0.8)',
+                borderWidth: 2,
+                fill: false,
+                tension: 0.3
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { position: 'top' }, title: { display: false } },
+        scales: { y: { beginAtZero: true } }
+    }
+});
+</script>
+
 {% endblock %}
