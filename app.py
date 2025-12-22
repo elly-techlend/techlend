@@ -148,15 +148,24 @@ def create_app():
         if request.path.startswith('/static'):
             return
 
-        public_paths = ['/', '/landing', '/login', '/register', '/forgot-password', '/reset-password',]
+        # Public paths or prefixes
+        public_paths = ('/', '/landing', '/login', '/register', '/forgot-password')
+        public_prefixes = ('/reset-password',)  # catch any token variant
+
+        # Allow exact matches
         if request.path in public_paths:
             return
 
+        # Allow prefix matches (like /reset-password/<token>)
+        if request.path.startswith(public_prefixes):
+            return
+
+        # Tenant-access protected routes
         if current_user.is_authenticated:
             if current_user.is_superuser or getattr(current_user, 'company_id', None):
                 return
-            return redirect(url_for('auth.login'))
 
+        # Default redirect to login
         return redirect(url_for('auth.login'))
 
     @app.template_filter('currency')
