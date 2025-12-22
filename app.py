@@ -14,6 +14,7 @@ from werkzeug.security import generate_password_hash
 import click
 from flask.cli import with_appcontext
 from itsdangerous import URLSafeTimedSerializer
+from email_utils import mail
 
 # Initialize migrate object
 migrate = Migrate()
@@ -39,6 +40,19 @@ def create_app():
     migrate.init_app(app, db)
 
     csrf.init_app(app)
+
+    # ---------------- Flask-Mail config (Gmail) ----------------
+    app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+    app.config['MAIL_PORT'] = 587
+    app.config['MAIL_USE_TLS'] = True
+    app.config['MAIL_USE_SSL'] = False
+    app.config['MAIL_USERNAME'] = os.environ.get("GMAIL_EMAIL")
+    app.config['MAIL_PASSWORD'] = os.environ.get("GMAIL_APP_PASSWORD")
+    app.config['MAIL_DEFAULT_SENDER'] = os.environ.get("GMAIL_EMAIL")
+
+    # Initialize Flask-Mail
+    mail.init_app(app)
+
     # Load user model
     from models import User
     @login_manager.user_loader

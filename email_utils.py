@@ -1,29 +1,30 @@
 # emails.py
 import os
 from datetime import datetime
-from flask import render_template
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail
+from flask import render_template, current_app
+from flask_mail import Mail, Message
+
+# ---------------- Initialize Flask-Mail (not bound to app yet) ----------------
+mail = Mail()
 
 # ---------------- Centralized Send Function ----------------
 def send_email(to_email, subject, template=None, from_email=None, **context):
     """
-    Sends an email using SendGrid.
-
+    Sends an email using Gmail SMTP via Flask-Mail.
+    
     Parameters:
         to_email (str): Recipient's email address.
         subject (str): Email subject line.
         template (str, optional): Path to Jinja email template (e.g., 'emails/reset_password.html').
-        from_email (str, optional): Sender's email. Defaults to environment variable FROM_EMAIL.
+        from_email (str, optional): Sender's email. Defaults to GMAIL_EMAIL env variable.
         **context: Any template variables required for rendering.
     """
-    from_email = from_email or os.environ.get("FROM_EMAIL")
-    sendgrid_api_key = os.environ.get("SENDGRID_API_KEY")
+    # Ensure we are in an app context
+    app = current_app._get_current_object()
 
-    if not from_email:
-        raise ValueError("FROM_EMAIL is not set in environment variables")
-    if not sendgrid_api_key:
-        raise ValueError("SENDGRID_API_KEY is not set in environment variables")
+    from_email = from_email or os.environ.get("GMAIL_EMAIL")
+    if not from_email or not os.environ.get("GMAIL_APP_PASSWORD"):
+        raise ValueError("GMAIL_EMAIL or GMAIL_APP_PASSWORD is not set in environment variables")
 
     if template:
         html_content = render_template(template, **context)
@@ -32,16 +33,15 @@ def send_email(to_email, subject, template=None, from_email=None, **context):
     else:
         raise ValueError("Either template or html_content must be provided")
 
-    message = Mail(
-        from_email=from_email,
-        to_emails=to_email,
+    msg = Message(
         subject=subject,
-        html_content=html_content
+        recipients=[to_email],
+        html=html_content,
+        sender=from_email
     )
 
     try:
-        sg = SendGridAPIClient(sendgrid_api_key)
-        sg.send(message)
+        mail.send(msg)
         print(f"[✓] Email sent to {to_email} with subject '{subject}'")
         return True
     except Exception as e:
@@ -70,7 +70,7 @@ def send_bulk_borrower_email(borrowers, subject, message_body):
             continue
 
         result = send_email(
-            to_email=borrower.email,
+            borrower.email,
             subject=subject,
             html_content=message_body,
             year=datetime.utcnow().year

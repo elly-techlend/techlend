@@ -23,10 +23,11 @@ class Config:
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
     MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # 5MB
 
-    # Flask-Mail (interface only; override with SendGrid API)
-    MAIL_SERVER = 'smtp.sendgrid.net'
+    # ---------------- Flask-Mail for Gmail ----------------
+    MAIL_SERVER = 'smtp.gmail.com'
     MAIL_PORT = 587
     MAIL_USE_TLS = True
-    MAIL_USERNAME = 'apikey'
-    MAIL_PASSWORD = os.environ.get('SENDGRID_API_KEY')
-    MAIL_DEFAULT_SENDER = 'noreply@yourdomain.com'
+    MAIL_USE_SSL = False
+    MAIL_USERNAME = os.environ.get('GMAIL_EMAIL')
+    MAIL_PASSWORD = os.environ.get('GMAIL_APP_PASSWORD')
+    MAIL_DEFAULT_SENDER = os.environ.get('GMAIL_EMAIL')

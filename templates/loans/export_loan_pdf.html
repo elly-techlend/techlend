@@ -2,57 +2,49 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            font-size: 10px; /* Unified small font for compactness */
-        }
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        font-size: 10px;
+    }
 
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            margin-bottom: 15px;
-        }
+    table {
+        border-collapse: collapse; /* Remove double borders */
+        width: 100%;
+        margin-bottom: 15px;
+        border: 1px solid black; /* Outer border */
+    }
 
-        th, td {
-            padding: 3px 5px; /* Tight padding for compactness */
-            background-color: #f9f9f9;
-            text-align: left;
-        }
+    thead, tbody, tr, th, td {
+        border: none; /* Remove all inner borders */
+    }
 
-        .header-table .company-name {
-            font-size: 20px;
-            font-weight: bold;
-        }
+    th, td {
+        padding: 3px 5px;
+        text-align: left;
+        background-color: #fff; /* or transparent */
+    }
 
-        .no-inner-borders th, .no-inner-borders td {
-            border: none;
-        }
+    thead th {
+        font-weight: bold;
+        background-color: #f0f0f0; /* optional subtle header bg */
+    }
 
-        .repayments-table th {
-            background-color: #eee;
-            font-weight: bold;
-        }
+    /* Optional: for multiple tables */
+    table.outer-border-only {
+        border: 1px solid black;
+    }
 
-        .repayments-table th, .repayments-table td {
-            padding: 2px 4px;
-            background-color: #fff;
-            border: none; /* No borders for repayments table */
-        }
+    .header-container {
+        text-align: center;
+        font-weight: bold;
+    }
 
-        /* Optional: subtle header background in repayment table */
-        .repayments-table thead th {
-            background-color: #f0f0f0;
-        }
-        .header-container {
-            text-align: center;
-            font-weight: bold;
-        }
-        .company-info {
-            font-size: 18px;
-            text-transform: uppercase;
-        }
-    </style>
+    .company-info {
+        font-size: 18px;
+        text-transform: uppercase;
+    }
+</style>
 </head>
 <body>
 
@@ -65,7 +57,7 @@
         Email: {{ company.email or 'N/A' }} | Phone: {{ company.phone or 'N/A' }}<br>
         Address: {{ company.address or 'N/A' }}
     </div>
-    <p style="margin-top: 10px; font-size: 16px;"><strong>Customer Repayment Statement</strong></p>
+    <p style="margin-top: 10px; font-size: 16px;"><strong>Client Ledger Entries & Statement</strong></p>
 </div>
 
     <hr>
@@ -85,10 +77,10 @@
         <td>{{ loan.interest_rate }}%</td>
     </tr>
     <tr>
-        <th>Date of Loan</th>
-        <td>{{ loan.date.strftime('%b %d, %Y') if loan.date else '' }}</td>
         <th>Total Due</th>
         <td>{{ "{:,.2f}".format(loan.total_due or 0) }}</td>
+        <th>Cumulative Interest Added</th>
+        <td>{{ "{:,.2f}".format(loan.cumulative_interest or 0) }}</td>
     </tr>
     <tr>
         <th>Repaid Amount</th>
@@ -99,32 +91,42 @@
 </table>
 
 <!-- Repayments Table -->
-{% if repayments %}
 <table class="repayments-table">
     <thead>
         <tr>
-            <th>Payment ID</th>
+            <th>Entry ID</th>
             <th>Date</th>
-            <th>Amount Paid</th>
+            <th>Amount</th>
             <th>Principal</th>
             <th>Interest</th>
+            <th>Cumulative Interest</th>
+            <th>Particulars</th>
             <th>Outstanding Balance</th>
         </tr>
     </thead>
+
     <tbody>
-        {% for repayment in repayments %}
+        {% for entry in ledger_entries %}
         <tr>
-            <td>{{ repayment.id }}</td>
-            <td>{{ repayment.date_paid.strftime('%b %d, %Y') }}</td>
-            <td>{{ "%.2f"|format(repayment.amount_paid or 0) }}</td>
-            <td>{{ "%.2f"|format(repayment.principal_paid or 0) }}</td>
-            <td>{{ "%.2f"|format(repayment.interest_paid or 0) }}</td>
-            <td>{{ "%.2f"|format(repayment.balance_after or 0) }}</td>
+            <td>{{ entry.id }}</td>
+            <td>{{ entry.date.strftime('%b %d, %Y') }}</td>
+
+            <!-- RAW USER / SYSTEM AMOUNT -->
+            <td>{{ "{:,.2f}".format(entry.amount or 0) }}</td>
+
+            <!-- ALLOCATIONS -->
+            <td>{{ "{:,.2f}".format(entry.principal or 0) }}</td>
+            <td>{{ "{:,.2f}".format(entry.interest or 0) }}</td>
+            <td>{{ "{:,.2f}".format(entry.cumulative_interest or 0) }}</td>
+
+            <td>{{ entry.particulars }}</td>
+
+            <!-- RUNNING BALANCE -->
+            <td>{{ "{:,.2f}".format(entry.running_balance or 0) }}</td>
         </tr>
         {% endfor %}
     </tbody>
 </table>
-{% endif %}
 
 </body>
 </html>
