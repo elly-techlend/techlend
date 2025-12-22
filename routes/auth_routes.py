@@ -20,16 +20,6 @@ def allowed_file(filename):
 
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
-def verify_reset_token(token):
-    serializer = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
-    try:
-        email = serializer.loads(token, salt='password-reset-salt', max_age=3600)
-    except SignatureExpired:
-        return None
-    except BadSignature:
-        return None
-    return email
-
 @auth_bp.route('/register-company', methods=['GET', 'POST'])
 @login_required
 def register_company():
@@ -324,12 +314,20 @@ def reset_password_token(token):
             flash('Password is required.', 'warning')
             return redirect(request.url)
 
-        user.set_password(new_password)  # Make sure your User model has this method
+        user.set_password(new_password)
         db.session.commit()
+
         flash('Password reset successfully. You can now log in.', 'success')
         return redirect(url_for('auth.login'))
 
     return render_template('auth/reset_password.html', token=token)
+
+def verify_reset_token(token, expiration=3600):
+    s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+    try:
+        return s.loads(token, salt='password-reset-salt', max_age=expiration)
+    except (BadSignature, SignatureExpired):
+        return None
 
 @auth_bp.route('/logout')
 @login_required

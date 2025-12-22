@@ -3,7 +3,6 @@ import os
 from datetime import datetime
 from flask import render_template, current_app
 from flask_mail import Mail, Message
-
 # ---------------- Initialize Flask-Mail (not bound to app yet) ----------------
 mail = Mail()
 
@@ -50,7 +49,10 @@ def send_email(to_email, subject, template=None, from_email=None, **context):
 
 # ---------------- Password Reset Email ----------------
 def send_reset_email(to_email, token):
-    reset_url = f"https://your-domain.com/reset-password/{token}"
+
+    from flask import url_for
+    reset_url = url_for('auth.reset_password_token', token=token,_external=True)
+
     return send_email(
         to_email,
         subject="Password Reset Request - TechLend",
@@ -58,6 +60,7 @@ def send_reset_email(to_email, token):
         reset_url=reset_url,
         year=datetime.utcnow().year
     )
+
 
 # ---------------- Bulk Borrower Email ----------------
 def send_bulk_borrower_email(borrowers, subject, message_body):

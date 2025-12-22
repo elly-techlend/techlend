@@ -30,6 +30,22 @@ def role_required(role):
         return wrapper
     return decorator
 
+def generate_reset_token(email):
+    s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+    return s.dumps(email, salt='password-reset-salt')
+
+def verify_reset_token(token, expiration=3600):
+    s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+    try:
+        email = s.loads(
+            token,
+            salt='password-reset-salt',
+            max_age=expiration
+        )
+    except Exception:
+        return None
+    return email
+
 def create_app():
     app = Flask(__name__, static_url_path='/static', static_folder='static')
     app.config.from_object(Config)
@@ -131,19 +147,8 @@ def create_app():
     def ensure_tenant_access():
         if request.path.startswith('/static'):
             return
-    def generate_reset_token(email):
-        s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
-        return s.dumps(email, salt='password-reset-salt')
 
-    def verify_reset_token(token, expiration=3600):
-        s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
-        try:
-           email = s.loads(token, salt='password-reset-salt', max_age=expiration)
-        except Exception:
-            return None
-        return email
-
-        public_paths = ['/', '/landing', '/login', '/register']
+        public_paths = ['/', '/landing', '/login', '/register', '/forgot-password', '/reset-password',]
         if request.path in public_paths:
             return
 
