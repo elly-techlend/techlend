@@ -131,6 +131,7 @@ def search_loans():
 from decimal import Decimal
 
 def recalc_repayment_balances(loan_id):
+    from decimal import Decimal
     from models import Loan, LedgerEntry
     from extensions import db
 
@@ -138,17 +139,13 @@ def recalc_repayment_balances(loan_id):
     if not loan:
         return
 
-    # 🔹 BASE AMOUNTS
+    # 🔹 INITIAL BALANCES
     principal_balance = Decimal(loan.amount_borrowed or 0)
-    interest_balance = (
-        Decimal(loan.amount_borrowed or 0)
-        * Decimal(loan.interest_rate or 0)
-        / Decimal('100')
-    )
+    interest_balance = Decimal(loan.amount_borrowed or 0) * Decimal(loan.interest_rate or 0) / Decimal('100')
     cumulative_interest_balance = Decimal('0.00')
-
     total_paid = Decimal('0.00')
 
+    # 🔹 FETCH ALL LEDGER ENTRIES ORDERED
     entries = (
         LedgerEntry.query
         .filter_by(loan_id=loan.id)
@@ -157,85 +154,72 @@ def recalc_repayment_balances(loan_id):
     )
 
     for entry in entries:
+        # 🔒 IMMUTABLE ENTRIES (Loan Application / Approved / Disbursed)
+        if entry.particulars in ('Loan Application', 'Loan Approved', 'Loan Disbursed'):
+            # Preserve original principal/interest for display
+            entry.principal = Decimal(loan.amount_borrowed or 0) if entry.particulars != 'Loan Disbursed' else Decimal(loan.amount_borrowed or 0)
+            entry.interest = (Decimal(loan.amount_borrowed or 0) * Decimal(loan.interest_rate or 0) / Decimal('100')) if entry.particulars != 'Loan Disbursed' else (Decimal(loan.amount_borrowed or 0) * Decimal(loan.interest_rate or 0) / Decimal('100'))
+            entry.cumulative_interest = Decimal('0.00')
 
-        # 🔒 IMMUTABLE LEDGER ENTRIES (DO NOT TOUCH)
-        if entry.particulars in (
-            'Loan Application',
-            'Loan Approved',
-            'Loan Disbursed'
-        ):
-            # Just update running balances for display
+            # Running balances
             entry.principal_balance = principal_balance
             entry.interest_balance = interest_balance
             entry.cumulative_interest_balance = cumulative_interest_balance
-            entry.running_balance = (
-                principal_balance +
-                interest_balance +
-                cumulative_interest_balance
-            )
+            entry.running_balance = principal_balance + interest_balance + cumulative_interest_balance
+            db.session.add(entry)
             continue
 
-        # 🔁 RESET ALLOCATIONS
+        # 🔁 RESET REPAYMENT ALLOCATIONS
         entry.principal = Decimal('0.00')
         entry.interest = Decimal('0.00')
         entry.cumulative_interest = Decimal('0.00')
 
-        # 🔴 ADD CUMULATIVE INTEREST
+        # 🔴 CUMULATIVE INTEREST ENTRY
         if entry.particulars == 'Cumulative Interest':
-            ci_amount = Decimal(entry.amount or 0)
-
+            ci_amount = Decimal(entry.payment or 0)
             cumulative_interest_balance += ci_amount
             entry.cumulative_interest = ci_amount
 
-        # 🟢 LOAN REPAYMENT
+        # 🟢 LOAN REPAYMENT ENTRY
         elif entry.particulars == 'Loan Repayment':
-            payment = Decimal(entry.amount or 0)
+            payment = Decimal(entry.payment or 0)
 
-            # 1️⃣ Clear cumulative interest
+            # 1️⃣ Pay cumulative interest first
             ci_payment = min(payment, cumulative_interest_balance)
             cumulative_interest_balance -= ci_payment
             payment -= ci_payment
             entry.cumulative_interest = ci_payment
 
-            # 2️⃣ Clear interest
+            # 2️⃣ Pay interest
             interest_payment = min(payment, interest_balance)
             interest_balance -= interest_payment
             payment -= interest_payment
             entry.interest = interest_payment
 
-            # 3️⃣ Clear principal
+            # 3️⃣ Pay principal
             principal_payment = min(payment, principal_balance)
             principal_balance -= principal_payment
             payment -= principal_payment
             entry.principal = principal_payment
 
-            total_paid += (
-                ci_payment + interest_payment + principal_payment
-            )
+            total_paid += ci_payment + interest_payment + principal_payment
 
-        # 🔢 RUNNING TOTALS
-        running_balance = (
-            principal_balance +
-            interest_balance +
-            cumulative_interest_balance
-        )
+        # 🔢 UPDATE RUNNING BALANCE
+        principal_balance = max(principal_balance, 0)
+        interest_balance = max(interest_balance, 0)
+        cumulative_interest_balance = max(cumulative_interest_balance, 0)
 
         entry.principal_balance = principal_balance
         entry.interest_balance = interest_balance
         entry.cumulative_interest_balance = cumulative_interest_balance
-        entry.running_balance = running_balance
+        entry.running_balance = principal_balance + interest_balance + cumulative_interest_balance
 
         db.session.add(entry)
 
-    # 🔹 UPDATE LOAN SUMMARY (FROM LEDGER ONLY)
+    # 🔹 UPDATE LOAN SUMMARY
     loan.amount_paid = total_paid
-    loan.remaining_balance = running_balance
-    loan.amount_paid = total_paid
-    loan.remaining_balance = running_balance
-
-    loan.status = (
-        'Paid' if loan.remaining_balance <= 0 else 'Partially Paid'
-    )
+    loan.remaining_balance = principal_balance + interest_balance + cumulative_interest_balance
+    loan.status = 'Paid' if loan.remaining_balance <= 0 else 'Partially Paid'
 
     db.session.commit()
 
@@ -262,11 +246,20 @@ def loan_details(loan_id):
         .all()
     )
 
+    # Optional: pre-calculate totals
+    totals = {
+        'principal': sum(e.principal for e in ledger_entries),
+        'interest': sum(e.interest for e in ledger_entries),
+        'cumulative_interest': sum(e.cumulative_interest for e in ledger_entries),
+        'running_balance': ledger_entries[-1].running_balance if ledger_entries else Decimal('0.00')
+    }
+
     return render_template(
         'loans/loan_details.html',
         loan=loan,
         ledger_entries=ledger_entries,
         tab=tab,
+        totals=totals,
         now=datetime.utcnow
     )
 
@@ -287,7 +280,7 @@ def add_cumulative_interest(loan_id):
         loan_id=loan.id,
         date=date_applied,
         particulars='Cumulative Interest',
-        amount=amount,
+        payment=amount,
         cumulative_interest=amount
     )
 
@@ -306,9 +299,15 @@ def delete_ledger_entry(entry_id):
     entry = LedgerEntry.query.get_or_404(entry_id)
     loan_id = entry.loan_id
 
+    # Prevent deletion of immutable entries
+    if entry.particulars in ('Loan Application', 'Loan Approved', 'Loan Disbursed'):
+        flash('Cannot delete this entry.', 'warning')
+        return redirect(url_for('loan.loan_details', loan_id=loan_id))
+
     db.session.delete(entry)
     db.session.commit()
 
+    # Recalculate all balances from ledger
     recalc_repayment_balances(loan_id)
 
     flash('Entry deleted successfully.', 'success')
@@ -319,21 +318,32 @@ def delete_ledger_entry(entry_id):
 @login_required
 def edit_ledger_entry(entry_id):
     entry = LedgerEntry.query.get_or_404(entry_id)
+    loan_id = entry.loan_id
 
-    amount = Decimal(request.form['amount'])
-    entry.amount = amount  # ✅ THIS IS THE KEY FIX
+    # Prevent editing immutable entries
+    if entry.particulars in ('Loan Application', 'Loan Approved', 'Loan Disbursed'):
+        flash('Cannot edit this entry.', 'warning')
+        return redirect(url_for('loan.loan_details', loan_id=loan_id))
 
-    entry.date = datetime.strptime(
-        request.form['date'], '%Y-%m-%d'
-    ).date()
+    try:
+        amount = Decimal(request.form['amount'])
+        if amount < 0:
+            raise ValueError
+    except:
+        flash('Invalid amount.', 'danger')
+        return redirect(url_for('loan.loan_details', loan_id=loan_id))
+
+    entry.payment = amount  # Use correct column for payment
+
+    entry.date = datetime.strptime(request.form['date'], '%Y-%m-%d').date()
 
     db.session.commit()
 
-    # 🔁 Recalculate from ledger (single source of truth)
-    recalc_repayment_balances(entry.loan_id)
+    # 🔁 Recalculate all balances from ledger
+    recalc_repayment_balances(loan_id)
 
     flash('Entry updated successfully.', 'success')
-    return redirect(url_for('loan.loan_details', loan_id=entry.loan_id))
+    return redirect(url_for('loan.loan_details', loan_id=loan_id))
 
 @loan_bp.route('/borrower/<int:borrower_id>')
 @login_required
@@ -928,6 +938,7 @@ def archived_loans():
 def repay_loan(loan_id):
     loan = Loan.query.get_or_404(loan_id)
 
+    # 🔹 GET AND VALIDATE AMOUNT
     try:
         amount = Decimal(request.form['amount_paid'])
         if amount <= 0:
@@ -937,16 +948,19 @@ def repay_loan(loan_id):
         flash('Invalid repayment amount.', 'danger')
         return redirect(url_for('loan.loan_details', loan_id=loan.id))
 
-    pay_date = datetime.strptime(
-        request.form['repayment_date'], '%Y-%m-%d'
-    ).date()
+    # 🔹 GET REPAYMENT DATE
+    try:
+        pay_date = datetime.strptime(request.form['repayment_date'], '%Y-%m-%d').date()
+    except Exception:
+        flash('Invalid repayment date.', 'danger')
+        return redirect(url_for('loan.loan_details', loan_id=loan.id))
 
-    # ✅ SINGLE SOURCE OF TRUTH (STORE GROSS AMOUNT)
+    # 🔹 CREATE LEDGER ENTRY (SINGLE SOURCE OF TRUTH)
     entry = LedgerEntry(
         loan_id=loan.id,
         date=pay_date,
         particulars='Loan Repayment',
-        amount=amount,                 # ⭐ THIS IS THE FIX
+        payment=amount,                # Only the gross payment
         principal=Decimal('0.00'),
         interest=Decimal('0.00'),
         cumulative_interest=Decimal('0.00')
@@ -955,7 +969,7 @@ def repay_loan(loan_id):
     db.session.add(entry)
     db.session.commit()
 
-    # 🔁 Recalculate EVERYTHING from ledger
+    # 🔁 RECALCULATE LEDGER AND LOAN BALANCES
     recalc_repayment_balances(loan.id)
 
     flash('Repayment recorded successfully.', 'success')

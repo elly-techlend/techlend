@@ -299,7 +299,7 @@ class LedgerEntry(db.Model):
     interest = db.Column(db.Numeric(12, 2), default=Decimal('0.00'))
     cumulative_interest = db.Column(db.Numeric(12, 2), default=Decimal('0.00'))  # NEW
 
-    amount = db.Column(db.Numeric(12, 2), default=Decimal('0.00'))
+    payment = db.Column(db.Numeric(12, 2), default=Decimal('0.00'))
     
     principal_balance = db.Column(db.Numeric(12, 2), default=Decimal('0.00'))
     interest_balance = db.Column(db.Numeric(12, 2), default=Decimal('0.00'))
