@@ -1,13 +1,9 @@
 # emails.py
 import os
 from datetime import datetime
-from flask import render_template, current_app
+from flask import render_template, current_app, url_for
 from flask_mail import Mail, Message
-<<<<<<< HEAD
-=======
-from flask import render_template, request, flash, redirect, url_for
 
->>>>>>> ca62d3d (Fix reset-password flow, update email template, and backfill ledger scripts)
 # ---------------- Initialize Flask-Mail (not bound to app yet) ----------------
 mail = Mail()
 
@@ -54,14 +50,7 @@ def send_email(to_email, subject, template=None, from_email=None, **context):
 
 # ---------------- Password Reset Email ----------------
 def send_reset_email(to_email, token):
-<<<<<<< HEAD
-
-    from flask import url_for
-    reset_url = url_for('auth.reset_password_token', token=token,_external=True)
-
-=======
     reset_url = url_for('auth.reset_password_token', token=token, _external=True)
->>>>>>> ca62d3d (Fix reset-password flow, update email template, and backfill ledger scripts)
     return send_email(
         to_email,
         subject="Password Reset Request - TechLend",
@@ -69,7 +58,6 @@ def send_reset_email(to_email, token):
         reset_url=reset_url,
         year=datetime.utcnow().year
     )
-
 
 # ---------------- Bulk Borrower Email ----------------
 def send_bulk_borrower_email(borrowers, subject, message_body):

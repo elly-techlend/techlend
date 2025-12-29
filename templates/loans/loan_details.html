@@ -65,174 +65,9 @@
 
 </style>
 
-<<<<<<< HEAD
 <div class="card shadow rounded-3 p-4">
 
   <!-- Loan Overview Header -->
-  <div class="card-body loan-overview border-start border-4 border-primary rounded mb-4 p-3 theme-card">
-    <div class="row align-items-start">
-      <div class="col-md-4 text-md-start">
-        <h5 class="mb-1"><i class="fa fa-user text-primary me-2"></i>{{ loan.borrower_name }}</h5>
-        <p><strong>(currency = UGX)</strong></p>
-        <p><strong>Loan ID:</strong> {{ loan.loan_id }}</p>
-      </div>
-      <div class="col-md-4 text-md-center">
-        <p><strong>Principal:</strong> {{ "{:,.2f}".format(loan.amount_borrowed or 0) }}</p>
-        <p><strong>Interest Rate:</strong> {{ loan.interest_rate }}%</p>
-        <p><strong>Date of Loan:</strong> {{ loan.date.strftime('%b %d, %Y') if loan.date else '' }}</p>
-        <p>
-          <strong>Due Date:</strong>
-          {% if loan.due_date %}
-            {% if loan.due_date < now() and loan.remaining_balance > 0 %}
-              <span class="text-danger fw-bold">{{ loan.due_date.strftime('%b %d, %Y') }}</span>
-              <small class="text-danger">(Overdue)</small>
-            {% else %}
-              <span class="text-success">{{ loan.due_date.strftime('%b %d, %Y') }}</span>
-            {% endif %}
-          {% else %}
-            <span class="text-muted">N/A</span>
-          {% endif %}
-        </p>
-      </div>
-      <div class="col-md-4 text-md-end">
-        <p><strong>Amount Due:</strong> {{ "{:,.2f}".format(loan.total_due or 0) }}</p>
-        <p><strong>Repaid Amount:</strong> {{ "{:,.2f}".format(loan.amount_paid or 0) }}</p>
-        <p><strong>Cumulative Interest:</strong> {{ "{:,.2f}".format(loan.cumulative_interest or 0) }}</p>
-        <p><strong>Outstanding Balance:</strong> {{ "{:,.2f}".format(loan.remaining_balance or 0) }}</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- Ledger Header -->
-  <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
-    <h5 class="mb-0">Client Ledger and Repayment History</h5>
-    <div class="dropdown">
-      <button class="btn btn-light dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-        <i class="bi bi-three-dots-vertical"></i>
-      </button>
-      <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
-        <li><a class="dropdown-item text-warning" href="{{ url_for('loan.edit_loan', loan_id=loan.id) }}"><i class="bi bi-pencil-square me-2"></i>Edit Loan</a></li>
-        <li>
-          <form method="POST" action="{{ url_for('loan.delete_loan', loan_id=loan.id) }}" onsubmit="return confirm('Are you sure?');">
-            <button class="dropdown-item text-danger" type="submit"><i class="bi bi-trash me-2"></i>Delete Loan</button>
-          </form>
-        </li>
-        <li><a class="dropdown-item text-info" href="{{ url_for('loan.export_loan_pdf', loan_id=loan.id) }}"><i class="bi bi-file-earmark-pdf me-2"></i>Export to PDF</a></li>
-        <li><a class="dropdown-item text-secondary" href="{{ url_for('loan.view_loans') }}"><i class="bi bi-arrow-left-circle me-2"></i>Back to Loans</a></li>
-        <li><a class="dropdown-item text-primary" href="{{ url_for('loan.loan_ledger', loan_id=loan.id) }}"><i class="bi bi-journal-text me-2"></i>View Ledger</a></li>
-        <li><a class="dropdown-item text-dark" href="#" data-bs-toggle="modal" data-bs-target="#cumulativeInterestModal"><i class="bi bi-percent me-2"></i>Add Cumulative Interest</a></li>
-      </ul>
-    </div>
-  </div>
-
-  <!-- Cumulative Interest Modal -->
-  <div class="modal fade" id="cumulativeInterestModal" tabindex="-1" aria-labelledby="cumulativeInterestModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <form method="POST" action="{{ url_for('loan.add_cumulative_interest', loan_id=loan.id) }}">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Add Cumulative Interest</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <div class="mb-3">
-              <label class="form-label">Amount</label>
-              <input type="number" step="0.01" min="0" name="amount" class="form-control" required>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Date Applied</label>
-              <input type="date" name="date_applied" class="form-control" value="{{ current_date }}">
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Particulars (optional)</label>
-              <input type="text" name="particulars" class="form-control" placeholder="e.g. Late payment penalty">
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="submit" class="btn btn-primary">Apply</button>
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          </div>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Ledger Table -->
-  {% if ledger_entries %}
-  <div class="table-responsive">
-    <table class="table table-bordered table-hover text-center align-middle">
-      <thead class="table-secondary">
-        <tr>
-          <th>Action</th>
-          <th>ID</th>
-          <th>Date</th>
-          <th>Payment</th>
-          <th>Principal</th>
-          <th>Interest</th>
-          <th>Cumulative Interest</th>
-          <th>Particulars</th>
-          <th>Outstanding Balance</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for entry in ledger_entries %}
-        <tr id="row-{{ entry.id }}">
-          <td>
-            <a onclick="toggleEditForm({{ entry.id }})">
-              <i class="bi bi-pencil-square {% if entry.particulars=='Loan Repayment' %}text-primary{% else %}text-warning{% endif %}"></i>
-            </a>
-            <form method="POST" action="{{ url_for('loan.delete_ledger_entry', entry_id=entry.id) }}" style="display:inline;" onsubmit="return confirm('Delete this entry?');">
-              <button class="btn btn-link p-0"><i class="bi bi-trash text-danger"></i></button>
-            </form>
-          </td>
-          <td>{{ entry.id }}</td>
-          <td>{{ entry.date.strftime('%Y-%m-%d') }}</td>
-          <td>{{ "{:,.2f}".format(entry.payment or 0) }}</td>
-          <td>{{ "{:,.2f}".format(entry.principal or 0) }}</td>
-          <td>{{ "{:,.2f}".format(entry.interest or 0) }}</td>
-          <td>{{ "{:,.2f}".format(entry.cumulative_interest or 0) }}</td>
-          <td>{{ entry.particulars }}</td>
-          <td>{{ "{:,.2f}".format(entry.running_balance or 0) }}</td>
-        </tr>
-
-        <!-- Inline Edit Row -->
-        <tr id="edit-row-{{ entry.id }}" style="display:none;">
-          <form method="POST" action="{{ url_for('loan.edit_ledger_entry', entry_id=entry.id) }}">
-            <td colspan="9">
-              <div class="d-flex gap-2 align-items-center">
-                <input type="date" name="date" value="{{ entry.date.strftime('%Y-%m-%d') }}" class="form-control form-control-sm" required>
-                <input type="number" step="0.01" name="amount" value="{{ entry.amount or 0 }}" class="form-control form-control-sm" required>
-                <button type="submit" class="btn btn-sm btn-success">Save</button>
-                <button type="button" class="btn btn-sm btn-secondary" onclick="toggleEditForm({{ entry.id }})">Cancel</button>
-              </div>
-            </td>
-          </form>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% else %}
-    <p>No ledger activity yet.</p>
-  {% endif %}
-
-  <!-- Repayment Form -->
-  <form method="POST" action="{{ url_for('loan.repay_loan', loan_id=loan.id) }}" class="mt-4 row g-2">
-    <div class="col-md-5">
-      <input type="number" name="amount_paid" step="0.01" min="0" placeholder="Enter repayment amount" class="form-control" required>
-    </div>
-    <div class="col-md-4">
-      <input type="date" name="repayment_date" class="form-control" required>
-    </div>
-    <div class="col-md-3">
-      <button type="submit" class="btn btn-success w-100">Make Repayment</button>
-    </div>
-  </form>
-
-=======
-    <div class="card shadow rounded-3 p-4">
-
-        <!-- Loan Overview Header -->
           <div class="card-body loan-overview border-start border-4 border-primary rounded mb-4 p-3 theme-card">
             <div class="row align-items-start">
                 <div class="col-md-4 text-md-start">
@@ -432,7 +267,6 @@
     {% endfor %}
     </tbody>
 </table>
->>>>>>> ca62d3d (Fix reset-password flow, update email template, and backfill ledger scripts)
 </div>
 {% else %}
 <p class="text-muted">No ledger activity yet.</p>
@@ -495,8 +329,4 @@ function toggleEditForm(entryId) {
 }
 </script>
 
-<<<<<<< HEAD
-
-=======
->>>>>>> ca62d3d (Fix reset-password flow, update email template, and backfill ledger scripts)
 {% endblock %}

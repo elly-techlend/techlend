@@ -160,7 +160,6 @@ def create_app():
         if request.path.startswith('/static'):
             return
 
-<<<<<<< HEAD
         # Public paths or prefixes
         public_paths = ('/', '/landing', '/login', '/register', '/forgot-password')
         public_prefixes = ('/reset-password',)  # catch any token variant
@@ -173,8 +172,6 @@ def create_app():
         if request.path.startswith(public_prefixes):
             return
 
-        # Tenant-access protected routes
-=======
         # Exact public routes
         public_paths = (
             '/',
@@ -198,7 +195,6 @@ def create_app():
             return
 
         # Tenant-protected routes
->>>>>>> ca62d3d (Fix reset-password flow, update email template, and backfill ledger scripts)
         if current_user.is_authenticated:
             if current_user.is_superuser or getattr(current_user, 'company_id', None):
                 return
