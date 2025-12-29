@@ -141,11 +141,23 @@ def recalc_repayment_balances(loan_id):
 
     # 🔹 INITIAL BALANCES
     principal_balance = Decimal(loan.amount_borrowed or 0)
+<<<<<<< HEAD
     interest_balance = Decimal(loan.amount_borrowed or 0) * Decimal(loan.interest_rate or 0) / Decimal('100')
     cumulative_interest_balance = Decimal('0.00')
     total_paid = Decimal('0.00')
 
     # 🔹 FETCH ALL LEDGER ENTRIES ORDERED
+=======
+    interest_balance = (
+        Decimal(loan.amount_borrowed or 0)
+        * Decimal(loan.interest_rate or 0)
+        / Decimal('100')
+    )
+    cumulative_interest_balance = Decimal('0.00')
+    total_paid = Decimal('0.00')
+
+    # 🔹 FETCH LEDGER IN ORDER
+>>>>>>> ca62d3d (Fix reset-password flow, update email template, and backfill ledger scripts)
     entries = (
         LedgerEntry.query
         .filter_by(loan_id=loan.id)
@@ -154,6 +166,7 @@ def recalc_repayment_balances(loan_id):
     )
 
     for entry in entries:
+<<<<<<< HEAD
         # 🔒 IMMUTABLE ENTRIES (Loan Application / Approved / Disbursed)
         if entry.particulars in ('Loan Application', 'Loan Approved', 'Loan Disbursed'):
             # Preserve original principal/interest for display
@@ -219,6 +232,90 @@ def recalc_repayment_balances(loan_id):
     # 🔹 UPDATE LOAN SUMMARY
     loan.amount_paid = total_paid
     loan.remaining_balance = principal_balance + interest_balance + cumulative_interest_balance
+=======
+        p = entry.particulars.lower().strip()
+
+        # 🔒 IMMUTABLE ENTRIES
+        if p in ('loan application', 'loan approved', 'loan disbursed'):
+            entry.principal = Decimal(loan.amount_borrowed or 0)
+            entry.interest = (
+                Decimal(loan.amount_borrowed or 0)
+                * Decimal(loan.interest_rate or 0)
+                / Decimal('100')
+                if p != 'loan disbursed' else Decimal('0.00')
+            )
+            entry.cumulative_interest = Decimal('0.00')
+
+            entry.principal_balance = principal_balance
+            entry.interest_balance = interest_balance
+            entry.cumulative_interest_balance = cumulative_interest_balance
+            entry.running_balance = (
+                principal_balance
+                + interest_balance
+                + cumulative_interest_balance
+            )
+            db.session.add(entry)
+            continue
+
+        # 🔁 RESET ALLOCATIONS
+        entry.principal = Decimal('0.00')
+        entry.interest = Decimal('0.00')
+        entry.cumulative_interest = Decimal('0.00')
+
+        # 🔴 CUMULATIVE INTEREST ENTRY
+        if p == 'cumulative interest':
+            ci_amount = Decimal(entry.payment or 0)
+            cumulative_interest_balance += ci_amount
+            entry.cumulative_interest = ci_amount
+
+        # 🟢 LOAN REPAYMENT ENTRY (CASE-SAFE)
+        elif p == 'loan repayment':
+            payment = Decimal(entry.payment or 0)
+
+            # 1️⃣ Pay cumulative interest
+            ci_payment = min(payment, cumulative_interest_balance)
+            cumulative_interest_balance -= ci_payment
+            payment -= ci_payment
+            entry.cumulative_interest = ci_payment
+
+            # 2️⃣ Pay interest
+            interest_payment = min(payment, interest_balance)
+            interest_balance -= interest_payment
+            payment -= interest_payment
+            entry.interest = interest_payment
+
+            # 3️⃣ Pay principal
+            principal_payment = min(payment, principal_balance)
+            principal_balance -= principal_payment
+            payment -= principal_payment
+            entry.principal = principal_payment
+
+            total_paid += ci_payment + interest_payment + principal_payment
+
+        # 🔢 CLAMP & UPDATE BALANCES
+        principal_balance = max(principal_balance, Decimal('0.00'))
+        interest_balance = max(interest_balance, Decimal('0.00'))
+        cumulative_interest_balance = max(cumulative_interest_balance, Decimal('0.00'))
+
+        entry.principal_balance = principal_balance
+        entry.interest_balance = interest_balance
+        entry.cumulative_interest_balance = cumulative_interest_balance
+        entry.running_balance = (
+            principal_balance
+            + interest_balance
+            + cumulative_interest_balance
+        )
+
+        db.session.add(entry)
+
+    # 🔹 UPDATE LOAN SNAPSHOT (CACHED ONLY)
+    loan.amount_paid = total_paid
+    loan.remaining_balance = (
+        principal_balance
+        + interest_balance
+        + cumulative_interest_balance
+    )
+>>>>>>> ca62d3d (Fix reset-password flow, update email template, and backfill ledger scripts)
     loan.status = 'Paid' if loan.remaining_balance <= 0 else 'Partially Paid'
 
     db.session.commit()
@@ -231,6 +328,7 @@ def recalc_repayment_balances(loan_id):
 )
 def loan_details(loan_id):
     from utils.branch_filter import filter_by_active_branch
+    from sqlalchemy import func
 
     tab = request.args.get('tab', 'payments')
 
@@ -246,6 +344,7 @@ def loan_details(loan_id):
         .all()
     )
 
+<<<<<<< HEAD
     # Optional: pre-calculate totals
     totals = {
         'principal': sum(e.principal for e in ledger_entries),
@@ -253,13 +352,41 @@ def loan_details(loan_id):
         'cumulative_interest': sum(e.cumulative_interest for e in ledger_entries),
         'running_balance': ledger_entries[-1].running_balance if ledger_entries else Decimal('0.00')
     }
+=======
+    # 🔐 SINGLE SOURCE OF TRUTH
+    last_entry = (
+        LedgerEntry.query
+        .filter_by(loan_id=loan.id)
+        .order_by(LedgerEntry.date.desc(), LedgerEntry.id.desc())
+        .first()
+    )
+
+    total_paid = (
+        db.session.query(func.coalesce(func.sum(LedgerEntry.payment), 0))
+        .filter(
+            LedgerEntry.loan_id == loan.id,
+            LedgerEntry.payment > 0
+        )
+        .scalar()
+    )
+
+    outstanding_balance = (
+        last_entry.running_balance
+        if last_entry else loan.total_due
+    )
+>>>>>>> ca62d3d (Fix reset-password flow, update email template, and backfill ledger scripts)
 
     return render_template(
         'loans/loan_details.html',
         loan=loan,
         ledger_entries=ledger_entries,
+        total_paid=total_paid,
+        outstanding_balance=outstanding_balance,
         tab=tab,
+<<<<<<< HEAD
         totals=totals,
+=======
+>>>>>>> ca62d3d (Fix reset-password flow, update email template, and backfill ledger scripts)
         now=datetime.utcnow
     )
 
@@ -299,15 +426,29 @@ def delete_ledger_entry(entry_id):
     entry = LedgerEntry.query.get_or_404(entry_id)
     loan_id = entry.loan_id
 
+<<<<<<< HEAD
     # Prevent deletion of immutable entries
     if entry.particulars in ('Loan Application', 'Loan Approved', 'Loan Disbursed'):
+=======
+    immutable = (
+        'loan application',
+        'loan approved',
+        'loan disbursed'
+    )
+
+    if entry.particulars.lower() in immutable:
+>>>>>>> ca62d3d (Fix reset-password flow, update email template, and backfill ledger scripts)
         flash('Cannot delete this entry.', 'warning')
         return redirect(url_for('loan.loan_details', loan_id=loan_id))
 
     db.session.delete(entry)
     db.session.commit()
 
+<<<<<<< HEAD
     # Recalculate all balances from ledger
+=======
+    # 🔁 ALWAYS recalc after delete
+>>>>>>> ca62d3d (Fix reset-password flow, update email template, and backfill ledger scripts)
     recalc_repayment_balances(loan_id)
 
     flash('Entry deleted successfully.', 'success')
@@ -320,12 +461,23 @@ def edit_ledger_entry(entry_id):
     entry = LedgerEntry.query.get_or_404(entry_id)
     loan_id = entry.loan_id
 
+<<<<<<< HEAD
     # Prevent editing immutable entries
     if entry.particulars in ('Loan Application', 'Loan Approved', 'Loan Disbursed'):
+=======
+    immutable = (
+        'loan application',
+        'loan approved',
+        'loan disbursed'
+    )
+
+    if entry.particulars.lower() in immutable:
+>>>>>>> ca62d3d (Fix reset-password flow, update email template, and backfill ledger scripts)
         flash('Cannot edit this entry.', 'warning')
         return redirect(url_for('loan.loan_details', loan_id=loan_id))
 
     try:
+<<<<<<< HEAD
         amount = Decimal(request.form['amount'])
         if amount < 0:
             raise ValueError
@@ -340,6 +492,29 @@ def edit_ledger_entry(entry_id):
     db.session.commit()
 
     # 🔁 Recalculate all balances from ledger
+=======
+        payment = Decimal(request.form['payment'])
+        if payment < 0:
+            raise ValueError
+    except Exception:
+        flash('Invalid amount.', 'danger')
+        return redirect(url_for('loan.loan_details', loan_id=loan_id))
+
+    try:
+        entry.date = datetime.strptime(
+            request.form['date'], '%Y-%m-%d'
+        ).date()
+    except Exception:
+        flash('Invalid date.', 'danger')
+        return redirect(url_for('loan.loan_details', loan_id=loan_id))
+
+    # ✅ SINGLE SOURCE OF TRUTH
+    entry.payment = payment
+
+    db.session.commit()
+
+    # 🔁 ALWAYS recalc
+>>>>>>> ca62d3d (Fix reset-password flow, update email template, and backfill ledger scripts)
     recalc_repayment_balances(loan_id)
 
     flash('Entry updated successfully.', 'success')
@@ -948,6 +1123,7 @@ def repay_loan(loan_id):
         flash('Invalid repayment amount.', 'danger')
         return redirect(url_for('loan.loan_details', loan_id=loan.id))
 
+<<<<<<< HEAD
     # 🔹 GET REPAYMENT DATE
     try:
         pay_date = datetime.strptime(request.form['repayment_date'], '%Y-%m-%d').date()
@@ -956,11 +1132,22 @@ def repay_loan(loan_id):
         return redirect(url_for('loan.loan_details', loan_id=loan.id))
 
     # 🔹 CREATE LEDGER ENTRY (SINGLE SOURCE OF TRUTH)
+=======
+    pay_date = datetime.strptime(
+        request.form['repayment_date'], '%Y-%m-%d'
+    ).date()
+
+    # ✅ SINGLE SOURCE OF TRUTH (STORE GROSS AMOUNT)
+>>>>>>> ca62d3d (Fix reset-password flow, update email template, and backfill ledger scripts)
     entry = LedgerEntry(
         loan_id=loan.id,
         date=pay_date,
         particulars='Loan Repayment',
+<<<<<<< HEAD
         payment=amount,                # Only the gross payment
+=======
+        payment=amount,                 # ⭐ THIS IS THE FIX
+>>>>>>> ca62d3d (Fix reset-password flow, update email template, and backfill ledger scripts)
         principal=Decimal('0.00'),
         interest=Decimal('0.00'),
         cumulative_interest=Decimal('0.00')
@@ -969,7 +1156,11 @@ def repay_loan(loan_id):
     db.session.add(entry)
     db.session.commit()
 
+<<<<<<< HEAD
     # 🔁 RECALCULATE LEDGER AND LOAN BALANCES
+=======
+    # 🔁 Recalculate EVERYTHING from ledger
+>>>>>>> ca62d3d (Fix reset-password flow, update email template, and backfill ledger scripts)
     recalc_repayment_balances(loan.id)
 
     flash('Repayment recorded successfully.', 'success')

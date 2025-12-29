@@ -1,8 +1,7 @@
 """Add ledger_entries table and update loan_repayment date_paid
 
 Revision ID: ad934029dbb9
-Revises: 3feece28916f
-Create Date: 2025-05-30 13:50:41.467901
+Revises: fa5ccb7cd517
 
 """
 from alembic import op
@@ -11,7 +10,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'ad934029dbb9'
-down_revision = '3feece28916f'
+down_revision = 'fa5ccb7cd517'
 branch_labels = None
 depends_on = None
 

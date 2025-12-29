@@ -19,12 +19,24 @@ from email_utils import mail
 # Initialize migrate object
 migrate = Migrate()
 
+def generate_reset_token(email):
+    s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+    return s.dumps(email, salt='password-reset-salt')
+
+
+def verify_reset_token(token, expiration=3600):
+    s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+    try:
+        return s.loads(token, salt='password-reset-salt', max_age=expiration)
+    except Exception:
+        return None
+
 # Role-based Access Control (RBAC) decorator
 def role_required(role):
     def decorator(func):
         def wrapper(*args, **kwargs):
             if current_user.role != role and not current_user.is_superuser:
-                return redirect(url_for('dashboard.index'))  # Redirect non-admins
+                return redirect(url_for('dashboard.index'))
             return func(*args, **kwargs)
         wrapper.__name__ = func.__name__
         return wrapper
@@ -148,6 +160,7 @@ def create_app():
         if request.path.startswith('/static'):
             return
 
+<<<<<<< HEAD
         # Public paths or prefixes
         public_paths = ('/', '/landing', '/login', '/register', '/forgot-password')
         public_prefixes = ('/reset-password',)  # catch any token variant
@@ -161,6 +174,31 @@ def create_app():
             return
 
         # Tenant-access protected routes
+=======
+        # Exact public routes
+        public_paths = (
+            '/',
+            '/landing',
+            '/login',
+            '/register',
+            '/forgot-password',
+        )
+ 
+        # Public route prefixes (token-based URLs)
+        public_prefixes = (
+            '/reset-password/',
+        )
+
+        # Allow exact public paths
+        if request.path in public_paths:
+            return
+
+        # Allow prefixed public paths
+        if request.path.startswith(public_prefixes):
+            return
+
+        # Tenant-protected routes
+>>>>>>> ca62d3d (Fix reset-password flow, update email template, and backfill ledger scripts)
         if current_user.is_authenticated:
             if current_user.is_superuser or getattr(current_user, 'company_id', None):
                 return

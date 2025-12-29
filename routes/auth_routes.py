@@ -12,6 +12,7 @@ import os
 from werkzeug.utils import secure_filename
 from extensions import csrf
 from email_utils import send_reset_email
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -301,6 +302,7 @@ def forgot_password():
 @csrf.exempt
 @auth_bp.route('/reset-password/<token>', methods=['GET', 'POST'])
 def reset_password_token(token):
+    from models import User  # make sure User is imported
     email = verify_reset_token(token)
     if not email:
         flash('The password reset link is invalid or has expired.', 'danger')

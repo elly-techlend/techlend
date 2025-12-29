@@ -11,6 +11,7 @@ from sqlalchemy.event import listens_for
 from itsdangerous import URLSafeTimedSerializer
 from flask import current_app
 from decimal import Decimal
+from sqlalchemy import func
 
 user_roles = db.Table('user_roles',
     db.Column('user_id', db.Integer, db.ForeignKey('users.id'), primary_key=True),
@@ -260,6 +261,18 @@ class Loan(db.Model):
 
     def __repr__(self):
         return f"<Loan {self.loan_id} for {self.borrower_name}>"
+
+    @property
+    def cumulative_interest_total(self):
+        from models import LedgerEntry
+        return (
+            db.session.query(func.coalesce(func.sum(LedgerEntry.cumulative_interest), 0))
+            .filter(
+                LedgerEntry.loan_id == self.id,
+                LedgerEntry.cumulative_interest > 0
+            )
+            .scalar()
+        )
 
 # Using event listeners to auto-generate the loan_id before insert
 @event.listens_for(Loan, 'before_insert')
