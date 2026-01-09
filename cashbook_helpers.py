@@ -17,7 +17,7 @@ def recalculate_balances(company_id, branch_id=None):
         db.session.add(entry)
     db.session.commit()
 
-def ledger_to_cashbook(entry):
+def ledger_to_cashbook(entry, created_by):
     """
     Convert a LedgerEntry (loan or saving) into a CashbookEntry.
     Automatically includes borrower name and correct debit/credit.

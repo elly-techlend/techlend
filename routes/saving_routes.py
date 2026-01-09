@@ -9,27 +9,73 @@ from utils import get_company_filter
 from utils.branch_filter import filter_by_active_branch
 from routes.cashbook_routes import add_cashbook_entry, recalculate_balances
 from extensions import csrf
-from datetime import datetime
 from decimal import Decimal, InvalidOperation
+from datetime import datetime, timedelta
+from calendar import month_name
 
 savings_blueprint = Blueprint('savings', __name__)
 
 # View all savings accounts
+from sqlalchemy import desc
+
+from sqlalchemy import desc
+from datetime import date, timedelta
+from calendar import monthrange
+
 @savings_blueprint.route('/')
 @login_required
 @roles_required('Admin', 'Accountant', 'Branch_Manager', 'Loans_Supervisor')
 def view_savings():
     branch_id = session.get('active_branch_id')
+    filter_type = request.args.get('filter')
 
-    # Filter savings accounts by company (and branch if applicable)
-    accounts_query = SavingAccount.query.filter_by(company_id=current_user.company_id)
+    today = date.today()
+
+    query = SavingAccount.query.filter_by(
+        company_id=current_user.company_id
+    )
 
     if branch_id:
-        accounts_query = accounts_query.filter_by(branch_id=branch_id)
+        query = query.filter_by(branch_id=branch_id)
 
-    accounts = accounts_query.all()
+    # 🔎 FILTER LOGIC
+    if filter_type == 'today':
+        query = query.filter(
+            db.func.date(SavingAccount.date_opened) == today
+        )
 
-    return render_template('savings/view_savings.html', accounts=accounts)
+    elif filter_type == 'weekly':
+        start_week = today - timedelta(days=today.weekday())
+        query = query.filter(
+            SavingAccount.date_opened >= start_week
+        )
+
+    elif filter_type == 'monthly':
+        start_month = today.replace(day=1)
+        end_month = today.replace(
+            day=monthrange(today.year, today.month)[1]
+        )
+        query = query.filter(
+            SavingAccount.date_opened.between(start_month, end_month)
+        )
+
+    elif filter_type == 'yearly':
+        start_year = today.replace(month=1, day=1)
+        query = query.filter(
+            SavingAccount.date_opened >= start_year
+        )
+
+    accounts = (
+        query
+        .order_by(desc(SavingAccount.date_opened))
+        .all()
+    )
+
+    return render_template(
+        'savings/view_savings.html',
+        accounts=accounts,
+        filter=filter_type
+    )
 
 @savings_blueprint.route('/borrower/<int:borrower_id>')
 @login_required
@@ -106,34 +152,68 @@ def add_saving():
     return render_template('savings/add_saving.html', borrowers=borrowers)
 
 # View transactions for a specific savings account
-@savings_blueprint.route('/<int:saving_id>/transactions', methods=['GET'])
+@savings_blueprint.route('/<int:saving_id>/transactions')
 @login_required
-@roles_required('Admin', 'Accountant', 'Branch_Manager', 'Loans_Supervisor')
 def view_transactions(saving_id):
-    branch_id = session.get('active_branch_id')  # Get active branch from session
+    saving = SavingAccount.query.get_or_404(saving_id)
 
-    # Filter saving account by company and optionally by branch
-    saving_query = get_company_filter(SavingAccount).filter_by(id=saving_id)
-    if branch_id:
-        saving_query = saving_query.filter_by(branch_id=branch_id)
+    # Base query
+    transactions_query = SavingTransaction.query.filter_by(account_id=saving_id)
 
-    saving = saving_query.first_or_404()
+    # Filters from query params
+    filter_type = request.args.get('filter', None)
+    month = request.args.get('month', type=int)
+    year = request.args.get('year', type=int)
 
-    # Fetch related transactions ordered by most recent first
-    transactions = SavingTransaction.query.filter_by(account_id=saving.id).order_by(SavingTransaction.date.desc()).all()
+    today = datetime.today().date()
 
-    total_deposits = sum(t.amount for t in transactions if t.transaction_type == 'deposit')
-    total_withdrawals = sum(t.amount for t in transactions if t.transaction_type == 'withdrawal')
-    balance = total_deposits - total_withdrawals
+    if filter_type == 'today':
+        transactions_query = transactions_query.filter(SavingTransaction.date >= today)
+    elif filter_type == 'weekly':
+        week_start = today - timedelta(days=today.weekday())  # Monday
+        transactions_query = transactions_query.filter(SavingTransaction.date >= week_start)
+    elif filter_type == 'monthly' and month and year:
+        transactions_query = transactions_query.filter(
+            SavingTransaction.date >= datetime(year, month, 1),
+            SavingTransaction.date < datetime(year, month % 12 + 1, 1)
+        )
+    elif filter_type == 'yearly' and year:
+        transactions_query = transactions_query.filter(
+            SavingTransaction.date >= datetime(year, 1, 1),
+            SavingTransaction.date < datetime(year + 1, 1, 1)
+        )
+
+    transactions = transactions_query.order_by(SavingTransaction.date).all()
+
+    # Calculate running balance
+    running_balance = 0
+    for t in transactions:
+        if t.transaction_type.lower() == 'deposit':
+            running_balance += t.amount
+        else:
+            running_balance -= t.amount
+        t.running_balance = running_balance
+
+    # Current balance
+    balance = transactions[-1].running_balance if transactions else 0
+
+    # Prepare months/years for monthly filter
+    months = [(i, month_name[i]) for i in range(1, 13)]
+    years = list(range(today.year - 5, today.year + 2))
+    selected_month = month or today.month
+    selected_year = year or today.year
 
     return render_template(
-        'savings/transactions.html',
+        'savings/view_transactions.html',
         saving=saving,
         transactions=transactions,
-        balance=balance  # ✅ Pass this to template
+        balance=balance,
+        filter=filter_type,
+        months=months,
+        years=years,
+        selected_month=selected_month,
+        selected_year=selected_year
     )
-
-    return render_template('savings/transactions.html', saving=saving, transactions=transactions)
 
 # Deposit into a savings account
 @csrf.exempt
@@ -246,3 +326,27 @@ def withdraw(saving_id):
 
     flash('Withdrawal successful.', 'success')
     return redirect(url_for('savings.view_transactions', saving_id=saving.id))
+
+@csrf.exempt
+@savings_blueprint.route('/transaction/<int:trans_id>/delete', methods=['POST'])
+@login_required
+def delete_transaction(trans_id):
+    trans = SavingTransaction.query.get_or_404(trans_id)
+    db.session.delete(trans)
+    db.session.commit()
+    flash("Transaction deleted successfully.", "warning")
+    return redirect(url_for('savings.view_transactions', saving_id=trans.account_id))
+
+@csrf.exempt
+@savings_blueprint.route('/transaction/<int:trans_id>/edit', methods=['POST'])
+@login_required
+def edit_transaction(trans_id):
+    trans = SavingTransaction.query.get_or_404(trans_id)
+    try:
+        trans.amount = float(request.form['amount'])
+        trans.date = request.form['date']  # assuming datetime input is handled in model
+        db.session.commit()
+        flash("Transaction updated successfully.", "success")
+    except Exception as e:
+        flash(f"Failed to update transaction: {e}", "danger")
+    return redirect(url_for('savings.view_transactions', saving_id=trans.account_id))
