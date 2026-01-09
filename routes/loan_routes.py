@@ -27,7 +27,7 @@ from utils.time_helpers import today
 from utils.utils import sum_paid
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from weasyprint import HTML, CSS
-from helpers.cashbook_helpers import ledger_to_cashbook, recalculate_balances
+from cashbook_helpers import ledger_to_cashbook, recalculate_balances
 
 loan_bp = Blueprint('loan', __name__)
 

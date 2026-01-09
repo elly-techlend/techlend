@@ -11,7 +11,7 @@ import pandas as pd
 from sqlalchemy import extract
 from extensions import csrf
 from decimal import Decimal, InvalidOperation
-from helpers.cashbook_helpers import recalculate_balances
+from cashbook_helpers import recalculate_balances
 
 cashbook_bp = Blueprint('cashbook', __name__, url_prefix='/cashbook')
 
