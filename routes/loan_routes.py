@@ -27,6 +27,7 @@ from utils.time_helpers import today
 from utils.utils import sum_paid
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from weasyprint import HTML, CSS
+from helpers.cashbook_helpers import ledger_to_cashbook, recalculate_balances
 
 loan_bp = Blueprint('loan', __name__)
 
@@ -340,23 +341,31 @@ def delete_ledger_entry(entry_id):
     entry = LedgerEntry.query.get_or_404(entry_id)
     loan_id = entry.loan_id
 
-    immutable = (
-        'loan application',
-        'loan approved',
-        'loan disbursed'
-    )
+    immutable = ('loan application', 'loan approved', 'loan disbursed')
 
     if entry.particulars.lower() in immutable:
         flash('Cannot delete this entry.', 'warning')
         return redirect(url_for('loan.loan_details', loan_id=loan_id))
 
+    # Delete corresponding cashbook entry, if any
+    cb_entry = CashbookEntry.query.filter_by(
+        date=entry.date,
+        particulars=entry.particulars,
+        company_id=entry.loan.company_id if entry.loan else None,
+        branch_id=entry.loan.branch_id if entry.loan else None
+    ).first()
+
+    if cb_entry:
+        db.session.delete(cb_entry)
+
+    # Delete the ledger entry
     db.session.delete(entry)
     db.session.commit()
 
-    # 🔁 ALWAYS recalc after delete
+    # 🔁 Recalculate balances after delete
     recalc_repayment_balances(loan_id)
 
-    flash('Entry deleted successfully.', 'success')
+    flash('Ledger entry deleted successfully.', 'success')
     return redirect(url_for('loan.loan_details', loan_id=loan_id))
 
 @csrf.exempt
@@ -366,16 +375,12 @@ def edit_ledger_entry(entry_id):
     entry = LedgerEntry.query.get_or_404(entry_id)
     loan_id = entry.loan_id
 
-    immutable = (
-        'loan application',
-        'loan approved',
-        'loan disbursed'
-    )
-
+    immutable = ('loan application', 'loan approved', 'loan disbursed')
     if entry.particulars.lower() in immutable:
         flash('Cannot edit this entry.', 'warning')
         return redirect(url_for('loan.loan_details', loan_id=loan_id))
 
+    # 🔹 Validate payment
     try:
         payment = Decimal(request.form['payment'])
         if payment < 0:
@@ -384,21 +389,24 @@ def edit_ledger_entry(entry_id):
         flash('Invalid amount.', 'danger')
         return redirect(url_for('loan.loan_details', loan_id=loan_id))
 
+    # 🔹 Validate date
     try:
         entry.date = datetime.strptime(request.form['date'], '%Y-%m-%d').date()
     except Exception:
         flash('Invalid date.', 'danger')
         return redirect(url_for('loan.loan_details', loan_id=loan_id))
 
-    # ✅ SINGLE SOURCE OF TRUTH
+    # 🔹 Update ledger
     entry.payment = payment
-
     db.session.commit()
 
-    # 🔁 ALWAYS recalc after changes
+    # 🔹 Sync cashbook
+    ledger_to_cashbook(entry)
+
+    # 🔹 Recalculate ledger balances
     recalc_repayment_balances(loan_id)
 
-    flash('Entry updated successfully.', 'success')
+    flash('Ledger entry updated successfully.', 'success')
     return redirect(url_for('loan.loan_details', loan_id=loan_id))
 
 @loan_bp.route('/borrower/<int:borrower_id>')
@@ -1021,8 +1029,12 @@ def repay_loan(loan_id):
     db.session.add(entry)
     db.session.commit()
 
+    # Sync cashbook
+    ledger_to_cashbook(entry, created_by=current_user.id)
+
     # 🔁 Recalculate EVERYTHING from ledger
     recalc_repayment_balances(loan.id)
+
 
     flash('Repayment recorded successfully.', 'success')
     return redirect(url_for('loan.loan_details', loan_id=loan.id))

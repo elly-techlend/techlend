@@ -11,6 +11,7 @@ import pandas as pd
 from sqlalchemy import extract
 from extensions import csrf
 from decimal import Decimal, InvalidOperation
+from helpers.cashbook_helpers import recalculate_balances
 
 cashbook_bp = Blueprint('cashbook', __name__, url_prefix='/cashbook')
 
@@ -23,6 +24,69 @@ def debug_session():
         'company_id': current_user.company_id,
         'is_superuser': current_user.is_superuser,
     }
+
+def recalculate_balances(company_id, branch_id=None):
+    query = CashbookEntry.query.filter_by(company_id=company_id)
+    if branch_id:
+        query = query.filter_by(branch_id=branch_id)
+
+    entries = query.order_by(CashbookEntry.date, CashbookEntry.id).all()
+
+    running_balance = Decimal('0.00')
+    for entry in entries:
+        credit = entry.credit or Decimal('0.00')
+        debit = entry.debit or Decimal('0.00')
+        running_balance += credit - debit
+        entry.balance = running_balance
+
+    db.session.commit()
+
+def ledger_to_cashbook(entry):
+    """
+    Convert a LedgerEntry into a CashbookEntry.
+    Rules:
+        - Loan repayment (cash in) => Credit
+        - Loan disbursement (cash out) => Debit
+    """
+    debit = Decimal('0.00')
+    credit = Decimal('0.00')
+    particulars = entry.particulars
+
+    # Loan repayment = cash in
+    if 'repayment' in particulars.lower():
+        credit = entry.payment
+    # Loan disbursement = cash out
+    elif 'disbursed' in particulars.lower():
+        debit = entry.principal + entry.interest + entry.cumulative_interest
+
+    # Avoid duplicates
+    existing = CashbookEntry.query.filter_by(
+        particulars=particulars,
+        date=entry.date,
+        branch_id=entry.loan.branch_id if entry.loan else None,
+        company_id=entry.loan.company_id if entry.loan else None
+    ).first()
+    if existing:
+        return existing
+
+    cb_entry = CashbookEntry(
+        date=entry.date,
+        particulars=particulars,
+        debit=debit,
+        credit=credit,
+        balance=Decimal('0.00'),  # recalculated
+        company_id=entry.loan.company_id if entry.loan else None,
+        branch_id=entry.loan.branch_id if entry.loan else None,
+        created_by=entry.loan.user_id if entry.loan else 1
+    )
+
+    db.session.add(cb_entry)
+    db.session.commit()
+
+    # Recalculate balances
+    recalculate_balances(cb_entry.company_id, cb_entry.branch_id)
+
+    return cb_entry
 
 @cashbook_bp.route('/cashbook/new', methods=['GET', 'POST'])
 @login_required
@@ -115,19 +179,10 @@ def view_cashbook():
                               .paginate(page=page, per_page=per_page, error_out=False)
 
     # Compute running balance
-    all_entries = query.order_by(CashbookEntry.date.asc(), CashbookEntry.id.asc()).all()
-    running_balance = Decimal('0.00')
-    balance_map = {}
-    for entry in all_entries:
-        running_balance += (entry.credit or 0) - (entry.debit or 0)
-        balance_map[entry.id] = running_balance
-
-    for entry in paginated_entries.items:
-        entry.balance = balance_map.get(entry.id, 0.0)
-
-    total_debit = sum(e.debit or 0 for e in all_entries)
-    total_credit = sum(e.credit or 0 for e in all_entries)
-    final_balance = running_balance
+    all_entries = query.all()
+    total_debit = sum(e.debit or Decimal('0.00') for e in all_entries)
+    total_credit = sum(e.credit or Decimal('0.00') for e in all_entries)
+    final_balance = all_entries[-1].balance if all_entries else Decimal('0.00')
 
     # Month and year dropdown data
     months = [(i, datetime(2000, i, 1).strftime('%B')) for i in range(1, 13)]
@@ -150,38 +205,41 @@ def view_cashbook():
         filter=filter_option
     )
 
-def add_cashbook_entry(date, particulars, debit, credit, company_id, branch_id=None, created_by=None):
+def add_cashbook_entry(
+    date,
+    particulars,
+    debit,
+    credit,
+    company_id,
+    branch_id=None,
+    created_by=None
+):
     from models import CashbookEntry
+    from decimal import Decimal
     from extensions import db
-
-    last_entry = CashbookEntry.query.filter_by(
-        company_id=company_id,
-        branch_id=branch_id
-    ).order_by(CashbookEntry.id.desc()).first()
-
-    last_balance = last_entry.balance if last_entry else Decimal('0.0')
-
-    credit = Decimal(str(credit))
-    debit = Decimal(str(debit))
-
-    new_balance = last_balance + credit - debit
+    from routes.cashbook_routes import recalculate_balances
 
     if created_by is None:
-        raise ValueError("created_by must be provided to add_cashbook_entry()")
+        raise ValueError("created_by must be provided")
 
     entry = CashbookEntry(
         date=date,
         particulars=particulars,
-        debit=debit,
-        credit=credit,
-        balance=new_balance,
+        debit=Decimal(str(debit)),
+        credit=Decimal(str(credit)),
+        balance=Decimal('0.00'),  # recalculated
         company_id=company_id,
         branch_id=branch_id,
         created_by=created_by
     )
 
     db.session.add(entry)
-    db.session.commit()
+    db.session.commit()  # ✅ THIS WAS MISSING
+
+    # 🔁 ALWAYS recalc after insert
+    recalculate_balances(company_id)
+
+    return entry
 
 @csrf.exempt
 @cashbook_bp.route('/cashbook/edit/<int:entry_id>', methods=['GET', 'POST'])
@@ -213,16 +271,6 @@ def delete_cashbook_entry(entry_id):
     recalculate_balances(entry.company_id)
     flash('Cashbook entry deleted.', 'warning')
     return redirect(url_for('cashbook.view_cashbook'))
-
-def recalculate_balances(company_id):
-    entries = CashbookEntry.query.filter_by(company_id=company_id).order_by(CashbookEntry.date, CashbookEntry.id).all()
-    running_balance = Decimal('0.00')
-    for entry in entries:
-        credit = entry.credit or Decimal('0.00')
-        debit = entry.debit or Decimal('0.00')
-        running_balance += credit - debit
-        entry.balance = running_balance
-    db.session.commit()
 
 from flask import send_file
 import io
