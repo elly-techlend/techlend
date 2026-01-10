@@ -4,7 +4,6 @@ from extensions import db
 from flask import session
 from models import BankTransfer, Branch
 from datetime import datetime
-from routes.cashbook_routes import add_cashbook_entry
 from models import CashbookEntry
 from weasyprint import HTML
 from io import BytesIO
@@ -14,122 +13,76 @@ from extensions import csrf
 
 bank_bp = Blueprint('bank', __name__, template_folder='../templates/bank')
 
-@csrf.exempt
-@bank_bp.route('/deposit', methods=['GET', 'POST'])
+@bank_bp.route('/deposit', methods=['POST'])
 @login_required
 @roles_required('Admin', 'Accountant', 'Branch_Manager', 'Loans_Officer', 'Loans Supervisor')
 def bank_deposit():
-    print("Session active_branch_id:", session.get('active_branch_id'))
-    if request.method == 'POST':
-        amount = request.form.get('amount')
-        reference = request.form.get('reference')
-        transfer_date_str = request.form.get('transfer_date')
+    amount = Decimal(request.form['amount'])
+    reference = request.form.get('reference')
+    transfer_date = datetime.strptime(request.form['transfer_date'], '%Y-%m-%d')
+    branch_id = session.get("active_branch_id")
 
-        if not amount:
-            flash("Amount is required.", "error")
-            return redirect(url_for('bank.bank_deposit'))
+    transfer = BankTransfer(
+        transfer_type='deposit',
+        amount=amount,
+        reference=reference,
+        transfer_date=transfer_date,
+        company_id=current_user.company_id,
+        branch_id=branch_id,
+        created_by_id=current_user.id
+    )
+    db.session.add(transfer)
+    db.session.commit()
 
-        try:
-            amount = float(amount)
-        except ValueError:
-            flash("Invalid amount format.", "error")
-            return redirect(url_for('bank.bank_deposit'))
+    # Cashbook entry
+    add_cashbook_entry(
+        date=transfer_date,
+        particulars=f"Bank Deposit - Ref: {reference or 'N/A'}",
+        debit=Decimal(amount),
+        credit=Decimal('0.00'),
+        company_id=current_user.company_id,
+        branch_id=branch_id,
+        created_by=current_user.id
+    )
 
-        # Parse the date from the form
-        try:
-            transfer_date = datetime.strptime(transfer_date_str, '%Y-%m-%d')
-        except (ValueError, TypeError):
-            flash("Invalid or missing transfer date.", "error")
-            return redirect(url_for('bank.bank_deposit'))
+    flash("Bank deposit recorded successfully.", "success")
+    return redirect(url_for('bank.view_transfers'))
 
-        branch_id = session.get("active_branch_id")
 
-        transfer = BankTransfer(
-            transfer_type='deposit',
-            amount=amount,
-            reference=reference,
-            transfer_date=transfer_date,
-            company_id=current_user.company_id,
-            branch_id=branch_id,
-            created_by_id=current_user.id
-        )
-        db.session.add(transfer)
-
-        # Add to cashbook
-        cash_entry = CashbookEntry(
-            date=transfer_date,
-            particulars=f"Bank deposit - Ref: {reference or 'N/A'}",
-            debit=amount,
-            credit=0.0,
-            balance=0.0,
-            company_id=current_user.company_id,
-            branch_id=branch_id,
-            created_by=current_user.id
-        )
-        db.session.add(cash_entry)
-
-        db.session.commit()
-        flash("Bank deposit recorded successfully.", "success")
-        return redirect(url_for('bank.view_transfers'))
-
-    return render_template('bank/deposit.html', datetime=datetime)
-
-@csrf.exempt
-@bank_bp.route('/withdraw', methods=['GET', 'POST'])
+@bank_bp.route('/withdraw', methods=['POST'])
 @login_required
 @roles_required('Admin', 'Accountant', 'Branch_Manager', 'Loans Supervisor')
 def bank_withdraw():
-    if request.method == 'POST':
-        amount = request.form.get('amount')
-        reference = request.form.get('reference')
-        transfer_date_str = request.form.get('transfer_date')
+    amount = Decimal(request.form['amount'])
+    reference = request.form.get('reference')
+    transfer_date = datetime.strptime(request.form['transfer_date'], '%Y-%m-%d')
+    branch_id = session.get("active_branch_id")
 
-        if not amount:
-            flash("Amount is required.", "error")
-            return redirect(url_for('bank.bank_withdraw'))
+    transfer = BankTransfer(
+        transfer_type='withdrawal',
+        amount=amount,
+        reference=reference,
+        transfer_date=transfer_date,
+        company_id=current_user.company_id,
+        branch_id=branch_id,
+        created_by_id=current_user.id
+    )
+    db.session.add(transfer)
+    db.session.commit()
 
-        try:
-            amount = float(amount)
-        except ValueError:
-            flash("Invalid amount format.", "error")
-            return redirect(url_for('bank.bank_withdraw'))
+    # Cashbook entry
+    add_cashbook_entry(
+        date=transfer_date,
+        particulars=f"Bank Withdrawal - Ref: {reference or 'N/A'}",
+        debit=Decimal('0.00'),
+        credit=amount,
+        company_id=current_user.company_id,
+        branch_id=branch_id,
+        created_by=current_user.id
+    )
 
-        try:
-            transfer_date = datetime.strptime(transfer_date_str, '%Y-%m-%d')
-        except (ValueError, TypeError):
-            flash("Invalid or missing date.", "error")
-            return redirect(url_for('bank.bank_withdraw'))
-
-        branch_id = session.get("active_branch_id")
-
-        transfer = BankTransfer(
-            transfer_type='withdrawal',
-            amount=amount,
-            reference=reference,
-            transfer_date=transfer_date,
-            company_id=current_user.company_id,
-            branch_id=branch_id,
-            created_by_id=current_user.id
-        )
-        db.session.add(transfer)
-
-        cash_entry = CashbookEntry(
-            date=transfer_date,
-            particulars=f"Bank withdrawal - Ref: {reference or 'N/A'}",
-            debit=0.0,
-            credit=amount,
-            balance=0.0,
-            company_id=current_user.company_id,
-            branch_id=branch_id,
-            created_by=current_user.id
-        )
-        db.session.add(cash_entry)
-
-        db.session.commit()
-        flash("Bank withdrawal recorded successfully.", "success")
-        return redirect(url_for('bank.view_transfers'))
-
-    return render_template('bank/withdraw.html', datetime=datetime)
+    flash("Bank withdrawal recorded successfully.", "success")
+    return redirect(url_for('bank.view_transfers'))
 
 @bank_bp.route('/bank-transfers')
 @login_required

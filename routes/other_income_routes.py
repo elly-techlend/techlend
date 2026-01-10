@@ -24,32 +24,30 @@ def view_other_income():
 
     return render_template('other_income/view_other_income.html', incomes=incomes)
 
-@csrf.exempt
 @other_income_bp.route('/other-income/add', methods=['GET', 'POST'])
-@roles_required('Superuser', 'Admin')
 @login_required
+@roles_required('Superuser', 'Admin')
 def add_income():
-    from datetime import datetime
+    from decimal import Decimal
     if request.method == 'POST':
         description = request.form.get('description')
         amount = request.form.get('amount')
-        income_date = request.form.get('income_date')  # optional, else use today
+        income_date = request.form.get('income_date')  # optional
 
-        # Validate inputs
         if not description or not amount:
             flash('Description and Amount are required.', 'error')
             return redirect(url_for('other_income.add_income'))
 
         try:
-            amount = float(amount)
-        except ValueError:
+            amount = Decimal(amount)
+        except Exception:
             flash('Invalid amount format.', 'error')
             return redirect(url_for('other_income.add_income'))
 
         if income_date:
             try:
                 income_date = datetime.strptime(income_date, '%Y-%m-%d').date()
-            except ValueError:
+            except Exception:
                 flash('Invalid date format, use YYYY-MM-DD.', 'error')
                 return redirect(url_for('other_income.add_income'))
         else:
@@ -60,12 +58,24 @@ def add_income():
             amount=amount,
             income_date=income_date,
             company_id=current_user.company_id,
-            branch_id=session.get("active_branch_id"),  # ✅ FIXED LINE
-            created_by_id=current_user.id,
+            branch_id=session.get("active_branch_id"),
+            created_by_id=current_user.id
         )
 
         db.session.add(new_income)
         db.session.commit()
+
+        # Add to cashbook
+        add_cashbook_entry(
+            date=income_date,
+            particulars=f"Other Income: {description}",
+            debit=Decimal('0.00'),
+            credit=amount,
+            company_id=current_user.company_id,
+            branch_id=session.get("active_branch_id"),
+            created_by=current_user.id
+        )
+
         flash('Other income added successfully.', 'success')
         return redirect(url_for('other_income.view_other_income'))
 

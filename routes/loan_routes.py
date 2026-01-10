@@ -9,7 +9,6 @@ from models import Loan, Borrower, LoanRepayment, Collateral, LedgerEntry, Compa
 from flask import session
 from datetime import datetime, timedelta, date
 from utils import get_company_filter
-from routes.cashbook_routes import add_cashbook_entry
 from models import CashbookEntry
 from utils.branch_filter import filter_by_active_branch
 from dateutil.relativedelta import relativedelta
@@ -399,9 +398,6 @@ def edit_ledger_entry(entry_id):
     # 🔹 Update ledger
     entry.payment = payment
     db.session.commit()
-
-    # 🔹 Sync cashbook
-    ledger_to_cashbook(entry)
 
     # 🔹 Recalculate ledger balances
     recalc_repayment_balances(loan_id)
@@ -1029,8 +1025,6 @@ def repay_loan(loan_id):
     db.session.add(entry)
     db.session.commit()
 
-    # Sync cashbook
-    ledger_to_cashbook(entry, created_by=current_user.id)
 
     # 🔁 Recalculate EVERYTHING from ledger
     recalc_repayment_balances(loan.id)

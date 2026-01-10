@@ -16,55 +16,78 @@ from sqlalchemy import func
 # Create the blueprint
 repayment_bp = Blueprint('repayments', __name__)
 
-# Replace @app.route with @repayment_bp.route
 @repayment_bp.route('/repayments', methods=['GET'])
 @login_required
-@roles_required('Admin', 'Accountant', 'Branch_Manager', 'Loans_Officer', 'Loans Supervisor', 'Cashier')
+@roles_required(
+    'Admin', 'Accountant', 'Branch_Manager',
+    'Loans_Officer', 'Loans Supervisor', 'Cashier'
+)
 def all_repayments():
     branch_id = session.get('active_branch_id')
+    filter_type = request.args.get('filter')
+    today = datetime.today().date()
 
-    repayments_query = LoanRepayment.query\
-        .join(Loan)\
-        .join(Borrower, Borrower.id == Loan.borrower_id)\
-        .filter(Loan.company_id == current_user.company_id)
+    # 🔐 BASE QUERY — LEDGER IS SOURCE OF TRUTH
+    repayments_query = (
+        LedgerEntry.query
+        .join(Loan, Loan.id == LedgerEntry.loan_id)
+        .join(Borrower, Borrower.id == Loan.borrower_id)
+        .filter(
+            Loan.company_id == current_user.company_id,
+            LedgerEntry.particulars == 'Loan Repayment',
+            LedgerEntry.payment > 0
+        )
+    )
 
+    # 🏢 BRANCH FILTER
     if branch_id:
         repayments_query = repayments_query.filter(Loan.branch_id == branch_id)
 
-    filter_type = request.args.get('filter')  # <-- read 'filter' parameter from template
-    today = datetime.today().date()
-
+    # 📅 DATE FILTERS
     if filter_type == 'today':
-        repayments_query = repayments_query.filter(func.date(LoanRepayment.date_paid) == today)
+        repayments_query = repayments_query.filter(
+            LedgerEntry.date == today
+        )
+
     elif filter_type == 'weekly':
         start_week = today - timedelta(days=today.weekday())  # Monday
         end_week = start_week + timedelta(days=7)
         repayments_query = repayments_query.filter(
-            LoanRepayment.date_paid >= start_week,
-            LoanRepayment.date_paid < end_week
+            LedgerEntry.date >= start_week,
+            LedgerEntry.date < end_week
         )
+
     elif filter_type == 'monthly':
         month = int(request.args.get('month', today.month))
         year = int(request.args.get('year', today.year))
-        start_date = datetime(year, month, 1)
+        start_date = datetime(year, month, 1).date()
         month_days = calendar.monthrange(year, month)[1]
         end_date = start_date + timedelta(days=month_days)
-        end_date = end_date.replace(day=1)  # first day of next month
         repayments_query = repayments_query.filter(
-            LoanRepayment.date_paid >= start_date,
-            LoanRepayment.date_paid < end_date
-        )
-    elif filter_type == 'yearly':
-        year = int(request.args.get('year', today.year))
-        start_date = datetime(year, 1, 1)
-        end_date = datetime(year, 12, 31, 23, 59, 59)
-        repayments_query = repayments_query.filter(
-            LoanRepayment.date_paid >= start_date,
-            LoanRepayment.date_paid <= end_date
+            LedgerEntry.date >= start_date,
+            LedgerEntry.date < end_date
         )
 
-    repayments = repayments_query.order_by(LoanRepayment.date_paid.desc()).all()
-    total_collected = sum(r.amount_paid for r in repayments)
+    elif filter_type == 'yearly':
+        year = int(request.args.get('year', today.year))
+        start_date = datetime(year, 1, 1).date()
+        end_date = datetime(year, 12, 31).date()
+        repayments_query = repayments_query.filter(
+            LedgerEntry.date >= start_date,
+            LedgerEntry.date <= end_date
+        )
+
+    # 🔽 ORDER & FETCH
+    repayments = (
+        repayments_query
+        .order_by(LedgerEntry.date.desc(), LedgerEntry.id.desc())
+        .all()
+    )
+
+    # 💰 TOTAL COLLECTED (LEDGER-BASED)
+    total_collected = sum(
+        (r.payment or Decimal('0.00')) for r in repayments
+    )
 
     return render_template(
         'repayments/view_repayments.html',

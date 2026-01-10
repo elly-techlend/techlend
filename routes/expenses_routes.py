@@ -5,7 +5,6 @@ from extensions import db
 from flask_login import login_required, current_user
 from datetime import datetime
 from models import CashbookEntry
-from routes.cashbook_routes import add_cashbook_entry
 from extensions import csrf
 from decimal import Decimal, InvalidOperation
 
@@ -23,45 +22,39 @@ def all_expenses():
     expenses = query.order_by(Expense.date.desc()).all()
     return render_template('expenses/all_expenses.html', expenses=expenses)
 
-@csrf.exempt
-@expenses_bp.route('/add', methods=['GET', 'POST'])
+@expenses_bp.route('/add', methods=['POST'])
 @login_required
 def add_expense():
-    if request.method == 'POST':
-        date = datetime.strptime(request.form['date'], '%Y-%m-%d')
-        description = request.form['description']
-        amount = Decimal(request.form['amount'])
-        category = request.form.get('category', '')
-        branch_id = session.get('active_branch_id')
+    date = datetime.strptime(request.form['date'], '%Y-%m-%d')
+    description = request.form['description']
+    amount = Decimal(request.form['amount'])
+    branch_id = session.get('active_branch_id')
 
-        expense = Expense(
-            date=date,
-            description=description,
-            amount=amount,
-            category=category,
-            company_id=current_user.company_id,
-            branch_id=branch_id,
-            created_by_id=current_user.id
-        )
+    expense = Expense(
+        date=date,
+        description=description,
+        amount=amount,
+        category=request.form.get('category', ''),
+        company_id=current_user.company_id,
+        branch_id=branch_id,
+        created_by_id=current_user.id
+    )
+    db.session.add(expense)
+    db.session.commit()
 
-        db.session.add(expense)
-        db.session.commit()
+    # Cashbook entry
+    add_cashbook_entry(
+        date=date,
+        particulars=f"Expense: {description}",
+        debit=amount,
+        credit=Decimal('0.00'),
+        company_id=current_user.company_id,
+        branch_id=branch_id,
+        created_by=current_user.id
+    )
 
-        # Add to cashbook as a debit
-        add_cashbook_entry(
-            date=date,
-            particulars=f"Expense: {description}",
-            debit=amount,
-            credit=Decimal("0"),
-            company_id=current_user.company_id,
-            branch_id=branch_id,
-            created_by=current_user.id
-        )
-
-        flash("Expense recorded successfully.", "success")
-        return redirect(url_for('expenses.all_expenses'))
-
-    return render_template('expenses/add_expense.html', current_date=datetime.today().strftime('%Y-%m-%d'))
+    flash("Expense recorded successfully.", "success")
+    return redirect(url_for('expenses.all_expenses'))
 
 from sqlalchemy import extract, func
 

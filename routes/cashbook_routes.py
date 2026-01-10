@@ -1,172 +1,181 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request,session
-from extensions import db
+from flask import Blueprint, render_template, request, session
 from flask_login import login_required, current_user
-from models import Branch
-from utils.decorators import roles_required
-from forms import CashbookEntryForm
-from datetime import date
-from models import CashbookEntry
-from datetime import datetime, timedelta
-import pandas as pd
+from extensions import db
 from sqlalchemy import extract
-from extensions import csrf
-from decimal import Decimal, InvalidOperation
-from cashbook_helpers import recalculate_balances
+from decimal import Decimal
+from models import (
+    CashbookEntry, LedgerEntry, Loan, OtherIncome, Expense,
+    BankTransfer, SavingTransaction, SavingAccount
+)
+from datetime import datetime, timedelta
 
 cashbook_bp = Blueprint('cashbook', __name__, url_prefix='/cashbook')
 
-@cashbook_bp.route('/debug/session')
-@login_required
-def debug_session():
-    return {
-        'active_branch_id': session.get('active_branch_id'),
-        'user_branch_id': current_user.branch_id,
-        'company_id': current_user.company_id,
-        'is_superuser': current_user.is_superuser,
-    }
 
-def recalculate_balances(company_id, branch_id=None):
+def recalc_balances(entries):
+    """Given a list of cashbook entries, compute running balances."""
+    running_balance = Decimal('0.00')
+    for entry in entries:
+        debit = entry.debit or Decimal('0.00')
+        credit = entry.credit or Decimal('0.00')
+        running_balance += credit - debit
+        entry.balance = running_balance
+    return running_balance
+
+
+def refresh_cashbook(company_id, branch_id=None):
+    """Populate Cashbook from all sources: Ledger, Bank, Savings, Expenses, Other Income."""
+    # 1️⃣ Clear existing cashbook entries for this branch/company
     query = CashbookEntry.query.filter_by(company_id=company_id)
     if branch_id:
         query = query.filter_by(branch_id=branch_id)
-
-    entries = query.order_by(CashbookEntry.date, CashbookEntry.id).all()
-
-    running_balance = Decimal('0.00')
-    for entry in entries:
-        credit = entry.credit or Decimal('0.00')
-        debit = entry.debit or Decimal('0.00')
-        running_balance += credit - debit
-        entry.balance = running_balance
-
+    query.delete()
     db.session.commit()
 
-def ledger_to_cashbook(entry, created_by):
-    """
-    Convert a LedgerEntry into a CashbookEntry.
-    Rules:
-        - Loan repayment (cash in) => Credit
-        - Loan disbursement (cash out) => Debit
-    """
-    debit = Decimal('0.00')
-    credit = Decimal('0.00')
-    particulars = entry.particulars
+    # 2️⃣ Loan repayments & disbursements from Ledger
+    ledger_entries = LedgerEntry.query.join(Loan, LedgerEntry.loan_id == Loan.id)\
+        .filter(Loan.company_id == company_id)
+    if branch_id:
+        ledger_entries = ledger_entries.filter(Loan.branch_id == branch_id)
+    ledger_entries = ledger_entries.order_by(LedgerEntry.date.asc(), LedgerEntry.id.asc()).all()
 
-    # Loan repayment = cash in
-    if 'repayment' in particulars.lower():
-        credit = entry.payment
-    # Loan disbursement = cash out
-    elif 'disbursed' in particulars.lower():
-        debit = entry.principal + entry.interest + entry.cumulative_interest
+    for entry in ledger_entries:
+        debit = Decimal('0.00')
+        credit = Decimal('0.00')
+        particulars = entry.particulars or ''
 
-    # Avoid duplicates
-    existing = CashbookEntry.query.filter_by(
-        particulars=particulars,
-        date=entry.date,
-        branch_id=entry.loan.branch_id if entry.loan else None,
-        company_id=entry.loan.company_id if entry.loan else None
-    ).first()
-    if existing:
-        return existing
+        if 'repayment' in particulars.lower():
+            credit = entry.payment or Decimal('0.00')
+        elif 'disbursed' in particulars.lower() or 'loan disbursed' in particulars.lower():
+            debit = entry.principal or Decimal('0.00')
 
-    cb_entry = CashbookEntry(
-        date=entry.date,
-        particulars=particulars,
-        debit=debit,
-        credit=credit,
-        balance=Decimal('0.00'),  # recalculated
-        company_id=entry.loan.company_id if entry.loan else None,
-        branch_id=entry.loan.branch_id if entry.loan else None,
-        created_by=entry.loan.user_id if entry.loan else 1
-    )
-
-    db.session.add(cb_entry)
-    db.session.commit()
-
-    # Recalculate balances
-    recalculate_balances(cb_entry.company_id, cb_entry.branch_id)
-
-    return cb_entry
-
-@cashbook_bp.route('/cashbook/new', methods=['GET', 'POST'])
-@login_required
-def new_cashbook_entry():
-    from app import db
-    from models import CashbookEntry
-    form = CashbookEntryForm()
-    if form.validate_on_submit():
-        last_entry = CashbookEntry.query \
-            .filter_by(company_id=current_user.company_id) \
-            .order_by(CashbookEntry.date.desc(), CashbookEntry.id.desc()) \
-            .first()
-
-        last_balance = Decimal(last_entry.balance) if last_entry else Decimal('0.0')
-
-        debit = Decimal(form.debit.data or '0')
-        credit = Decimal(form.credit.data or '0')
-
-        new_balance = last_balance + credit - debit
-
-        entry = CashbookEntry(
-            date=form.date.data,
-            particulars=form.particulars.data,
+        cb_entry = CashbookEntry(
+            date=entry.date,
+            particulars=particulars,
             debit=debit,
             credit=credit,
-            balance=new_balance,
-            company_id=current_user.company_id,
-            branch_id=current_user.branch_id,
-            created_by=current_user.id
+            balance=Decimal('0.00'),
+            company_id=company_id,
+            branch_id=entry.loan.branch_id if entry.loan else branch_id,
+            created_by=entry.loan.user_id if entry.loan else None
         )
+        db.session.add(cb_entry)
 
-        db.session.add(entry)
-        db.session.commit()
-        flash('Cashbook entry added successfully.', 'success')
-        return redirect(url_for('cashbook.view_cashbook'))
+    # 3️⃣ Other Income → Credit
+    other_incomes = OtherIncome.query.filter_by(company_id=company_id, is_active=True)
+    if branch_id:
+        other_incomes = other_incomes.filter_by(branch_id=branch_id)
+    for income in other_incomes.all():
+        db.session.add(CashbookEntry(
+            date=income.income_date,
+            particulars=f"Other Income: {income.description}",
+            debit=Decimal('0.00'),
+            credit=income.amount,
+            balance=Decimal('0.00'),
+            company_id=company_id,
+            branch_id=income.branch_id,
+            created_by=income.created_by_id
+        ))
 
-    return render_template('cashbook/new_entry.html', form=form)
+    # 4️⃣ Expenses → Debit
+    expenses = Expense.query.filter_by(company_id=company_id)
+    if branch_id:
+        expenses = expenses.filter_by(branch_id=branch_id)
+    for exp in expenses.all():
+        db.session.add(CashbookEntry(
+            date=exp.date,
+            particulars=f"Expense: {exp.description}",
+            debit=exp.amount,
+            credit=Decimal('0.00'),
+            balance=Decimal('0.00'),
+            company_id=company_id,
+            branch_id=exp.branch_id,
+            created_by=exp.created_by_id
+        ))
 
-@cashbook_bp.route('/cashbook', methods=['GET'])
+    # 5️⃣ Bank transfers
+    bank_transfers = BankTransfer.query.filter_by(company_id=company_id, is_active=True)
+    if branch_id:
+        bank_transfers = bank_transfers.filter_by(branch_id=branch_id)
+    for bt in bank_transfers.all():
+        debit = bt.amount if bt.transfer_type == 'deposit' else Decimal('0.00')
+        credit = bt.amount if bt.transfer_type == 'withdrawal' else Decimal('0.00')
+        db.session.add(CashbookEntry(
+            date=bt.transfer_date,
+            particulars=f"Bank {bt.transfer_type.capitalize()} - Ref: {bt.reference or 'N/A'}",
+            debit=debit,
+            credit=credit,
+            balance=Decimal('0.00'),
+            company_id=company_id,
+            branch_id=bt.branch_id,
+            created_by=bt.created_by_id
+        ))
+
+    # 6️⃣ Savings transactions
+    savings_tx = SavingTransaction.query.join(SavingAccount, SavingTransaction.account_id == SavingAccount.id)\
+        .filter(SavingAccount.company_id == company_id)
+    if branch_id:
+        savings_tx = savings_tx.filter(SavingAccount.branch_id == branch_id)
+    for tx in savings_tx.all():
+        debit = tx.amount if tx.transaction_type == 'withdrawal' else Decimal('0.00')
+        credit = tx.amount if tx.transaction_type == 'deposit' else Decimal('0.00')
+        db.session.add(CashbookEntry(
+            date=datetime.utcnow().date(),
+            particulars=f"Savings {tx.transaction_type} by {tx.account.borrower.name}",
+            debit=debit,
+            credit=credit,
+            balance=Decimal('0.00'),
+            company_id=company_id,
+            branch_id=tx.account.branch_id,
+            created_by=current_user.id
+        ))
+
+    db.session.commit()
+
+    # 🔹 Recalculate running balances
+    all_entries = CashbookEntry.query.filter_by(company_id=company_id)
+    if branch_id:
+        all_entries = all_entries.filter_by(branch_id=branch_id)
+    all_entries = all_entries.order_by(CashbookEntry.date.asc(), CashbookEntry.id.asc()).all()
+    recalc_balances(all_entries)
+
+
+@cashbook_bp.route('/', methods=['GET'])
 @login_required
-@roles_required('Superuser', 'Admin', 'Accountant', 'Branch_Manager', 'Loans_Supervisor', 'Cashier')
 def view_cashbook():
     page = request.args.get('page', 1, type=int)
     per_page = 50
     branch_id = session.get('active_branch_id')
-    today = datetime.today()
+
+    # Always refresh cashbook from all sources
+    refresh_cashbook(current_user.company_id, branch_id)
 
     query = CashbookEntry.query.filter_by(company_id=current_user.company_id)
-    if not current_user.is_superuser and branch_id:
+    if branch_id:
         query = query.filter_by(branch_id=branch_id)
 
-    # Get filter type (all, today, weekly, monthly, yearly, etc)
-    filter_option = request.args.get('filter', default=None)
-
-    selected_day = None
-    selected_month = None
-    selected_year = None
+    # Filters
+    today = datetime.today()
+    filter_option = request.args.get('filter')
+    selected_day = request.args.get('day', type=int)
+    selected_month = request.args.get('month', type=int)
+    selected_year = request.args.get('year', type=int)
 
     if filter_option == 'today':
         query = query.filter(CashbookEntry.date == today.date())
     elif filter_option == 'weekly':
-        start_week = today - timedelta(days=today.weekday())  # Monday
-        end_week = start_week + timedelta(days=6)             # Sunday
+        start_week = today - timedelta(days=today.weekday())
+        end_week = start_week + timedelta(days=6)
         query = query.filter(CashbookEntry.date.between(start_week.date(), end_week.date()))
-    elif filter_option == 'monthly':
-        selected_month = request.args.get('month', today.month, type=int)
-        selected_year = request.args.get('year', today.year, type=int)
+    elif filter_option == 'monthly' and selected_month and selected_year:
         query = query.filter(
             extract('month', CashbookEntry.date) == selected_month,
             extract('year', CashbookEntry.date) == selected_year
         )
-    elif filter_option == 'yearly':
-        selected_year = request.args.get('year', today.year, type=int)
+    elif filter_option == 'yearly' and selected_year:
         query = query.filter(extract('year', CashbookEntry.date) == selected_year)
     else:
-        # Fallback: manual day/month/year filters if provided in URL
-        selected_day = request.args.get('day', type=int)
-        selected_month = request.args.get('month', type=int)
-        selected_year = request.args.get('year', type=int)
-
+        # Manual day/month/year filter
         if selected_day:
             query = query.filter(extract('day', CashbookEntry.date) == selected_day)
         if selected_month:
@@ -175,102 +184,33 @@ def view_cashbook():
             query = query.filter(extract('year', CashbookEntry.date) == selected_year)
 
     total_entries = query.count()
-    paginated_entries = query.order_by(CashbookEntry.date.desc(), CashbookEntry.id.desc())\
-                              .paginate(page=page, per_page=per_page, error_out=False)
+    paginated = query.order_by(CashbookEntry.date.desc(), CashbookEntry.id.desc())\
+                     .paginate(page=page, per_page=per_page, error_out=False)
+    entries = paginated.items
 
-    # Compute running balance
-    all_entries = query.all()
-    total_debit = sum(e.debit or Decimal('0.00') for e in all_entries)
-    total_credit = sum(e.credit or Decimal('0.00') for e in all_entries)
-    final_balance = all_entries[-1].balance if all_entries else Decimal('0.00')
+    total_debit = sum(e.debit or Decimal('0.00') for e in entries)
+    total_credit = sum(e.credit or Decimal('0.00') for e in entries)
+    final_balance = entries[-1].balance if entries else Decimal('0.00')
 
-    # Month and year dropdown data
     months = [(i, datetime(2000, i, 1).strftime('%B')) for i in range(1, 13)]
     current_year = datetime.now().year
     years = list(range(current_year - 10, current_year + 1))
 
     return render_template(
         'cashbook/view_cashbook.html',
-        entries=paginated_entries.items,
+        entries=entries,
         total_debit=total_debit,
         total_credit=total_credit,
         final_balance=final_balance,
         current_page=page,
-        total_pages=paginated_entries.pages,
+        total_pages=paginated.pages,
+        months=months,
+        years=years,
         selected_day=selected_day,
         selected_month=selected_month,
         selected_year=selected_year,
-        months=months,
-        years=years,
         filter=filter_option
     )
-
-def add_cashbook_entry(
-    date,
-    particulars,
-    debit,
-    credit,
-    company_id,
-    branch_id=None,
-    created_by=None
-):
-    from models import CashbookEntry
-    from decimal import Decimal
-    from extensions import db
-    from routes.cashbook_routes import recalculate_balances
-
-    if created_by is None:
-        raise ValueError("created_by must be provided")
-
-    entry = CashbookEntry(
-        date=date,
-        particulars=particulars,
-        debit=Decimal(str(debit)),
-        credit=Decimal(str(credit)),
-        balance=Decimal('0.00'),  # recalculated
-        company_id=company_id,
-        branch_id=branch_id,
-        created_by=created_by
-    )
-
-    db.session.add(entry)
-    db.session.commit()  # ✅ THIS WAS MISSING
-
-    # 🔁 ALWAYS recalc after insert
-    recalculate_balances(company_id)
-
-    return entry
-
-@csrf.exempt
-@cashbook_bp.route('/cashbook/edit/<int:entry_id>', methods=['GET', 'POST'])
-@login_required
-def edit_cashbook_entry(entry_id):
-    entry = CashbookEntry.query.get_or_404(entry_id)
-    form = CashbookEntryForm(obj=entry)
-
-    if form.validate_on_submit():
-        entry.date = form.date.data
-        entry.particulars = form.particulars.data
-        entry.debit = Decimal(form.debit.data or 0)
-        entry.credit = Decimal(form.credit.data or 0)
-
-        db.session.commit()
-        recalculate_balances(entry.company_id)
-        flash('Cashbook entry updated.', 'success')
-        return redirect(url_for('cashbook.view_cashbook'))
-
-    return render_template('cashbook/edit_entry.html', form=form, entry=entry)
-
-@csrf.exempt
-@cashbook_bp.route('/cashbook/delete/<int:entry_id>', methods=['POST'])
-@login_required
-def delete_cashbook_entry(entry_id):
-    entry = CashbookEntry.query.get_or_404(entry_id)
-    db.session.delete(entry)
-    db.session.commit()
-    recalculate_balances(entry.company_id)
-    flash('Cashbook entry deleted.', 'warning')
-    return redirect(url_for('cashbook.view_cashbook'))
 
 from flask import send_file
 import io
