@@ -11,6 +11,7 @@ from extensions import csrf
 from decimal import Decimal, InvalidOperation
 from datetime import datetime, timedelta
 from calendar import month_name
+from routes.cashbook_routes import add_cashbook_entry
 
 savings_blueprint = Blueprint('savings', __name__)
 
@@ -214,21 +215,36 @@ def view_transactions(saving_id):
         selected_year=selected_year
     )
 
-# Deposit into a savings account
+# -------------------
+# Deposit into savings
+# -------------------
+@csrf.exempt
 @savings_blueprint.route('/<int:saving_id>/deposit', methods=['POST'])
 @login_required
 @roles_required('Admin', 'Branch_Manager', 'Loans_Supervisor', 'Cashier')
 def deposit(saving_id):
     branch_id = session.get('active_branch_id')
-    saving = SavingAccount.query.filter_by(id=saving_id, company_id=current_user.company_id, branch_id=branch_id).first_or_404()
-    amount = Decimal(request.form['amount'])
+    saving = SavingAccount.query.filter_by(
+        id=saving_id, company_id=current_user.company_id, branch_id=branch_id
+    ).first_or_404()
 
+    try:
+        amount = Decimal(request.form['amount'])
+        if amount <= 0:
+            raise ValueError
+    except Exception:
+        flash('Invalid deposit amount.', 'danger')
+        return redirect(url_for('savings.view_transactions', saving_id=saving.id))
+
+    # Update saving balance
     saving.balance += amount
+
+    # Create transaction
     tx = SavingTransaction(account_id=saving.id, transaction_type='deposit', amount=amount)
     db.session.add(tx)
     db.session.commit()
 
-    # Cashbook entry
+    # Add to cashbook
     add_cashbook_entry(
         date=datetime.utcnow().date(),
         particulars=f"Savings deposit by {saving.borrower.name}",
@@ -243,20 +259,36 @@ def deposit(saving_id):
     return redirect(url_for('savings.view_transactions', saving_id=saving.id))
 
 
+# -------------------
+# Withdraw from savings
+# -------------------
+@csrf.exempt
 @savings_blueprint.route('/<int:saving_id>/withdraw', methods=['POST'])
 @login_required
 @roles_required('Admin', 'Branch_Manager', 'Loans_Supervisor')
 def withdraw(saving_id):
     branch_id = session.get('active_branch_id')
-    saving = SavingAccount.query.filter_by(id=saving_id, company_id=current_user.company_id, branch_id=branch_id).first_or_404()
-    amount = Decimal(request.form['amount'])
+    saving = SavingAccount.query.filter_by(
+        id=saving_id, company_id=current_user.company_id, branch_id=branch_id
+    ).first_or_404()
 
+    try:
+        amount = Decimal(request.form['amount'])
+        if amount <= 0 or amount > saving.balance:
+            raise ValueError
+    except Exception:
+        flash('Invalid or insufficient withdrawal amount.', 'danger')
+        return redirect(url_for('savings.view_transactions', saving_id=saving.id))
+
+    # Update saving balance
     saving.balance -= amount
+
+    # Create transaction
     tx = SavingTransaction(account_id=saving.id, transaction_type='withdrawal', amount=amount)
     db.session.add(tx)
     db.session.commit()
 
-    # Cashbook entry
+    # Add to cashbook
     add_cashbook_entry(
         date=datetime.utcnow().date(),
         particulars=f"Savings withdrawal by {saving.borrower.name}",
@@ -268,4 +300,99 @@ def withdraw(saving_id):
     )
 
     flash('Withdrawal successful.', 'success')
+    return redirect(url_for('savings.view_transactions', saving_id=saving.id))
+
+
+# -------------------
+# Edit a saving transaction
+# -------------------
+@csrf.exempt
+@savings_blueprint.route('/transaction/<int:tx_id>/edit', methods=['POST'])
+@login_required
+@roles_required('Admin', 'Branch_Manager', 'Loans_Supervisor', 'Cashier')
+def edit_transaction(tx_id):
+    tx = SavingTransaction.query.get_or_404(tx_id)
+    saving = tx.account
+    branch_id = saving.branch_id
+
+    try:
+        new_amount = Decimal(request.form['amount'])
+        if new_amount <= 0:
+            raise ValueError
+    except Exception:
+        flash('Invalid transaction amount.', 'danger')
+        return redirect(url_for('savings.view_transactions', saving_id=saving.id))
+
+    # Reverse old transaction effect
+    if tx.transaction_type == 'deposit':
+        saving.balance -= tx.amount
+    else:
+        saving.balance += tx.amount
+
+    # Apply new transaction effect
+    if tx.transaction_type == 'deposit':
+        saving.balance += new_amount
+    else:
+        saving.balance -= new_amount
+
+    # Update transaction
+    tx.amount = new_amount
+    tx.date = datetime.utcnow().date()
+    db.session.commit()
+
+    # Update cashbook
+    cb_entry = CashbookEntry.query.filter_by(
+        date=tx.date,
+        particulars=f"Savings {tx.transaction_type} by {saving.borrower.name}",
+        branch_id=branch_id,
+        company_id=current_user.company_id
+    ).first()
+
+    if cb_entry:
+        if tx.transaction_type == 'deposit':
+            cb_entry.credit = new_amount
+            cb_entry.debit = Decimal('0.00')
+        else:
+            cb_entry.debit = new_amount
+            cb_entry.credit = Decimal('0.00')
+        db.session.commit()
+
+    flash('Transaction updated successfully.', 'success')
+    return redirect(url_for('savings.view_transactions', saving_id=saving.id))
+
+
+# -------------------
+# Delete a saving transaction
+# -------------------
+@csrf.exempt
+@savings_blueprint.route('/transaction/<int:tx_id>/delete', methods=['POST'])
+@login_required
+@roles_required('Admin', 'Branch_Manager', 'Loans_Supervisor', 'Cashier')
+def delete_transaction(tx_id):
+    tx = SavingTransaction.query.get_or_404(tx_id)
+    saving = tx.account
+    branch_id = saving.branch_id
+
+    # Reverse transaction effect on balance
+    if tx.transaction_type == 'deposit':
+        saving.balance -= tx.amount
+    else:
+        saving.balance += tx.amount
+
+    # Delete cashbook entry
+    cb_entry = CashbookEntry.query.filter_by(
+        date=tx.date,
+        particulars=f"Savings {tx.transaction_type} by {saving.borrower.name}",
+        branch_id=branch_id,
+        company_id=current_user.company_id
+    ).first()
+
+    if cb_entry:
+        db.session.delete(cb_entry)
+
+    # Delete transaction
+    db.session.delete(tx)
+    db.session.commit()
+
+    flash('Transaction deleted successfully.', 'success')
     return redirect(url_for('savings.view_transactions', saving_id=saving.id))

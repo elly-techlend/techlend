@@ -7,6 +7,8 @@ from datetime import datetime
 from models import CashbookEntry
 from extensions import csrf
 from decimal import Decimal, InvalidOperation
+from routes.cashbook_routes import add_cashbook_entry, refresh_cashbook
+from utils.decorators import roles_required
 
 expenses_bp = Blueprint('expenses', __name__, url_prefix='/expenses')
 
@@ -22,38 +24,105 @@ def all_expenses():
     expenses = query.order_by(Expense.date.desc()).all()
     return render_template('expenses/all_expenses.html', expenses=expenses)
 
-@expenses_bp.route('/add', methods=['POST'])
+@csrf.exempt
+@expenses_bp.route('/add', methods=['GET', 'POST'])
 @login_required
 def add_expense():
-    date = datetime.strptime(request.form['date'], '%Y-%m-%d')
-    description = request.form['description']
-    amount = Decimal(request.form['amount'])
     branch_id = session.get('active_branch_id')
 
-    expense = Expense(
-        date=date,
-        description=description,
-        amount=amount,
-        category=request.form.get('category', ''),
-        company_id=current_user.company_id,
-        branch_id=branch_id,
-        created_by_id=current_user.id
+    if request.method == 'POST':
+        # 1️⃣ Get form values
+        try:
+            date = datetime.strptime(request.form['date'], '%Y-%m-%d').date()
+            description = request.form['description']
+            amount = Decimal(request.form['amount'])
+            category = request.form.get('category', '')
+        except Exception as e:
+            flash(f"Invalid input: {e}", "danger")
+            return redirect(url_for('expenses.add_expense'))
+
+        # 2️⃣ Save expense
+        expense = Expense(
+            date=date,
+            description=description,
+            amount=amount,
+            category=category,
+            company_id=current_user.company_id,
+            branch_id=branch_id,
+            created_by_id=current_user.id
+        )
+        db.session.add(expense)
+
+        # 3️⃣ Add to cashbook
+        add_cashbook_entry(
+            date=date,
+            particulars=f"Expense: {description}",
+            debit=amount,
+            credit=Decimal('0.00'),
+            company_id=current_user.company_id,
+            branch_id=branch_id,
+            created_by=current_user.id
+        )
+
+        db.session.commit()
+        flash("Expense recorded successfully.", "success")
+        return redirect(url_for('expenses.all_expenses'))
+
+    # GET → show the form
+    return render_template(
+        'expenses/add_expense.html',
+        current_date=datetime.today().strftime('%Y-%m-%d')
     )
-    db.session.add(expense)
+
+@csrf.exempt
+@expenses_bp.route('/<int:expense_id>/edit', methods=['POST'])
+@login_required
+@roles_required('Admin', 'Branch_Manager')
+def edit_expense(expense_id):
+    branch_id = session.get('active_branch_id')
+
+    expense = Expense.query.filter_by(
+        id=expense_id,
+        company_id=current_user.company_id,
+        branch_id=branch_id
+    ).first_or_404()
+
+    expense.description = request.form['description']
+    expense.category = request.form.get('category')
+    expense.amount = float(request.form['amount'])
+
+    expense.date = datetime.strptime(
+        request.form['date'], '%Y-%m-%d'
+    )
+
     db.session.commit()
 
-    # Cashbook entry
-    add_cashbook_entry(
-        date=date,
-        particulars=f"Expense: {description}",
-        debit=amount,
-        credit=Decimal('0.00'),
-        company_id=current_user.company_id,
-        branch_id=branch_id,
-        created_by=current_user.id
-    )
+    # 🔄 Ledger-safe rebuild
+    refresh_cashbook(current_user.company_id, branch_id)
 
-    flash("Expense recorded successfully.", "success")
+    flash('Expense updated successfully.', 'success')
+    return redirect(url_for('expenses.all_expenses'))
+
+@csrf.exempt
+@expenses_bp.route('/<int:expense_id>/delete', methods=['POST'])
+@login_required
+@roles_required('Admin', 'Branch_Manager')
+def delete_expense(expense_id):
+    branch_id = session.get('active_branch_id')
+
+    expense = Expense.query.filter_by(
+        id=expense_id,
+        company_id=current_user.company_id,
+        branch_id=branch_id
+    ).first_or_404()
+
+    db.session.delete(expense)
+    db.session.commit()
+
+    # 🔄 Ledger-safe rebuild
+    refresh_cashbook(current_user.company_id, branch_id)
+
+    flash('Expense deleted successfully.', 'success')
     return redirect(url_for('expenses.all_expenses'))
 
 from sqlalchemy import extract, func

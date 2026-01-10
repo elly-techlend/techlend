@@ -1,29 +1,202 @@
 {% extends 'base.html' %}
+
+{% block title %}Expenses{% endblock %}
+
 {% block content %}
-<h2>All Expenses</h2>
-<a href="{{ url_for('expenses.add_expense') }}" class="btn btn-primary mb-3">Add Expense</a>
+<div class="container-fluid mt-4">
 
-<div class="table-responsive">
-    <table class="table table-bordered">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Description</th>
-                <th>Amount</th>
-                <th>Category</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for expense in expenses %}
-            <tr>
-                <td>{{ expense.date.strftime('%Y-%m-%d') }}</td>
-                <td>{{ expense.description }}</td>
-                <td>{{ expense.amount }}</td>
-                <td>{{ expense.category }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="card">
+        <div class="card-body">
+
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+
+                <!-- Left -->
+                <h4 class="fw-semibold mb-0">
+                    <i class="fas fa-receipt me-2"></i> Expenses
+                </h4>
+
+                <!-- Center -->
+                <a href="{{ url_for('expenses.add_expense') }}"
+                   class="btn btn-danger btn-sm">
+                    <i class="fas fa-plus me-1"></i> Add Expense
+                </a>
+
+                <!-- Right -->
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                            type="button"
+                            data-bs-toggle="dropdown">
+                        <i class="fas fa-filter me-1"></i> Filter
+                    </button>
+
+                    <ul class="dropdown-menu dropdown-menu-end p-3" style="min-width: 220px;">
+                        <li class="mb-2">
+                            <a href="{{ url_for('expenses.all_expenses') }}"
+                               class="dropdown-item {% if not filter %}active{% endif %}">
+                                <i class="fas fa-list me-2"></i> All
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="{{ url_for('expenses.all_expenses', filter='today') }}"
+                               class="dropdown-item {% if filter == 'today' %}active{% endif %}">
+                                <i class="fas fa-calendar-day me-2"></i> Today
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="{{ url_for('expenses.all_expenses', filter='weekly') }}"
+                               class="dropdown-item {% if filter == 'weekly' %}active{% endif %}">
+                                <i class="fas fa-calendar-week me-2"></i> Weekly
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="{{ url_for('expenses.all_expenses', filter='monthly') }}"
+                               class="dropdown-item {% if filter == 'monthly' %}active{% endif %}">
+                                <i class="fas fa-calendar-alt me-2"></i> Monthly
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('expenses.all_expenses', filter='yearly') }}"
+                               class="dropdown-item {% if filter == 'yearly' %}active{% endif %}">
+                                <i class="fas fa-calendar me-2"></i> Yearly
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+            </div>
+
+            <!-- Table -->
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th class="text-end">Amount</th>
+                            <th>Category</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for expense in expenses %}
+                        <tr>
+                            <td>{{ expense.date.strftime('%Y-%m-%d') }}</td>
+
+                            <td>{{ expense.description }}</td>
+
+                            <td class="text-end">
+                                UGX {{ "{:,.2f}".format(expense.amount) }}
+                            </td>
+
+                            <td>
+                                {{ expense.category or '—' }}
+                            </td>
+
+                            <td class="text-center">
+
+                                <!-- Edit -->
+                                <button class="btn btn-sm btn-outline-primary"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#editExpense{{ expense.id }}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+
+                                <!-- Delete -->
+                                <form method="POST"
+                                      action="{{ url_for('expenses.delete_expense', expense_id=expense.id) }}"
+                                      class="d-inline"
+                                      onsubmit="return confirm('Delete this expense?');">
+                                    <button class="btn btn-sm btn-outline-danger">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+
+                            </td>
+                        </tr>
+
+                        <!-- Edit Modal -->
+                        <div class="modal fade" id="editExpense{{ expense.id }}" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+
+                                    <form method="POST"
+                                          action="{{ url_for('expenses.edit_expense', expense_id=expense.id) }}">
+
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">
+                                                <i class="fas fa-edit me-2"></i>Edit Expense
+                                            </h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+
+                                        <div class="modal-body">
+
+                                            <div class="mb-2">
+                                                <label class="form-label">Description</label>
+                                                <input type="text"
+                                                       name="description"
+                                                       class="form-control"
+                                                       value="{{ expense.description }}"
+                                                       required>
+                                            </div>
+
+                                            <div class="mb-2">
+                                                <label class="form-label">Amount</label>
+                                                <input type="number"
+                                                       step="0.01"
+                                                       min="0"
+                                                       name="amount"
+                                                       class="form-control"
+                                                       value="{{ expense.amount }}"
+                                                       required>
+                                            </div>
+
+                                            <div class="mb-2">
+                                                <label class="form-label">Category</label>
+                                                <input type="text"
+                                                       name="category"
+                                                       class="form-control"
+                                                       value="{{ expense.category }}">
+                                            </div>
+
+                                            <div class="mb-2">
+                                                <label class="form-label">Date</label>
+                                                <input type="date"
+                                                       name="date"
+                                                       class="form-control"
+                                                       value="{{ expense.date.strftime('%Y-%m-%d') }}"
+                                                       required>
+                                            </div>
+
+                                        </div>
+
+                                        <div class="modal-footer">
+                                            <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <button class="btn btn-primary">Save Changes</button>
+                                        </div>
+
+                                    </form>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">
+                                No expense records found.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+
+                </table>
+            </div>
+
+        </div>
+    </div>
+
 </div>
-
 {% endblock %}

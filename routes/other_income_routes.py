@@ -5,6 +5,7 @@ from models import OtherIncome
 from datetime import datetime
 from utils.decorators import roles_required
 from extensions import csrf
+from routes.cashbook_routes import add_cashbook_entry
 
 other_income_bp = Blueprint('other_income', __name__,)
 
@@ -24,6 +25,7 @@ def view_other_income():
 
     return render_template('other_income/view_other_income.html', incomes=incomes)
 
+@csrf.exempt
 @other_income_bp.route('/other-income/add', methods=['GET', 'POST'])
 @login_required
 @roles_required('Superuser', 'Admin')
@@ -80,3 +82,57 @@ def add_income():
         return redirect(url_for('other_income.view_other_income'))
 
     return render_template('other_income/add_income.html', datetime=datetime)
+
+@csrf.exempt
+@other_income_bp.route('/edit/<int:income_id>', methods=['POST'])
+@login_required
+@roles_required('Admin', 'Branch_Manager', 'Accountant')
+def edit_income(income_id):
+
+    income = OtherIncome.query.filter_by(
+        id=income_id,
+        company_id=current_user.company_id
+    ).first_or_404()
+
+    # Update fields
+    income.description = request.form['description']
+    income.amount = Decimal(request.form['amount'])
+    income.income_date = datetime.strptime(
+        request.form['income_date'], '%Y-%m-%d'
+    ).date()
+
+    db.session.commit()
+
+    # 🔁 Rebuild cashbook safely
+    refresh_cashbook(
+        company_id=income.company_id,
+        branch_id=income.branch_id
+    )
+
+    flash('Income updated successfully.', 'success')
+    return redirect(url_for('other_income.view_income'))
+
+@csrf.exempt
+@other_income_bp.route('/delete/<int:income_id>', methods=['POST'])
+@login_required
+@roles_required('Admin', 'Branch_Manager')
+def delete_income(income_id):
+
+    income = OtherIncome.query.filter_by(
+        id=income_id,
+        company_id=current_user.company_id
+    ).first_or_404()
+
+    # Soft delete (preferred)
+    income.is_active = False
+
+    db.session.commit()
+
+    # 🔁 Rebuild cashbook
+    refresh_cashbook(
+        company_id=income.company_id,
+        branch_id=income.branch_id
+    )
+
+    flash('Income deleted successfully.', 'success')
+    return redirect(url_for('other_income.view_income'))

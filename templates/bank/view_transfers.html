@@ -1,69 +1,136 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container mt-4">
- <h3 class="mb-0">📋 Review Bank Transaction </h3>
-  <div class="card shadow rounded p-4">
-    <h3 class="mb-4"><i class="fa fa-exchange-alt me-2 text-primary"></i> All Bank Transfers</h3>
 
-    <!-- Filters -->
-    <form method="get" class="row g-3 mb-4">
-      <div class="col-md-3">
-        <label class="form-label">Start Date</label>
-        <input type="date" class="form-control" name="start_date" value="{{ request.args.get('start_date', '') }}">
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">End Date</label>
-        <input type="date" class="form-control" name="end_date" value="{{ request.args.get('end_date', '') }}">
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Transfer Type</label>
-        <select name="type" class="form-select">
-          <option value="">All</option>
-          <option value="deposit" {% if request.args.get('type') == 'deposit' %}selected{% endif %}>Deposit</option>
-          <option value="withdraw" {% if request.args.get('type') == 'withdraw' %}selected{% endif %}>Withdraw</option>
-        </select>
-      </div>
-      <div class="col-md-3 d-flex align-items-end justify-content-end gap-2">
-        <button type="submit" class="btn btn-primary">Filter</button>
-        <a href="{{ url_for('bank.export_transfers_pdf') }}" class="btn btn-outline-secondary" target="_blank">
-          <i class="fa fa-file-pdf"></i> Export PDF
-        </a>
-      </div>
-    </form>
+<div class="container-fluid mt-4">
 
-    <!-- Transfer Table -->
-    <div class="table-responsive">
-      <table class="table table-bordered table-hover">
-        <thead class="table-light">
-          <tr>
-            <th>Date</th>
-            <th>Type</th>
-            <th>Amount</th>
-            <th>Reference</th>
-            <th>Branch</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for transfer in transfers %}
-          <tr>
-            <td>{{ transfer.transfer_date.strftime('%Y-%m-%d') }}</td>
-            <td>
-              <span class="badge {% if transfer.transfer_type == 'deposit' %}bg-success{% else %}bg-danger{% endif %} text-capitalize">
-                {{ transfer.transfer_type }}
-              </span>
-            </td>
-            <td>UGX{{ "{:,.2f}".format(transfer.amount) }}</td>
-            <td>{{ transfer.reference or '—' }}</td>
-            <td>{{ transfer.branch.name if transfer.branch else '—' }}</td>
-          </tr>
-          {% else %}
-          <tr>
-            <td colspan="5" class="text-center text-muted">No bank transfers found.</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <div class="card">
+        <div class="card-body">
+
+            <!-- Header + Filter -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+
+                <h4 class="fw-semibold mb-0">
+                    <i class="fa fa-university me-2"></i> Bank Transfers
+                </h4>
+
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                            type="button"
+                            id="bankFilterMenu"
+                            data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                        <i class="fas fa-filter me-1"></i> Filter
+                    </button>
+
+                    <ul class="dropdown-menu p-3" aria-labelledby="bankFilterMenu" style="min-width: 220px;">
+
+                        <li class="mb-2">
+                            <a href="{{ url_for('bank.view_transfers') }}"
+                               class="dropdown-item {% if not filter %}active{% endif %}">
+                                <i class="fas fa-list-ul me-2"></i> All
+                            </a>
+                        </li>
+
+                        <li class="mb-2">
+                            <a href="{{ url_for('bank.view_transfers', filter='today') }}"
+                               class="dropdown-item {% if filter == 'today' %}active{% endif %}">
+                                <i class="fas fa-calendar-day me-2"></i> Today
+                            </a>
+                        </li>
+
+                        <li class="mb-2">
+                            <a href="{{ url_for('bank.view_transfers', filter='weekly') }}"
+                               class="dropdown-item {% if filter == 'weekly' %}active{% endif %}">
+                                <i class="fas fa-calendar-week me-2"></i> Weekly
+                            </a>
+                        </li>
+
+                        <li class="mb-2">
+                            <a href="{{ url_for('bank.view_transfers', filter='monthly') }}"
+                               class="dropdown-item {% if filter == 'monthly' %}active{% endif %}">
+                                <i class="fas fa-calendar-alt me-2"></i> Monthly
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href="{{ url_for('bank.view_transfers', filter='yearly') }}"
+                               class="dropdown-item {% if filter == 'yearly' %}active{% endif %}">
+                                <i class="fas fa-calendar me-2"></i> Yearly
+                            </a>
+                        </li>
+
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th class="text-end">Amount</th>
+                            <th>Reference</th>
+                            <th>Branch</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                    {% for transfer in transfers %}
+                        <tr>
+                            <td>{{ transfer.transfer_date.strftime('%Y-%m-%d') }}</td>
+
+                            <td>
+                                <span class="badge
+                                    {% if transfer.transfer_type == 'deposit' %}
+                                        bg-success
+                                    {% else %}
+                                        bg-danger
+                                    {% endif %}">
+                                    {{ transfer.transfer_type|capitalize }}
+                                </span>
+                            </td>
+
+                            <td class="text-end">
+                                UGX {{ "{:,.2f}".format(transfer.amount) }}
+                            </td>
+
+                            <td>{{ transfer.reference or '—' }}</td>
+
+                            <td>{{ transfer.branch.name if transfer.branch else '—' }}</td>
+
+                            <td class="text-center">
+                                <a href="{{ url_for('bank.edit_transfer', transfer_id=transfer.id) }}"
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+
+                                <form method="post"
+                                      action="{{ url_for('bank.delete_transfer', transfer_id=transfer.id) }}"
+                                      class="d-inline"
+                                      onsubmit="return confirm('Delete this bank transaction?');">
+                                    <button class="btn btn-sm btn-outline-danger">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">
+                                No bank transfers found.
+                            </td>
+                        </tr>
+                    {% endfor %}
+
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
     </div>
-  </div>
 </div>
+
 {% endblock %}

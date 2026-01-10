@@ -22,6 +22,123 @@ def recalc_balances(entries):
         entry.balance = running_balance
     return running_balance
 
+def sync_cashbook_entries(company_id, branch_id=None):
+    """
+    Sync ledger entries to the cashbook without rebuilding the whole table.
+    Only inserts new ledger entries that are missing in the cashbook.
+    """
+    # 1️⃣ Get all ledger entries for the company (and branch)
+    query = LedgerEntry.query.filter_by(company_id=company_id)
+    if branch_id:
+        query = query.filter_by(branch_id=branch_id)
+    ledger_entries = query.order_by(LedgerEntry.date.asc(), LedgerEntry.id.asc()).all()
+
+    # 2️⃣ Get last cashbook entry for running balance
+    last_cb = CashbookEntry.query.filter_by(company_id=company_id)
+    if branch_id:
+        last_cb = last_cb.filter_by(branch_id=branch_id)
+    last_cb = last_cb.order_by(CashbookEntry.date.desc(), CashbookEntry.id.desc()).first()
+
+    running_balance = last_cb.balance if last_cb else Decimal('0.00')
+
+    # 3️⃣ Insert missing ledger entries
+    for entry in ledger_entries:
+        # Skip if already exists in cashbook
+        exists = CashbookEntry.query.filter_by(
+            date=entry.date,
+            particulars=entry.particulars,
+            company_id=company_id,
+            branch_id=entry.branch_id
+        ).first()
+        if exists:
+            continue
+
+        debit = Decimal(entry.debit or 0)
+        credit = Decimal(entry.credit or 0)
+        running_balance += debit - credit
+
+        cb_entry = CashbookEntry(
+            date=entry.date,
+            particulars=entry.particulars,
+            debit=debit,
+            credit=credit,
+            balance=running_balance,
+            company_id=entry.company_id,
+            branch_id=entry.branch_id,
+            created_by=entry.created_by_id
+        )
+        db.session.add(cb_entry)
+
+    db.session.commit()
+
+def add_cashbook_entry(date, particulars, debit, credit, company_id, branch_id, created_by):
+    from extensions import db
+    from models import CashbookEntry
+
+    cb_entry = CashbookEntry(
+        date=date,
+        particulars=particulars,
+        debit=debit,
+        credit=credit,
+        balance=0.0,
+        company_id=company_id,
+        branch_id=branch_id,
+        created_by=created_by
+    )
+    db.session.add(cb_entry)
+    db.session.commit()
+
+def ledger_to_cashbook(entry, created_by=None):
+    """
+    Convert a LedgerEntry into a CashbookEntry.
+    Handles branch, company, and created_by properly.
+    """
+    debit = Decimal('0.00')
+    credit = Decimal('0.00')
+    particulars = entry.particulars or ""
+
+    # Loan repayment = cash in
+    if "repayment" in particulars.lower():
+        credit = entry.payment or Decimal('0.00')
+    # Loan disbursement = cash out
+    elif "disbursed" in particulars.lower():
+        debit = (
+            (entry.principal or Decimal('0.00')) +
+            (entry.interest or Decimal('0.00')) +
+            (entry.cumulative_interest or Decimal('0.00'))
+        )
+
+    # Avoid duplicates
+    existing = CashbookEntry.query.filter_by(
+        particulars=particulars,
+        date=entry.date,
+        branch_id=entry.loan.branch_id if entry.loan else None,
+        company_id=entry.loan.company_id if entry.loan else None
+    ).first()
+    if existing:
+        return existing
+
+    # Use the provided created_by or fallback to loan's creator
+    cb_created_by = created_by or (entry.loan.created_by if entry.loan else None)
+
+    cb_entry = CashbookEntry(
+        date=entry.date,
+        particulars=particulars,
+        debit=debit,
+        credit=credit,
+        balance=Decimal('0.00'),  # recalculated below
+        company_id=entry.loan.company_id if entry.loan else None,
+        branch_id=entry.loan.branch_id if entry.loan else None,
+        created_by=cb_created_by
+    )
+
+    db.session.add(cb_entry)
+    db.session.commit()
+
+    # Recalculate running balances for this branch/company
+    refresh_cashbook(cb_entry.company_id, cb_entry.branch_id)
+
+    return cb_entry
 
 def refresh_cashbook(company_id, branch_id=None):
     """Populate Cashbook from all sources: Ledger, Bank, Savings, Expenses, Other Income."""
@@ -32,7 +149,7 @@ def refresh_cashbook(company_id, branch_id=None):
     query.delete()
     db.session.commit()
 
-    # 2️⃣ Loan repayments & disbursements from Ledger
+    # 2️ Loan repayments & disbursements from Ledger
     ledger_entries = LedgerEntry.query.join(Loan, LedgerEntry.loan_id == Loan.id)\
         .filter(Loan.company_id == company_id)
     if branch_id:
@@ -40,13 +157,22 @@ def refresh_cashbook(company_id, branch_id=None):
     ledger_entries = ledger_entries.order_by(LedgerEntry.date.asc(), LedgerEntry.id.asc()).all()
 
     for entry in ledger_entries:
+        particulars = (entry.particulars or '').lower().strip()
+    
+        # 🔒 Skip ledger markers that do NOT affect cash
+        if particulars in ('loan application', 'loan approved'):
+            continue
+
         debit = Decimal('0.00')
         credit = Decimal('0.00')
-        particulars = entry.particulars or ''
+        borrower_name = entry.loan.borrower_name if entry.loan else 'Unknown'
 
-        if 'repayment' in particulars.lower():
+        # Build particulars with borrower name
+        if 'repayment' in particulars:
+            particulars = f"Loan Repayment by {borrower_name}"
             credit = entry.payment or Decimal('0.00')
-        elif 'disbursed' in particulars.lower() or 'loan disbursed' in particulars.lower():
+        elif 'disbursed' in particulars:
+            particulars = f"Loan Disbursed to {borrower_name}"
             debit = entry.principal or Decimal('0.00')
 
         cb_entry = CashbookEntry(
@@ -57,9 +183,26 @@ def refresh_cashbook(company_id, branch_id=None):
             balance=Decimal('0.00'),
             company_id=company_id,
             branch_id=entry.loan.branch_id if entry.loan else branch_id,
-            created_by=entry.loan.user_id if entry.loan else None
+            created_by=entry.loan.created_by if entry.loan else None
         )
         db.session.add(cb_entry)
+
+    # 2b️ Add processing fees as Cashbook entries
+    loans_with_fees = Loan.query.filter_by(company_id=company_id).filter(Loan.processing_fee > 0)
+    if branch_id:
+        loans_with_fees = loans_with_fees.filter(Loan.branch_id == branch_id)
+
+    for loan in loans_with_fees.all():
+        db.session.add(CashbookEntry(
+            date=loan.date,
+            particulars=f"Processing fee received from {loan.borrower_name}",
+            debit=Decimal('0.00'),
+            credit=loan.processing_fee,
+            balance=Decimal('0.00'),
+            company_id=company_id,
+            branch_id=loan.branch_id,
+            created_by=loan.created_by
+        ))
 
     # 3️⃣ Other Income → Credit
     other_incomes = OtherIncome.query.filter_by(company_id=company_id, is_active=True)
@@ -120,7 +263,7 @@ def refresh_cashbook(company_id, branch_id=None):
         debit = tx.amount if tx.transaction_type == 'withdrawal' else Decimal('0.00')
         credit = tx.amount if tx.transaction_type == 'deposit' else Decimal('0.00')
         db.session.add(CashbookEntry(
-            date=datetime.utcnow().date(),
+            date=tx.date,
             particulars=f"Savings {tx.transaction_type} by {tx.account.borrower.name}",
             debit=debit,
             credit=credit,

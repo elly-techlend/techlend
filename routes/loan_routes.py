@@ -27,6 +27,7 @@ from utils.utils import sum_paid
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from weasyprint import HTML, CSS
 from cashbook_helpers import ledger_to_cashbook, recalculate_balances
+from routes.cashbook_routes import add_cashbook_entry
 
 loan_bp = Blueprint('loan', __name__)
 
@@ -1025,6 +1026,9 @@ def repay_loan(loan_id):
     db.session.add(entry)
     db.session.commit()
 
+    # 🔹 Create voucher from ledger entry
+    from routes.voucher_routes import create_voucher_from_ledger
+    create_voucher_from_ledger(entry)
 
     # 🔁 Recalculate EVERYTHING from ledger
     recalc_repayment_balances(loan.id)

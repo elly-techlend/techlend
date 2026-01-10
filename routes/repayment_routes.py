@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from utils.logging import log_company_action, log_system_action, log_action
 from xhtml2pdf import pisa
 import io
-from models import Borrower, Loan, LoanRepayment
+from models import Borrower, Loan, LoanRepayment, LedgerEntry
 from extensions import db
 from flask import session
 from sqlalchemy.orm import joinedload

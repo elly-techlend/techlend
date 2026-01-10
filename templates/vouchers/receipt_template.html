@@ -5,8 +5,8 @@
     <h3 style="margin: 0;">{{ company.name if company else 'Company' }}</h3>
     <p style="margin: 0;">{{ branch.name if branch else '' }} | {{ branch.phone_number if branch else '' }}</p>
     <h4 style="margin-top: 10px; text-decoration: underline;">Payment Receipt</h4>
-    <p style="margin: 0;">Receipt #: {{ voucher.voucher_number }}</p>
-    <p style="margin: 0;">Date: {{ voucher.date.strftime('%Y-%m-%d') }}</p>
+    <p style="margin: 0;">Receipt #: {{ voucher.voucher_number or 'N/A' }}</p>
+    <p style="margin: 0;">Date: {{ voucher.date.strftime('%Y-%m-%d') if voucher.date else 'N/A' }}</p>
   </div>
 
   <!-- Acknowledgement -->
@@ -15,7 +15,7 @@
   <!-- Borrower & Loan -->
   <p><strong>Borrower:</strong> {{ borrower.name if borrower else 'N/A' }}</p>
   <p><strong>Loan ID:</strong> {{ loan.loan_id if loan else 'N/A' }}</p>
-  <p><strong>Amount Paid:</strong> {{ '{:,.2f}'.format(voucher.amount) }} ({{ amount_words }})</p>
+  <p><strong>Amount Paid:</strong> {{ voucher.amount | default(0) | float | round(2) }} ({{ amount_words or 'N/A' }})</p>
 
   <!-- Allocation Breakdown -->
   <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 14px;">
@@ -29,10 +29,18 @@
     </thead>
     <tbody>
       <tr>
-        <td style="border: 1px solid #000; padding: 6px;">{{ '{:,.2f}'.format(principal_paid) }}</td>
-        <td style="border: 1px solid #000; padding: 6px;">{{ '{:,.2f}'.format(interest_paid) }}</td>
-        <td style="border: 1px solid #000; padding: 6px;">{{ '{:,.2f}'.format(cumulative_interest) }}</td>
-        <td style="border: 1px solid #000; padding: 6px;">{{ '{:,.2f}'.format(voucher.amount) }}</td>
+        <td style="border: 1px solid #000; padding: 6px;">
+            {{ principal_paid | default(0) | float | round(2) }}
+        </td>
+        <td style="border: 1px solid #000; padding: 6px;">
+            {{ interest_paid | default(0) | float | round(2) }}
+        </td>
+        <td style="border: 1px solid #000; padding: 6px;">
+            {{ cumulative_interest | default(0) | float | round(2) }}
+        </td>
+        <td style="border: 1px solid #000; padding: 6px;">
+            {{ voucher.amount | default(0) | float | round(2) }}
+        </td>
       </tr>
     </tbody>
   </table>
@@ -46,7 +54,7 @@
       <p>______________________</p>
     </div>
     <div style="text-align: center;">
-      <p>Served By: {{ user.full_name if user else 'N/A' }}</p>
+      <p>Served By: {{ user.full_name if user else 'System' }}</p>
       <p>______________________</p>
     </div>
   </div>
